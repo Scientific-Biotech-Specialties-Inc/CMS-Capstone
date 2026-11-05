@@ -487,7 +487,7 @@ class ContractController extends Controller
     public function update(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -685,7 +685,7 @@ class ContractController extends Controller
     public function destroy(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -853,7 +853,7 @@ class ContractController extends Controller
             'workflowStatus',
             'region',
         ])->where('contract_code', $id)
-          ->orWhere('contract_id', $id)
+          ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
           ->firstOrFail();
 
         $role = $request->get('auth_role');
@@ -877,7 +877,7 @@ class ContractController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
 
         // Separation of Duties: a contract creator cannot approve or reject
@@ -1037,7 +1037,7 @@ class ContractController extends Controller
     public function notifyResponsibleRole(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
 
         if ($contract->notify_manager_count >= 2) {

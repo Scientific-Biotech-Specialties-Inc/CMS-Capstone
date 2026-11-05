@@ -158,8 +158,15 @@ function mapApiToRequest(d: any, currentUserId: number | null, firstName?: strin
     ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
     : d.creator_name ? d.creator_name : (d.created_by ? `User #${d.created_by}` : '—')
 
+  const contractDbId = typeof d.contract_db_id === 'number'
+    ? d.contract_db_id
+    : (typeof d.contract_id === 'number' ? d.contract_id : (!isNaN(Number(d.contract_id)) ? Number(d.contract_id) : undefined))
+  const rawContractId = d.contract_code ?? d.contract_db_id ?? d.contract_id
+
   return {
     id: `REQ-${String(d.contract_id).padStart(3, '0')}`,
+    contractId: rawContractId ? String(rawContractId) : undefined,
+    contractDbId,
     businessPartner: d.bp_name ?? '',
     category: d.category ?? '',
     description: d.description ?? '',
