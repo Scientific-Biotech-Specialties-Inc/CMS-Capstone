@@ -5,7 +5,7 @@ services:
     image: mysql:8.0
     container_name: cms-mysql
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     command: --innodb-buffer-pool-size=64M --innodb-log-buffer-size=8M --max-connections=10 --key-buffer-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
@@ -30,7 +30,7 @@ services:
     image: redis:7
     container_name: cms-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     networks:
       - shared-capstone-network
     deploy:
@@ -42,7 +42,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: cms-postgres
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     command: -c shared_buffers=64MB -c work_mem=4MB -c max_connections=20
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -69,7 +69,7 @@ services:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme}
       - MEILI_ENV=development
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     volumes:
       - meili_data:/meili_data
     networks:
@@ -89,7 +89,7 @@ services:
       PMA_HOST: mysql
       PMA_PORT: 3306
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     depends_on:
       mysql:
         condition: service_healthy
@@ -109,7 +109,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,7 +128,7 @@ services:
       - ./services/vendor-management:/var/www/html
       - vendor-management-vendor:/var/www/html/vendor
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
@@ -151,10 +151,11 @@ services:
       - ./services/contract-management:/var/www/html
       - contract-management-vendor:/var/www/html/vendor
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
     command: sh -c "composer install --no-scripts && sleep 10 && php artisan migrate --force && (php artisan schedule:work &) && (php artisan queue:work --queue=contract_queue,default --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - PRS_INTEGRATION_KEY=${PRS_INTEGRATION_KEY:-}
       - PHP_CLI_SERVER_WORKERS=4
     depends_on:
       mysql:
@@ -175,7 +176,7 @@ services:
       - ./services/search:/var/www/html
       - search-vendor:/var/www/html/vendor
     ports:
-      - "8003:8000"
+      - "127.0.0.1:8003:8000"
     command: sh -c "composer install --no-scripts && sleep 15 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     depends_on:
       meilisearch:
@@ -196,7 +197,7 @@ services:
       - ./services/notification:/var/www/html
       - notification-vendor:/var/www/html/vendor
     ports:
-      - "8004:8000"
+      - "127.0.0.1:8004:8000"
     command: sh -c "composer install --no-scripts && sleep 20 && php artisan migrate --force && (php artisan queue:work --queue=notification_queue --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
@@ -219,7 +220,7 @@ services:
       - ./services/analytics-service:/var/www/html
       - analytics-service-vendor:/var/www/html/vendor
     ports:
-      - "8005:8000"
+      - "127.0.0.1:8005:8000"
     command: sh -c "composer install --no-scripts && sleep 5 && mysql --skip-ssl -h mysql -u root -p${MYSQL_PASSWORD} -e 'CREATE DATABASE IF NOT EXISTS \`cms-analytics-db\`;' && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
@@ -242,7 +243,7 @@ services:
       - ./services/ai-service:/var/www/html
       - ai-service-vendor:/var/www/html/vendor
     ports:
-      - "8006:8000"
+      - "127.0.0.1:8006:8000"
     command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && (php artisan queue:work --queue=ai_queue --sleep=3 --tries=1 --timeout=300 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
@@ -287,7 +288,7 @@ services:
       - ./frontend/web:/app
       - web-node-modules:/app/node_modules
     ports:
-      - "5001:5001"
+      - "127.0.0.1:5001:5001"
     expose:
       - "5001"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5001"
