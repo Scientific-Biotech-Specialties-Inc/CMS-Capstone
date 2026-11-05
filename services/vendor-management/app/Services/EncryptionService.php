@@ -14,6 +14,9 @@ class EncryptionService
         try {
             $key = env('FIELD_ENCRYPTION_KEY');
             if ($key) {
+                if (str_starts_with($key, 'base64:')) {
+                    $key = substr($key, 7);
+                }
                 $decodedKey = base64_decode($key);
                 $this->encrypter = new Encrypter($decodedKey, 'aes-256-cbc');
             }

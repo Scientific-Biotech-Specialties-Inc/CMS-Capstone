@@ -16,6 +16,10 @@ class NotifyManagerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\SyncContractToMeilisearch::class,
+            \App\Jobs\RemoveContractFromMeilisearch::class,
+        ]);
         \Illuminate\Support\Facades\Cache::store('file')->flush();
         $this->seedContractLookups();
     }

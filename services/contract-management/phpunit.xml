@@ -31,5 +31,6 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="AUTH_SERVICE_URL" value="http://auth-service:8000/api"/>
+        <env name="FIELD_ENCRYPTION_KEY" value="4vA2v9O+0yL1eH6pZ8sQ2w3eR4tY5uI6oP7aS8dF9g0="/>
     </php>
 </phpunit>
