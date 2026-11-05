@@ -880,6 +880,11 @@ class ContractController extends Controller
             ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
 
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         // Separation of Duties: a contract creator cannot approve or reject
         // their own contract when enforce_sod is active.
         if (
@@ -1039,6 +1044,11 @@ class ContractController extends Controller
         $contract = Contract::where('contract_code', $id)
             ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         if ($contract->notify_manager_count >= 2) {
             return response()->json(['message' => 'The manager is already notified, please wait.'], 429);
