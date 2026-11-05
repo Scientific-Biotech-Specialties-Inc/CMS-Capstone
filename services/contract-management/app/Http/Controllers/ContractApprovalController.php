@@ -80,6 +80,17 @@ class ContractApprovalController extends Controller
 
         $contract = Contract::where('contract_code', $id)->orWhere('contract_id', $id)->firstOrFail();
 
+        // Separation of Duties: a contract creator cannot record high-risk approval decisions on their own contract.
+        if (
+            config('services.features.enforce_sod')
+            && $contract->created_by !== null
+            && (int) $contract->created_by === (int) $request->get('auth_id')
+        ) {
+            return response()->json([
+                'message' => 'You cannot record a high-risk approval decision on a contract you created.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'decision'  => 'required|string|in:approved,rejected',
             'rationale' => 'required|string|min:5',

@@ -861,6 +861,18 @@ class ContractController extends Controller
             ->orWhere('contract_id', $id)
             ->firstOrFail();
 
+        // Separation of Duties: a contract creator cannot approve or reject
+        // their own contract when enforce_sod is active.
+        if (
+            config('services.features.enforce_sod')
+            && $contract->created_by !== null
+            && (int) $contract->created_by === (int) $request->get('auth_id')
+        ) {
+            return response()->json([
+                'message' => 'You cannot approve or reject a contract you created.',
+            ], 403);
+        }
+
         // Dynamic Approval Workflow Engine (Phase 5): this legacy endpoint
         // is for the single-manager-approval flow only. A contract with an
         // in-progress (or awaiting-resubmission) engine instance must be
