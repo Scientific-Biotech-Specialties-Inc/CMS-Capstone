@@ -48,7 +48,7 @@ Route::middleware(['auth.internal'])->group(function () {
 
     // Document Upload Route
     Route::post('/documents/upload', \App\Http\Controllers\Api\V1\Documents\UploadController::class)
-        ->middleware('permission:cms.contracts.create');
+        ->middleware(['permission:cms.contracts.create', 'throttle:10,1']);
 
     // Document Retrieve Route
     Route::get('/documents/{id}/file', [\App\Http\Controllers\Api\V1\Documents\DownloadController::class, 'show'])
