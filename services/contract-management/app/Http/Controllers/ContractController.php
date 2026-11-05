@@ -398,22 +398,30 @@ class ContractController extends Controller
             'prs_activity_id'    => $incoming['prs_activity_id'] ?? null,
         ]);
 
-        // Link MongoDB documents
+        // Link MongoDB documents (only unlinked / orphan documents to prevent document hijacking)
         if (!empty($incoming['document_ids'])) {
-            \App\Models\Document::whereIn('_id', $incoming['document_ids'])
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = \App\Models\Document::whereIn('_id', $incoming['document_ids'])
+                ->whereNull('contract_id')
+                ->pluck('_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
 
-            // Audit log each linked document
-            foreach ($incoming['document_ids'] as $docId) {
-                $this->auditLogService->log(
-                    'document_linked',
-                    'Document',
-                    $docId,
-                    $userId,
-                    [],
-                    ['contract_id' => $contract->contract_id],
-                    $request->get('auth_department')
-                );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->update(['contract_id' => $contract->contract_id]);
+
+                // Audit log each linked document
+                foreach ($linkableIds as $docId) {
+                    $this->auditLogService->log(
+                        'document_linked',
+                        'Document',
+                        $docId,
+                        $userId,
+                        [],
+                        ['contract_id' => $contract->contract_id],
+                        $request->get('auth_department')
+                    );
+                }
             }
         }
 
@@ -611,22 +619,33 @@ class ContractController extends Controller
         }
 
         if (!empty($incomingDocIds)) {
-            \App\Models\Document::whereIn('_id', $incomingDocIds)
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = \App\Models\Document::whereIn('_id', $incomingDocIds)
+                ->where(function ($q) use ($contract) {
+                    $q->whereNull('contract_id')
+                      ->orWhere('contract_id', $contract->contract_id);
+                })
+                ->pluck('_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
 
-            // Audit log only newly linked documents (not ones that were already linked)
-            $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
-            foreach ($incomingDocIds as $docId) {
-                if (!in_array($docId, $previouslyLinkedIds)) {
-                    $this->auditLogService->log(
-                        'document_linked',
-                        'Document',
-                        $docId,
-                        $userId,
-                        [],
-                        ['contract_id' => $contract->contract_id],
-                        $request->get('auth_department')
-                    );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->update(['contract_id' => $contract->contract_id]);
+
+                // Audit log only newly linked documents (not ones that were already linked)
+                $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
+                foreach ($linkableIds as $docId) {
+                    if (!in_array($docId, $previouslyLinkedIds)) {
+                        $this->auditLogService->log(
+                            'document_linked',
+                            'Document',
+                            $docId,
+                            $userId,
+                            [],
+                            ['contract_id' => $contract->contract_id],
+                            $request->get('auth_department')
+                        );
+                    }
                 }
             }
         }

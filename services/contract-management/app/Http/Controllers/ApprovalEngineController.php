@@ -36,6 +36,17 @@ class ApprovalEngineController extends Controller
     {
         $contract = Contract::where('contract_code', $id)->orWhere('contract_id', $id)->firstOrFail();
 
+        $role = $request->get('auth_role');
+        $permissions = (array) $request->get('auth_permissions', []);
+        if (
+            in_array($role, ['Sales', 'Employee'], true)
+            && !in_array('cms.contracts.approve', $permissions, true)
+            && $contract->created_by !== null
+            && (int) $contract->created_by !== (int) $request->get('auth_id')
+        ) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $instances = \App\Models\ApprovalInstance::with(['tasks', 'workflow.steps.workflowStepRoles'])
             ->where('contract_id', $contract->contract_id)
             ->orderBy('run_number')
@@ -122,6 +133,18 @@ class ApprovalEngineController extends Controller
         })->findOrFail($taskId);
 
         $actingUserId = (int) $request->get('auth_id');
+
+        // Separation of Duties: a contract creator cannot approve or reject
+        // their own contract when enforce_sod is active.
+        if (
+            config('services.features.enforce_sod')
+            && $contract->created_by !== null
+            && (int) $contract->created_by === $actingUserId
+        ) {
+            return response()->json([
+                'message' => 'You cannot approve or reject a contract you created.',
+            ], 403);
+        }
 
         $task = $this->engine->decide($task, $actingUserId, $request->input('decision'), $request->input('comment'));
 

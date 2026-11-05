@@ -60,7 +60,8 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::apiResource('contract-amendments', \App\Http\Controllers\ContractAmendmentController::class);
     Route::patch('contract-amendments/{id}/status', [\App\Http\Controllers\ContractAmendmentController::class, 'updateStatus'])
         ->middleware('permission:cms.contracts.approve');
-    Route::get('contracts/{id}/versions', [\App\Http\Controllers\ContractAmendmentController::class, 'versionHistory']);
+    Route::get('contracts/{id}/versions', [\App\Http\Controllers\ContractAmendmentController::class, 'versionHistory'])
+        ->middleware('permission:cms.contracts.view');
 
     // Dynamic Approval Workflow Engine — Workflow Builder (Phase 4).
     // Admin-only, matching the existing CMS Roles & Permissions admin page.

@@ -159,6 +159,11 @@ class ContractAmendmentController extends Controller
         $userId = $request->get('auth_id');
         $role   = $request->get('auth_role');
 
+        $targetContract = Contract::findOrFail($incoming['contract_id']);
+        if (in_array($role, ['Sales', 'Employee'], true) && (int) $targetContract->created_by !== (int) $userId) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         // Extract document IDs (frontend maps docs as objects with IDs)
         $docIds = [];
         if (!empty($data['docs'])) {
@@ -169,6 +174,18 @@ class ContractAmendmentController extends Controller
                     $docIds[] = $d;
                 }
             }
+        }
+
+        // Only allow documents that are unassigned or already linked to this contract
+        if (!empty($docIds)) {
+            $docIds = \App\Models\Document::whereIn('_id', $docIds)
+                ->where(function ($q) use ($incoming) {
+                    $q->whereNull('contract_id')
+                      ->orWhere('contract_id', $incoming['contract_id']);
+                })
+                ->pluck('_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
         }
 
         // Calculate next version
@@ -291,8 +308,18 @@ class ContractAmendmentController extends Controller
                     ->update(['contract_id' => null]);
             }
             if (!empty($amendmentDocIds)) {
-                \App\Models\Document::whereIn('_id', $amendmentDocIds)
-                    ->update(['contract_id' => $contract->contract_id]);
+                $linkableDocIds = \App\Models\Document::whereIn('_id', $amendmentDocIds)
+                    ->where(function ($q) use ($contract) {
+                        $q->whereNull('contract_id')
+                          ->orWhere('contract_id', $contract->contract_id);
+                    })
+                    ->pluck('_id')
+                    ->map(fn ($id) => (string) $id)
+                    ->all();
+                if (!empty($linkableDocIds)) {
+                    \App\Models\Document::whereIn('_id', $linkableDocIds)
+                        ->update(['contract_id' => $contract->contract_id]);
+                }
             }
 
             // Audit Log – approval
@@ -503,8 +530,18 @@ class ContractAmendmentController extends Controller
                     ->update(['contract_id' => null]);
             }
             if (!empty($amendmentDocIds)) {
-                \App\Models\Document::whereIn('_id', $amendmentDocIds)
-                    ->update(['contract_id' => $contract->contract_id]);
+                $linkableDocIds = \App\Models\Document::whereIn('_id', $amendmentDocIds)
+                    ->where(function ($q) use ($contract) {
+                        $q->whereNull('contract_id')
+                          ->orWhere('contract_id', $contract->contract_id);
+                    })
+                    ->pluck('_id')
+                    ->map(fn ($id) => (string) $id)
+                    ->all();
+                if (!empty($linkableDocIds)) {
+                    \App\Models\Document::whereIn('_id', $linkableDocIds)
+                        ->update(['contract_id' => $contract->contract_id]);
+                }
             }
 
             // 5. Update Amendment status
@@ -581,6 +618,15 @@ class ContractAmendmentController extends Controller
         $contract = \App\Models\Contract::where('contract_code', $contractId)
             ->orWhere('contract_id', $contractId)
             ->first();
+
+        if ($contract) {
+            $role = $request->get('auth_role');
+            $userId = $request->get('auth_id');
+            if (in_array($role, ['Sales', 'Employee'], true) && (int) $contract->created_by !== (int) $userId) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        }
+
         $numericId = $contract ? $contract->contract_id : $contractId;
 
         $snapshots = ContractVersionSnapshot::where('contract_id', $numericId)
