@@ -19,7 +19,7 @@ class AuthCommunicationTest extends TestCase
                     'id' => 1,
                     'email' => 'user@example.com',
                     'role' => 'Sales',
-                    'permissions' => []
+                    'permissions' => ['cms.contracts.view']
                 ]
             ], 200)
         ]);
