@@ -20,6 +20,15 @@ class EncryptionService
         } catch (\Exception $e) {
             Log::error('EncryptionService initialization failed: ' . $e->getMessage());
         }
+
+        // Fail closed outside local/testing: silently falling back to plaintext
+        // defeats the at-rest encryption control for PII. Local/testing keeps
+        // the previous log-and-continue behaviour so tests can run without keys.
+        if ($this->encrypter === null && !app()->environment('local', 'testing')) {
+            throw new \RuntimeException(
+                'FIELD_ENCRYPTION_KEY is missing or invalid; refusing to store sensitive fields in plaintext.'
+            );
+        }
     }
 
     /**
