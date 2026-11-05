@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { reactive, watch, computed } from 'vue'
+import { reactive, watch } from 'vue'
 import { AlertTriangle } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import FormField from '@/components/shared/FormField.vue'
+import { required, minLength } from '@/lib/validation'
+import { useFormValidation } from '@/composables/useFormValidation'
 import type { RiskLevel } from '@/types/riskAssessment'
 import { severityLabel } from '@/types/riskAssessment'
 
@@ -21,20 +24,23 @@ const emit = defineEmits<{
 }>()
 
 const form = reactive({ rationale: '' })
-const touched = reactive({ rationale: false })
+
+const { errors, touched, validateField, validateAll, resetValidation } = useFormValidation(form, {
+  rationale: [
+    required('Rationale is required.'),
+    minLength(5, 'Rationale must be at least 5 characters.'),
+  ],
+})
 
 watch(() => props.open, (open) => {
   if (open) {
     form.rationale = ''
-    touched.rationale = false
+    resetValidation()
   }
 })
 
-const isValid = computed(() => form.rationale.trim().length >= 5)
-
 function submit(decision: 'approved' | 'rejected') {
-  touched.rationale = true
-  if (!isValid.value) return
+  if (!validateAll()) return
   emit('submit', decision, form.rationale.trim())
 }
 </script>
@@ -66,24 +72,23 @@ function submit(decision: 'approved' | 'rejected') {
           not an automatic verdict. Review the flagged findings before deciding.
         </div>
 
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">
-            Rationale <span class="text-red-500">*</span>
-          </label>
+        <FormField
+          label="Rationale"
+          :required="true"
+          :error="touched.rationale ? errors.rationale : null"
+        >
           <textarea
             v-model="form.rationale"
-            @blur="touched.rationale = true"
+            @blur="validateField('rationale')"
+            @input="validateField('rationale')"
             rows="4"
             placeholder="Explain your decision (e.g. reviewed with legal, mitigations in place, risk is acceptable)..."
             class="w-full rounded-md border bg-white px-3 py-2 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 transition resize-none"
-            :class="touched.rationale && !isValid
+            :class="touched.rationale && errors.rationale
               ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15'
               : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
           />
-          <p v-if="touched.rationale && !isValid" class="text-xs text-red-500">
-            Rationale is required (minimum 5 characters).
-          </p>
-        </div>
+        </FormField>
       </div>
 
       <div class="border-t border-black/6 px-6 py-4">
