@@ -78,7 +78,8 @@ class ContractController extends Controller
         ]);
 
         if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
+            // Bound the term length: unbounded LIKE patterns are a cheap DoS vector.
+            $search = mb_substr((string) $request->search, 0, 255);
             $query->where(function($q) use ($search) {
                 $q->where('bp_name', 'like', $search . '%')
                   ->orWhere('item_code', 'like', $search . '%')
@@ -147,7 +148,9 @@ class ContractController extends Controller
               ->orderBy('contract_id', 'desc');
 
         if ($request->has('paginate') && $request->paginate === 'true') {
-            $perPage = (int) $request->get('per_page', 10);
+            // Cap page size: existing clients send up to 100, so this is the
+            // highest value that does not change current behaviour.
+            $perPage = max(1, min((int) $request->get('per_page', 10), 100));
             $paginated = $query->paginate($perPage);
 
             // Calculate stats based on role permissions
