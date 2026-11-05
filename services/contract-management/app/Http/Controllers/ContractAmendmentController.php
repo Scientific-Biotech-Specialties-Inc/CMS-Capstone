@@ -183,8 +183,8 @@ class ContractAmendmentController extends Controller
                     $q->whereNull('contract_id')
                       ->orWhere('contract_id', $incoming['contract_id']);
                 })
-                ->pluck('_id')
-                ->map(fn ($id) => (string) $id)
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
                 ->all();
         }
 
@@ -313,8 +313,8 @@ class ContractAmendmentController extends Controller
                         $q->whereNull('contract_id')
                           ->orWhere('contract_id', $contract->contract_id);
                     })
-                    ->pluck('_id')
-                    ->map(fn ($id) => (string) $id)
+                    ->get()
+                    ->map(fn ($doc) => (string) $doc->getKey())
                     ->all();
                 if (!empty($linkableDocIds)) {
                     \App\Models\Document::whereIn('_id', $linkableDocIds)
@@ -535,8 +535,8 @@ class ContractAmendmentController extends Controller
                         $q->whereNull('contract_id')
                           ->orWhere('contract_id', $contract->contract_id);
                     })
-                    ->pluck('_id')
-                    ->map(fn ($id) => (string) $id)
+                    ->get()
+                    ->map(fn ($doc) => (string) $doc->getKey())
                     ->all();
                 if (!empty($linkableDocIds)) {
                     \App\Models\Document::whereIn('_id', $linkableDocIds)

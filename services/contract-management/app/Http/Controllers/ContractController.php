@@ -402,8 +402,8 @@ class ContractController extends Controller
         if (!empty($incoming['document_ids'])) {
             $linkableIds = \App\Models\Document::whereIn('_id', $incoming['document_ids'])
                 ->whereNull('contract_id')
-                ->pluck('_id')
-                ->map(fn ($id) => (string) $id)
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
                 ->all();
 
             if (!empty($linkableIds)) {
@@ -624,8 +624,8 @@ class ContractController extends Controller
                     $q->whereNull('contract_id')
                       ->orWhere('contract_id', $contract->contract_id);
                 })
-                ->pluck('_id')
-                ->map(fn ($id) => (string) $id)
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
                 ->all();
 
             if (!empty($linkableIds)) {

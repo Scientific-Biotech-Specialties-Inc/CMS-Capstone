@@ -84,7 +84,12 @@ export function useCreateContractDraft() {
   }
 
   function attachDoc(doc: UploadedDoc) {
-    draft.docs.push(doc)
+    const existingIdx = draft.docs.findIndex(d => d.name === doc.name || (d.id && doc.id && d.id === doc.id))
+    if (existingIdx !== -1) {
+      draft.docs[existingIdx] = doc
+    } else {
+      draft.docs.push(doc)
+    }
     draft.active = true
   }
 
