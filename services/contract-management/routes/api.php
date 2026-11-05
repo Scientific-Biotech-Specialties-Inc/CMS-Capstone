@@ -58,7 +58,8 @@ Route::middleware(['auth.internal'])->group(function () {
 
     // Contract Amendments Routes
     Route::apiResource('contract-amendments', \App\Http\Controllers\ContractAmendmentController::class);
-    Route::patch('contract-amendments/{id}/status', [\App\Http\Controllers\ContractAmendmentController::class, 'updateStatus']);
+    Route::patch('contract-amendments/{id}/status', [\App\Http\Controllers\ContractAmendmentController::class, 'updateStatus'])
+        ->middleware('permission:cms.contracts.approve');
     Route::get('contracts/{id}/versions', [\App\Http\Controllers\ContractAmendmentController::class, 'versionHistory']);
 
     // Dynamic Approval Workflow Engine — Workflow Builder (Phase 4).

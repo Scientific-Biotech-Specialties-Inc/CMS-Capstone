@@ -394,6 +394,17 @@ class ContractAmendmentController extends Controller
         $idInt = (int) str_replace('AMD-', '', $id);
         $amd = ContractAmendment::findOrFail($idInt);
 
+        $userId = $request->get('auth_id');
+
+        // Separation of duties: the person who requested an amendment cannot
+        // also approve or reject it. Combined with permission:cms.contracts.approve
+        // on the route, this is the four-eyes rule for amendments.
+        if ($amd->created_by !== null && (int) $amd->created_by === (int) $userId) {
+            return response()->json([
+                'message' => 'You cannot review your own amendment request.',
+            ], 403);
+        }
+
         $request->validate([
             'status' => 'required|string|in:Approved,Rejected',
             'rejection_reason' => 'required_if:status,Rejected|nullable|string',
@@ -401,7 +412,6 @@ class ContractAmendmentController extends Controller
 
         $status = $request->status;
         $rejectionReason = $request->rejection_reason;
-        $userId = $request->get('auth_id');
         
         $authUser = $request->get('auth_user') ?? [];
         $managerName = trim(($authUser['first_name'] ?? '') . ' ' . ($authUser['last_name'] ?? ''));

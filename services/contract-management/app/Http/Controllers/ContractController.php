@@ -675,6 +675,14 @@ class ContractController extends Controller
 
         $userId = $request->get('auth_id');
 
+        // Row-level authorization: Sales/Employee may only delete contracts
+        // they created (mirrors show() / update()). Managers and Admins are
+        // unaffected; the route's permission middleware still applies.
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee'], true) && (int) $contract->created_by !== (int) $userId) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         // Delete all associated documents
         $associatedDocs = \App\Models\Document::where('contract_id', $contract->contract_id)->get();
         foreach ($associatedDocs as $doc) {
