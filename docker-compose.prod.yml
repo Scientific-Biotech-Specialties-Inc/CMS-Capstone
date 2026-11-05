@@ -31,7 +31,7 @@ services:
     container_name: cms-meilisearch-prod
     restart: always
     environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-}
       - MEILI_ENV=production
     volumes:
       - meili_data_prod:/meili_data

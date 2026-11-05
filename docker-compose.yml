@@ -66,7 +66,7 @@ services:
     image: getmeili/meilisearch:v1.8
     container_name: cms-meilisearch
     environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-}
       - MEILI_ENV=development
     ports:
       - "127.0.0.1:7700:7700"
