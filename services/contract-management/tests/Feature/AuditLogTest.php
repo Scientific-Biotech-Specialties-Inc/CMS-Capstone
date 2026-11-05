@@ -153,4 +153,28 @@ class AuditLogTest extends TestCase
         $actions = collect($data)->pluck('action')->toArray();
         $this->assertContains('Login Success', $actions);
     }
+
+    /**
+     * OWASP A09: Non-Sales department events (Admin, Management) must be logged to the security channel.
+     */
+    public function test_non_sales_events_logged_to_security_channel()
+    {
+        $logged = false;
+        \Illuminate\Support\Facades\Log::listen(function ($log) use (&$logged) {
+            if ($log->message === 'Privileged action audit event' && ($log->context['action'] ?? '') === 'user_promoted') {
+                $logged = true;
+            }
+        });
+
+        $service = app(\App\Services\AuditLogService::class);
+        $service->log('user_promoted', 'User', '10', 1, [], ['role' => 'Admin'], 'Management');
+
+        $this->assertTrue($logged, 'Expected privileged action to be logged to security log channel');
+
+        // Ensure it did not create a database audit log entry
+        $this->assertDatabaseMissing('audit_logs', [
+            'action' => 'user_promoted',
+            'entity_id' => '10',
+        ]);
+    }
 }

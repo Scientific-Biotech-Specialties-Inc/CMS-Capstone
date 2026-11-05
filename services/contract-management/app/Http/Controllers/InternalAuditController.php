@@ -13,7 +13,7 @@ class InternalAuditController extends Controller
     public function receive(Request $request)
     {
         $secret = (string) ($request->header('X-Internal-Secret') ?? '');
-        $expectedSecret = (string) env('INTERNAL_SERVICE_SECRET');
+        $expectedSecret = (string) (config('app.internal_service_secret') ?: env('INTERNAL_SERVICE_SECRET'));
 
         // Constant-time comparison: prevents timing attacks on the shared secret.
         if ($expectedSecret === '' || !hash_equals($expectedSecret, $secret)) {
