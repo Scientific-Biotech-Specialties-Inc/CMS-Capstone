@@ -14,11 +14,23 @@ class EncryptionService
         try {
             $key = env('FIELD_ENCRYPTION_KEY');
             if ($key) {
+                if (str_starts_with($key, 'base64:')) {
+                    $key = substr($key, 7);
+                }
                 $decodedKey = base64_decode($key);
                 $this->encrypter = new Encrypter($decodedKey, 'aes-256-cbc');
             }
         } catch (\Exception $e) {
             Log::error('EncryptionService initialization failed: ' . $e->getMessage());
+        }
+
+        // Fail closed outside local/testing: silently falling back to plaintext
+        // defeats the at-rest encryption control for PII. Local/testing keeps
+        // the previous log-and-continue behaviour so tests can run without keys.
+        if ($this->encrypter === null && !app()->environment('local', 'testing')) {
+            throw new \RuntimeException(
+                'FIELD_ENCRYPTION_KEY is missing or invalid; refusing to store sensitive fields in plaintext.'
+            );
         }
     }
 

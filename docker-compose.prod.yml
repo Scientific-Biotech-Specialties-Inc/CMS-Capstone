@@ -31,7 +31,7 @@ services:
     container_name: cms-meilisearch-prod
     restart: always
     environment:
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-}
       - MEILI_ENV=production
     volumes:
       - meili_data_prod:/meili_data
@@ -119,6 +119,7 @@ services:
       - DB_QUEUE=contract_queue
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - PRS_INTEGRATION_KEY=${PRS_INTEGRATION_KEY:-}
       - NOTIFICATION_SERVICE_URL=http://notification/api
         - AUTH_SERVICE_URL=http://139.59.125.45/api
       - MAIL_MAILER=smtp

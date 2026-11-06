@@ -110,7 +110,7 @@ function lnk(active: boolean) {
 function ico(active: boolean) { return active ? "text-white" : "text-white/45"; }
 function txt(active: boolean) { return active ? "text-white" : "text-white/45"; }
 
-const homeUrl = window.location.origin + '/';
+
 </script>
 
 <template>

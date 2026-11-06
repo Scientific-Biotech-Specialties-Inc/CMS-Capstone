@@ -28,13 +28,14 @@ class SupplierController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->query('search');
+            $search = mb_substr((string) $request->query('search'), 0, 255);
             $query->where(function ($q) use ($search) {
                 $q->where('supplier_name', 'like', '%' . $search . '%')
                   ->orWhere('industry', 'like', '%' . $search . '%');
             });
         } elseif ($request->filled('supplier_name')) {
-            $query->where('supplier_name', 'like', $request->supplier_name . '%');
+            $supplierName = mb_substr((string) $request->supplier_name, 0, 255);
+            $query->where('supplier_name', 'like', $supplierName . '%');
         }
 
         if ($request->filled('industry') && $request->industry !== 'All') {
@@ -45,7 +46,7 @@ class SupplierController extends Controller
             $query->where('status', $request->status);
         }
 
-        $perPage = min((int) $request->input('per_page', 15), 100);
+        $perPage = max(1, min((int) $request->input('per_page', 15), 100));
 
         // Newest first so a freshly created supplier always lands on page 1.
         return response()->json($query->orderByDesc('supplier_id')->paginate($perPage));

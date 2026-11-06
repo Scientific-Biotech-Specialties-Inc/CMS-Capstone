@@ -91,6 +91,8 @@ function handleOcrSuccess(data: OcrExtractedData, file: File) {
 }
 const loading      = ref(false)
 const showConfirm  = ref(false)
+const showGenerateConfirm = ref(false)
+const generatingContract = ref(false)
 const contractDocs = ref<UploadedDoc[]>([])
 
 const today = new Date().toISOString().split('T')[0]
@@ -256,8 +258,16 @@ function handleGenerateContract() {
     error('Missing Required Information', 'Please complete all required fields with valid values before generating a contract.')
     return
   }
+  showGenerateConfirm.value = true
+}
+
+async function confirmGenerateContract() {
+  generatingContract.value = true
   saveDraft(form, contractDocs.value, 'sales')
+  await new Promise(resolve => setTimeout(resolve, 250))
+  showGenerateConfirm.value = false
   router.push('/sales/contracts/editor')
+  generatingContract.value = false
 }
 
 function handleSubmit() {
@@ -572,8 +582,10 @@ onClickOutside(prsContainer, () => {
       </Button>
 
       <Button v-if="canUseContractGenerator" @click="handleGenerateContract" variant="outline"
-        class="h-9 px-4 text-sm border-brand-navy/30 text-brand-navy hover:text-brand-dark hover:bg-brand-navy/5 flex items-center gap-2 font-medium shadow-xs">
-        <Sparkles class="w-4 h-4 text-brand-navy" />
+        :disabled="generatingContract"
+        class="h-9 px-4 text-sm border-brand-navy/30 text-brand-navy hover:text-brand-dark hover:bg-brand-navy/5 flex items-center gap-2 font-medium shadow-xs disabled:opacity-60 disabled:cursor-not-allowed">
+        <Loader2 v-if="generatingContract" class="w-4 h-4 animate-spin text-brand-navy" />
+        <Sparkles v-else class="w-4 h-4 text-brand-navy" />
         {{ draft.generatedDoc ? 'Edit Generated Contract' : 'Generate Contract' }}
       </Button>
     </div>
@@ -843,5 +855,18 @@ onClickOutside(prsContainer, () => {
     v-model:open="ocrOpen"
     :candidate-partners="activePartnerNames"
     @success="handleOcrSuccess"
+  />
+
+
+  <ConfirmationDialog
+    v-model:open="showGenerateConfirm"
+    title="Generate Contract with AI"
+    :description="draft.generatedDoc
+      ? `Open the Contract Editor to view and customize the generated agreement for ${form.businessPartner || 'this partner'}?`
+      : `Generate a formal agreement draft for ${form.businessPartner || 'this partner'} (${form.category || 'Standard'}) using AI? You will be navigated to the contract editor to review and customize the clauses.`"
+    :confirm-label="draft.generatedDoc ? 'Open Editor' : 'Generate Contract'"
+    variant="ai"
+    :loading="generatingContract"
+    @confirm="confirmGenerateContract"
   />
 </template>

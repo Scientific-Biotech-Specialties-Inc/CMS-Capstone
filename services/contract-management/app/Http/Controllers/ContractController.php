@@ -78,7 +78,8 @@ class ContractController extends Controller
         ]);
 
         if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
+            // Bound the term length: unbounded LIKE patterns are a cheap DoS vector.
+            $search = mb_substr((string) $request->search, 0, 255);
             $query->where(function($q) use ($search) {
                 $q->where('bp_name', 'like', $search . '%')
                   ->orWhere('item_code', 'like', $search . '%')
@@ -147,7 +148,9 @@ class ContractController extends Controller
               ->orderBy('contract_id', 'desc');
 
         if ($request->has('paginate') && $request->paginate === 'true') {
-            $perPage = (int) $request->get('per_page', 10);
+            // Cap page size: existing clients send up to 100, so this is the
+            // highest value that does not change current behaviour.
+            $perPage = max(1, min((int) $request->get('per_page', 10), 100));
             $paginated = $query->paginate($perPage);
 
             // Calculate stats based on role permissions
@@ -395,22 +398,30 @@ class ContractController extends Controller
             'prs_activity_id'    => $incoming['prs_activity_id'] ?? null,
         ]);
 
-        // Link MongoDB documents
+        // Link MongoDB documents (only unlinked / orphan documents to prevent document hijacking)
         if (!empty($incoming['document_ids'])) {
-            \App\Models\Document::whereIn('_id', $incoming['document_ids'])
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = \App\Models\Document::whereIn('_id', $incoming['document_ids'])
+                ->whereNull('contract_id')
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
+                ->all();
 
-            // Audit log each linked document
-            foreach ($incoming['document_ids'] as $docId) {
-                $this->auditLogService->log(
-                    'document_linked',
-                    'Document',
-                    $docId,
-                    $userId,
-                    [],
-                    ['contract_id' => $contract->contract_id],
-                    $request->get('auth_department')
-                );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->update(['contract_id' => $contract->contract_id]);
+
+                // Audit log each linked document
+                foreach ($linkableIds as $docId) {
+                    $this->auditLogService->log(
+                        'document_linked',
+                        'Document',
+                        $docId,
+                        $userId,
+                        [],
+                        ['contract_id' => $contract->contract_id],
+                        $request->get('auth_department')
+                    );
+                }
             }
         }
 
@@ -476,7 +487,7 @@ class ContractController extends Controller
     public function update(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -608,22 +619,33 @@ class ContractController extends Controller
         }
 
         if (!empty($incomingDocIds)) {
-            \App\Models\Document::whereIn('_id', $incomingDocIds)
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = \App\Models\Document::whereIn('_id', $incomingDocIds)
+                ->where(function ($q) use ($contract) {
+                    $q->whereNull('contract_id')
+                      ->orWhere('contract_id', $contract->contract_id);
+                })
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
+                ->all();
 
-            // Audit log only newly linked documents (not ones that were already linked)
-            $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
-            foreach ($incomingDocIds as $docId) {
-                if (!in_array($docId, $previouslyLinkedIds)) {
-                    $this->auditLogService->log(
-                        'document_linked',
-                        'Document',
-                        $docId,
-                        $userId,
-                        [],
-                        ['contract_id' => $contract->contract_id],
-                        $request->get('auth_department')
-                    );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->update(['contract_id' => $contract->contract_id]);
+
+                // Audit log only newly linked documents (not ones that were already linked)
+                $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
+                foreach ($linkableIds as $docId) {
+                    if (!in_array($docId, $previouslyLinkedIds)) {
+                        $this->auditLogService->log(
+                            'document_linked',
+                            'Document',
+                            $docId,
+                            $userId,
+                            [],
+                            ['contract_id' => $contract->contract_id],
+                            $request->get('auth_department')
+                        );
+                    }
                 }
             }
         }
@@ -663,7 +685,7 @@ class ContractController extends Controller
     public function destroy(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -671,6 +693,14 @@ class ContractController extends Controller
         }
 
         $userId = $request->get('auth_id');
+
+        // Row-level authorization: Sales/Employee may only delete contracts
+        // they created (mirrors show() / update()). Managers and Admins are
+        // unaffected; the route's permission middleware still applies.
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee'], true) && (int) $contract->created_by !== (int) $userId) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         // Delete all associated documents
         $associatedDocs = \App\Models\Document::where('contract_id', $contract->contract_id)->get();
@@ -823,7 +853,7 @@ class ContractController extends Controller
             'workflowStatus',
             'region',
         ])->where('contract_code', $id)
-          ->orWhere('contract_id', $id)
+          ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
           ->firstOrFail();
 
         $role = $request->get('auth_role');
@@ -847,8 +877,25 @@ class ContractController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        // Separation of Duties: a contract creator cannot approve or reject
+        // their own contract when enforce_sod is active.
+        if (
+            config('services.features.enforce_sod')
+            && $contract->created_by !== null
+            && (int) $contract->created_by === (int) $request->get('auth_id')
+        ) {
+            return response()->json([
+                'message' => 'You cannot approve or reject a contract you created.',
+            ], 403);
+        }
 
         // Dynamic Approval Workflow Engine (Phase 5): this legacy endpoint
         // is for the single-manager-approval flow only. A contract with an
@@ -995,8 +1042,13 @@ class ContractController extends Controller
     public function notifyResponsibleRole(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         if ($contract->notify_manager_count >= 2) {
             return response()->json(['message' => 'The manager is already notified, please wait.'], 429);

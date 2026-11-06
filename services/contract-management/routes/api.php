@@ -26,12 +26,12 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::patch('/contracts/{id}/status', [ContractController::class, 'updateStatus'])
         ->middleware('permission:cms.contracts.approve');
     Route::post('/contracts/{id}/notify-manager', [ContractController::class, 'notifyManager'])
-        ->middleware('permission:cms.contracts.edit');
+        ->middleware('permission:cms.contracts.view');
     // Phase 7 (decision #13): canonical generalized nudge — notifies the
     // role(s) currently responsible. /notify-manager above stays as an
     // alias to the same behavior so cached callers don't break.
     Route::post('/contracts/{id}/notify-step', [ContractController::class, 'notifyResponsibleRole'])
-        ->middleware('permission:cms.contracts.edit');
+        ->middleware('permission:cms.contracts.view');
 
     // US-023: High-Risk Contract Approval Gate
     Route::get('/contracts/{id}/high-risk-approval', [\App\Http\Controllers\ContractApprovalController::class, 'show'])
@@ -48,7 +48,7 @@ Route::middleware(['auth.internal'])->group(function () {
 
     // Document Upload Route
     Route::post('/documents/upload', \App\Http\Controllers\Api\V1\Documents\UploadController::class)
-        ->middleware('permission:cms.contracts.create');
+        ->middleware(['permission:cms.contracts.create', 'throttle:10,1']);
 
     // Document Retrieve Route
     Route::get('/documents/{id}/file', [\App\Http\Controllers\Api\V1\Documents\DownloadController::class, 'show'])
@@ -58,8 +58,10 @@ Route::middleware(['auth.internal'])->group(function () {
 
     // Contract Amendments Routes
     Route::apiResource('contract-amendments', \App\Http\Controllers\ContractAmendmentController::class);
-    Route::patch('contract-amendments/{id}/status', [\App\Http\Controllers\ContractAmendmentController::class, 'updateStatus']);
-    Route::get('contracts/{id}/versions', [\App\Http\Controllers\ContractAmendmentController::class, 'versionHistory']);
+    Route::patch('contract-amendments/{id}/status', [\App\Http\Controllers\ContractAmendmentController::class, 'updateStatus'])
+        ->middleware('permission:cms.contracts.approve');
+    Route::get('contracts/{id}/versions', [\App\Http\Controllers\ContractAmendmentController::class, 'versionHistory'])
+        ->middleware('permission:cms.contracts.view');
 
     // Dynamic Approval Workflow Engine — Workflow Builder (Phase 4).
     // Admin-only, matching the existing CMS Roles & Permissions admin page.

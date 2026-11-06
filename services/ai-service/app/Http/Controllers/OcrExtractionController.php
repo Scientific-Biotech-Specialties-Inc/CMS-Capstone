@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OcrExtraction;
+use App\Rules\ValidContractDocument;
 use App\Services\ContractDocumentClient;
 use App\Services\Gemini\GeminiClient;
 use App\Services\Ocr\OcrTextExtractor;
@@ -26,7 +27,7 @@ class OcrExtractionController extends Controller
     public function extract(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file' => 'nullable|file|max:10240', // 10MB limit
+            'file' => ['nullable', 'file', 'max:10240', new ValidContractDocument()],
             'document_id' => 'nullable|string', // soft ref ID
             'candidate_partners' => 'nullable|array',
             'candidate_partners.*' => 'string|max:255',
@@ -62,6 +63,16 @@ class OcrExtractionController extends Controller
                     return response()->json([
                         'message' => 'Could not retrieve document metadata from contract service.'
                     ], 404);
+                }
+
+                // Row-level authorization: Sales/Employee may only extract from documents
+                // belonging to contracts they created, or pre-link documents they uploaded.
+                $role = $request->get('auth_role');
+                if (in_array($role, ['Sales', 'Employee'], true)) {
+                    $ownerId = $metadata['contract_created_by'] ?? $metadata['uploaded_by'] ?? null;
+                    if ($ownerId === null || (int) $ownerId !== (int) $request->get('auth_id')) {
+                        return response()->json(['message' => 'Forbidden.'], 403);
+                    }
                 }
 
                 $fileBytes = $this->documentClient->fetchFileBytes($documentId);

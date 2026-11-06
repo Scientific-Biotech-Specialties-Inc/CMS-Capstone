@@ -61,6 +61,14 @@ return [
         'high_risk_approval_gate_enabled' => env('HIGH_RISK_APPROVAL_GATE_ENABLED', false),
 
         /*
+        | enforce_sod: Four-eyes Separation of Duties on contract approval.
+        | Rejects approval or rejection if the acting user is also the contract
+        | creator. Default true in production; false in local/testing to allow
+        | single-user seeders and dev tests.
+        */
+        'enforce_sod' => env('ENFORCE_SOD', !in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)),
+
+        /*
         | workflow_engine_enabled: Phase 5 of the dynamic approval workflow
         | engine plan. Defaults to OFF — with the flag off, contract
         | creation/approval behaves exactly as before (the legacy single

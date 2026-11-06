@@ -264,16 +264,27 @@ class NotificationController extends Controller
     public function batchDestroy(Request $request)
     {
         $userId = $request->input('auth_id');
-        $ids = $request->input('ids', []);
 
-        if (is_array($ids)) {
-            foreach ($ids as $id) {
-                $read = NotificationRead::firstOrNew(
-                    ['notification_id' => $id, 'user_id' => $userId]
-                );
-                $read->is_deleted = true;
-                $read->save();
-            }
+        // Bound the payload: prevents unbounded write amplification from a
+        // single request. `present` (not `required`) keeps an empty selection
+        // behaving as a no-op, which is what the SPA already sends.
+        $validator = Validator::make($request->all(), [
+            'ids'   => 'present|array|max:100',
+            'ids.*' => 'integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $ids = $validator->validated()['ids'];
+
+        foreach ($ids as $id) {
+            $read = NotificationRead::firstOrNew(
+                ['notification_id' => $id, 'user_id' => $userId]
+            );
+            $read->is_deleted = true;
+            $read->save();
         }
 
         return response()->json(['message' => 'Selected notifications permanently deleted.']);

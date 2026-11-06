@@ -21,6 +21,7 @@ import type { PageMargins, MarginPreset } from '@/types/contract-margins'
 import { MARGIN_PRESETS } from '@/types/contract-margins'
 import EditorToolbar from './EditorToolbar.vue'
 import QuillCanvas from './QuillCanvas.vue'
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const router = useRouter()
 const { success, error: toastError } = useToast()
@@ -48,6 +49,16 @@ const {
 const docTitle = ref('Contract Agreement')
 const zoomLevel = ref(1)
 const isAttaching = ref(false)
+const showRegenerateConfirm = ref(false)
+
+function handleRegenerateClick() {
+  showRegenerateConfirm.value = true
+}
+
+async function confirmRegenerate() {
+  showRegenerateConfirm.value = false
+  await runContractGeneration(true)
+}
 const isPreparing = ref(true)
 const isEditingHeaderFooter = ref(false)
 
@@ -852,7 +863,7 @@ onMounted(() => {
         <Button
           variant="outline"
           size="sm"
-          @click="runContractGeneration(true)"
+          @click="handleRegenerateClick"
           :disabled="isGenerating || isAttaching"
           class="h-8 text-xs border-brand-navy/20 text-brand-navy hover:bg-brand-navy/5 gap-1.5 hidden sm:inline-flex"
           title="Regenerate fresh draft with AI"
@@ -925,6 +936,15 @@ onMounted(() => {
         @update:header-footer="(val) => Object.assign(headerFooter, val)"
       />
     </div>
+    <ConfirmationDialog
+      v-model:open="showRegenerateConfirm"
+      title="Regenerate Contract with AI"
+      description="Are you sure you want to regenerate this contract draft? This will compose a fresh document using AI and replace any unsaved edits on the current pages."
+      confirm-label="Regenerate"
+      variant="ai"
+      :loading="isGenerating"
+      @confirm="confirmRegenerate"
+    />
   </div>
 </template>
 

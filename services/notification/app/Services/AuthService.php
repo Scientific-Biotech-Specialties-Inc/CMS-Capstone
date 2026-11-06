@@ -14,11 +14,11 @@ final class AuthService
 
     public function __construct()
     {
-        $url = env('AUTH_SERVICE_URL', 'http://auth-service:8000/api');
-        if ($url === 'http://auth-service:8000/api') {
-            $url = 'http://139.59.125.45/api';
-        }
-        $this->baseUrl = $url;
+        // Always resolve the auth service on the shared Docker network. The
+        // previous hardcoded fallback (http://139.59.125.45/api) sent bearer
+        // tokens and internal secrets to an external host whenever
+        // AUTH_SERVICE_URL was unset, and broke all local/dev authentication.
+        $this->baseUrl = config('services.auth.url', env('AUTH_SERVICE_URL', 'http://auth-service:8000/api'));
         $this->secret  = config('app.internal_service_secret', '');
     }
 

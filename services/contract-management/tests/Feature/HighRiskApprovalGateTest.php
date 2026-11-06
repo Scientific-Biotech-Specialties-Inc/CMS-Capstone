@@ -325,6 +325,74 @@ class HighRiskApprovalGateTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'risk-level'));
     }
 
+    public function test_creator_cannot_approve_own_contract_when_enforce_sod_is_enabled()
+    {
+        config(['services.features.enforce_sod' => true]);
+
+        $this->fakeManagerAuth(); // User ID 99
+        Http::fake($this->currentFakes());
+
+        // Contract created by the same user (ID 99)
+        $contract = $this->makeContract(['created_by' => 99, 'serial_number' => 'SN-SOD-1']);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer valid-token',
+            'Accept'        => 'application/json',
+        ])->patchJson("/api/contracts/{$contract->contract_id}/status", [
+            'approval_status' => 'Approved',
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You cannot approve or reject a contract you created.',
+        ]);
+    }
+
+    public function test_creator_can_approve_when_enforce_sod_is_disabled()
+    {
+        config(['services.features.enforce_sod' => false]);
+
+        $this->fakeManagerAuth(); // User ID 99
+        Http::fake($this->currentFakes());
+
+        $contract = $this->makeContract(['created_by' => 99, 'serial_number' => 'SN-SOD-2']);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer valid-token',
+            'Accept'        => 'application/json',
+        ])->patchJson("/api/contracts/{$contract->contract_id}/status", [
+            'approval_status' => 'Approved',
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function test_creator_cannot_record_high_risk_approval_on_own_contract_when_sod_enabled()
+    {
+        config([
+            'services.features.high_risk_approval_gate_enabled' => true,
+            'services.features.enforce_sod' => true,
+        ]);
+
+        $this->fakeManagerAuth(); // User ID 99
+        Http::fake($this->currentFakes());
+
+        $contract = $this->makeContract(['created_by' => 99, 'serial_number' => 'SN-SOD-3']);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer valid-token',
+            'Accept'        => 'application/json',
+        ])->postJson("/api/contracts/{$contract->contract_id}/high-risk-approval", [
+            'decision'  => 'approved',
+            'rationale' => 'Valid business case justified by leadership.',
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'You cannot record a high-risk approval decision on a contract you created.',
+        ]);
+    }
+
     /**
      * Re-declares the auth/notification fakes so they can be merged with a
      * per-test ai-service fake without losing the base fakes (Http::fake

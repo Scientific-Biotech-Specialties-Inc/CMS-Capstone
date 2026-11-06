@@ -207,7 +207,7 @@ class AuditLogController extends Controller
 
         // Search filter on merged logs
         if ($request->has('search') && !empty($request->search)) {
-            $search = strtolower($request->search);
+            $search = strtolower(mb_substr((string) $request->search, 0, 255));
             $merged = array_filter($merged, function ($item) use ($search) {
                 return str_contains(strtolower($item['user_name'] ?? ''), $search) ||
                        str_contains(strtolower($item['user_email'] ?? ''), $search) ||
@@ -224,8 +224,8 @@ class AuditLogController extends Controller
         });
 
         // 6. Paginate in-memory
-        $page = (int) $request->input('page', 1);
-        $perPage = (int) $request->input('per_page', 20);
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min((int) $request->input('per_page', 20), 100));
         $total = count($merged);
 
         $offset = ($page - 1) * $perPage;
