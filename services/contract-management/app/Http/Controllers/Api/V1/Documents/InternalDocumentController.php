@@ -78,11 +78,19 @@ final class InternalDocumentController extends Controller
             return response()->json(['message' => 'Document not found.'], 404);
         }
 
+        $contractCreatedBy = null;
+        if ($document->contract_id !== null) {
+            $contractCreatedBy = \App\Models\Contract::where('contract_id', $document->contract_id)->value('created_by');
+        }
+
         return response()->json([
             'data' => [
-                'document_id' => (string) $document->getKey(),
-                'file_name'   => $document->file_name,
-                'file_type'   => $document->file_type,
+                'document_id'         => (string) $document->getKey(),
+                'file_name'           => $document->file_name,
+                'file_type'           => $document->file_type,
+                'contract_id'         => $document->contract_id,
+                'uploaded_by'         => $document->uploaded_by,
+                'contract_created_by' => $contractCreatedBy,
             ],
         ]);
     }

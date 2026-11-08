@@ -16,6 +16,10 @@ class NotifyManagerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\SyncContractToMeilisearch::class,
+            \App\Jobs\RemoveContractFromMeilisearch::class,
+        ]);
         \Illuminate\Support\Facades\Cache::store('file')->flush();
         $this->seedContractLookups();
     }
@@ -42,8 +46,8 @@ class NotifyManagerTest extends TestCase
                     'email' => 'test-user@sbsi.com',
                     'first_name' => 'John',
                     'last_name' => 'Doe',
-                    'role' => 'Employee',
-                    'permissions' => ['cms.contracts.create', 'cms.contracts.edit'],
+                    'role' => 'Sales',
+                    'permissions' => ['cms.contracts.view', 'cms.contracts.create'],
                     'department' => 'Sales & Marketing',
                 ]
             ], 200),
@@ -100,8 +104,8 @@ class NotifyManagerTest extends TestCase
                     'email' => 'test-user@sbsi.com',
                     'first_name' => 'John',
                     'last_name' => 'Doe',
-                    'role' => 'Employee',
-                    'permissions' => ['cms.contracts.create', 'cms.contracts.edit'],
+                    'role' => 'Sales',
+                    'permissions' => ['cms.contracts.view', 'cms.contracts.create'],
                     'department' => 'Sales & Marketing',
                 ]
             ], 200),
@@ -188,5 +192,52 @@ class NotifyManagerTest extends TestCase
             'notify_manager_count' => 0,
             'approval_status_id' => ContractApprovalStatus::where('status_name', 'Rejected')->first()->approval_status_id,
         ]);
+    }
+
+    public function test_sales_cannot_notify_manager_on_unowned_contract()
+    {
+        Http::fake([
+            'http://auth-service:8000/api/internal/verify-token' => Http::response([
+                'valid' => true,
+                'user' => [
+                    'id' => 999, // Different user
+                    'email' => 'other-sales@sbsi.com',
+                    'first_name' => 'Other',
+                    'last_name' => 'Sales',
+                    'role' => 'Sales',
+                    'permissions' => ['cms.contracts.view', 'cms.contracts.create'],
+                    'department' => 'Sales & Marketing',
+                ]
+            ], 200),
+            'http://notification:8000/api/internal/push' => Http::response(['success' => true], 201)
+        ]);
+
+        $contract = Contract::create([
+            'category_id' => ContractCategory::first()->category_id,
+            'approval_status_id' => ContractApprovalStatus::where('status_name', 'Pending')->first()->approval_status_id,
+            'bp_name' => 'Test Vendor',
+            'item_code' => 'ITM-TEST-UNOWNED',
+            'description' => 'Desc',
+            'serial_number' => 'SN-123-UNOWNED',
+            'sbu_number' => 'SBU-123',
+            'region_id' => \Illuminate\Support\Facades\DB::table('contract_regions')->first()->region_id,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'created_by' => 42, // Created by 42, requester is 999
+            'notify_manager_count' => 0
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer valid-token',
+            'Accept' => 'application/json'
+        ])->postJson("/api/contracts/{$contract->contract_id}/notify-manager");
+
+        $response->assertStatus(403);
+        $this->assertEquals('Forbidden.', $response->json('message'));
+        $this->assertEquals(0, $contract->fresh()->notify_manager_count);
+
+        Http::assertNotSent(function ($request) {
+            return $request->url() === 'http://notification:8000/api/internal/push';
+        });
     }
 }

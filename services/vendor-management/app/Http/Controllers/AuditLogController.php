@@ -42,8 +42,8 @@ class AuditLogController extends Controller
         }
 
         // 2. Build DB query — pagination params extracted early for paginate() call
-        $page    = (int) $request->input('page', 1);
-        $perPage = (int) $request->input('per_page', 20);
+        $page    = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min((int) $request->input('per_page', 20), 100));
 
         $cmsLogsQuery = AuditLog::query()->where('user_department', 'Sales & Marketing');
 
@@ -54,7 +54,7 @@ class AuditLogController extends Controller
             $cmsLogsQuery->whereDate('performed_at', $request->date);
         }
         if ($request->filled('search')) {
-            $s = $request->search;
+            $s = mb_substr((string) $request->search, 0, 255);
             $cmsLogsQuery->where(function ($q) use ($s) {
                 $q->where('user_name',    'like', "%{$s}%")
                   ->orWhere('user_email',  'like', "%{$s}%")

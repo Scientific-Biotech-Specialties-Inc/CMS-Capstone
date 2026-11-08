@@ -3,6 +3,9 @@ import { reactive, ref, computed } from 'vue'
 import { AlertTriangle, AlertCircle } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import FormField from '@/components/shared/FormField.vue'
+import { required, minLength } from '@/lib/validation'
+import { useFormValidation } from '@/composables/useFormValidation'
 import { useToast } from '@/composables/useToast'
 import { useWorkflowBuilder } from '@/composables/useWorkflowBuilder'
 import type { ContractTypeWithWorkflow } from '@/types/workflow'
@@ -30,6 +33,16 @@ const form = reactive({
   name: `${props.sourceName} (Copy)`,
 })
 
+const { errors, touched, validateField, validateAll } = useFormValidation(form, {
+  targetContractTypeId: [
+    required('Please select a target contract type.'),
+  ],
+  name: [
+    required('Workflow name is required.'),
+    minLength(3, 'Workflow name must be at least 3 characters.'),
+  ],
+})
+
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
@@ -40,9 +53,8 @@ const targetHasWorkflow = computed(() => {
   return !!(ct && (ct.active_workflow || ct.draft_workflow))
 })
 
-const isValid = computed(() => !!form.targetContractTypeId && form.name.trim().length > 0)
-
 async function doDuplicate() {
+  if (!validateAll()) return
   if (!form.targetContractTypeId) return
   saveError.value = null
   saving.value = true
@@ -70,22 +82,43 @@ async function doDuplicate() {
       </DialogHeader>
 
       <div class="space-y-3">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-black/55">Target Contract Type</label>
-          <select v-model="form.targetContractTypeId"
-            class="h-9 rounded-lg border border-black/12 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/15 focus:border-brand-blue transition">
+        <FormField
+          label="Target Contract Type"
+          :required="true"
+          :error="touched.targetContractTypeId ? errors.targetContractTypeId : null"
+        >
+          <select
+            v-model="form.targetContractTypeId"
+            @blur="validateField('targetContractTypeId')"
+            @change="validateField('targetContractTypeId')"
+            class="w-full h-9 rounded-lg border px-3 text-sm bg-white focus:outline-none focus:ring-2 transition"
+            :class="touched.targetContractTypeId && errors.targetContractTypeId
+              ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15'
+              : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
+          >
             <option :value="null" disabled>Select a contract type</option>
             <option v-for="ct in contractTypes" :key="ct.contract_type_id" :value="ct.contract_type_id">
               {{ ct.contract_type_name }}
             </option>
           </select>
-        </div>
+        </FormField>
 
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-black/55">New Workflow Name</label>
-          <input v-model="form.name" type="text"
-            class="h-9 rounded-lg border border-black/12 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/15 focus:border-brand-blue transition" />
-        </div>
+        <FormField
+          label="New Workflow Name"
+          :required="true"
+          :error="touched.name ? errors.name : null"
+        >
+          <input
+            v-model="form.name"
+            @blur="validateField('name')"
+            @input="validateField('name')"
+            type="text"
+            class="w-full h-9 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 transition"
+            :class="touched.name && errors.name
+              ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15'
+              : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
+          />
+        </FormField>
 
         <!-- Pre-flight warning: target already has a workflow -->
         <div
@@ -111,7 +144,7 @@ async function doDuplicate() {
           class="h-9 px-4 text-sm border-black/15 text-black/65 hover:text-black hover:bg-black/4">
           Cancel
         </Button>
-        <Button @click="doDuplicate" :disabled="saving || !isValid"
+        <Button @click="doDuplicate" :disabled="saving"
           class="h-9 px-4 text-sm bg-brand-navy hover:bg-brand-dark text-white shadow-sm">
           {{ saving ? 'Duplicating...' : 'Duplicate' }}
         </Button>

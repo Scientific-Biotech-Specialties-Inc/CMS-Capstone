@@ -28,13 +28,14 @@ class BusinessPartnerController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->query('search');
+            $search = mb_substr((string) $request->query('search'), 0, 255);
             $query->where(function ($q) use ($search) {
                 $q->where('partner_name', 'like', '%' . $search . '%')
                   ->orWhere('industry', 'like', '%' . $search . '%');
             });
         } elseif ($request->filled('partner_name')) {
-            $query->where('partner_name', 'like', $request->partner_name . '%');
+            $partnerName = mb_substr((string) $request->partner_name, 0, 255);
+            $query->where('partner_name', 'like', $partnerName . '%');
         }
 
         if ($request->filled('industry') && $request->industry !== 'All') {
@@ -45,7 +46,7 @@ class BusinessPartnerController extends Controller
             $query->where('status', $request->status);
         }
 
-        $perPage = min((int) $request->input('per_page', 15), 100);
+        $perPage = max(1, min((int) $request->input('per_page', 15), 100));
 
         // Newest first so a freshly created partner always lands on page 1.
         return response()->json($query->orderByDesc('partner_id')->paginate($perPage));

@@ -63,8 +63,7 @@ final class SendContractExpiryEmail implements ShouldQueue
         if (in_array($role, ['Admin', 'Manager'])) {
             if ($department !== 'Sales & Marketing') {
                 Log::info("User {$this->userId} has role {$role} but department is {$department} (not Sales & Marketing). Skipping email send.");
-                // Commented out for testing purposes so you can receive the email!
-                // return;
+                return;
             }
         }
 

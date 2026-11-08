@@ -13,6 +13,15 @@ class SalesMarketingEmployeeContractNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\SyncContractToMeilisearch::class,
+            \App\Jobs\RemoveContractFromMeilisearch::class,
+        ]);
+    }
+
     protected function mockAuth(string $role, string $department): void
     {
         Http::fake([

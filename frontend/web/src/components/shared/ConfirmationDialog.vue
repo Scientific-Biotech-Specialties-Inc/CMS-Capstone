@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Trash2, Check, FileText, AlertTriangle, Loader2 } from 'lucide-vue-next'
+import { Trash2, Check, FileText, AlertTriangle, Loader2, Sparkles } from 'lucide-vue-next'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
   description: string
   confirmLabel?: string
   cancelLabel?: string
-  variant?: 'default' | 'destructive' | 'warning'
+  variant?: 'default' | 'destructive' | 'warning' | 'ai'
   loading?: boolean
 }>(), {
   confirmLabel: 'Confirm',
@@ -26,14 +26,16 @@ const emit = defineEmits<{
 }>()
 
 // Determine semantic type based on variant or title keywords to support modal-reference styles
-const semanticType = computed<'destructive' | 'approve' | 'warning' | 'default'>(() => {
+const semanticType = computed<'destructive' | 'approve' | 'warning' | 'ai' | 'default'>(() => {
   if (props.variant === 'destructive') return 'destructive'
   if (props.variant === 'warning') return 'warning'
+  if (props.variant === 'ai') return 'ai'
   const titleLower = props.title.toLowerCase()
   const labelLower = props.confirmLabel.toLowerCase()
   if (titleLower.includes('delete') || labelLower.includes('delete')) return 'destructive'
   if (titleLower.includes('approve') || labelLower.includes('approve')) return 'approve'
   if (titleLower.includes('reject') || labelLower.includes('reject')) return 'destructive'
+  if (titleLower.includes('generate') || labelLower.includes('generate') || titleLower.includes('ai')) return 'ai'
   return 'default'
 })
 
@@ -59,6 +61,13 @@ const badgeConfig = computed(() => {
         bgClass: 'bg-[#FFFBEB]',
         colorClass: 'text-[#F59E0B]',
         buttonClass: 'bg-[#F59E0B] hover:bg-[#D97706] text-white',
+      }
+    case 'ai':
+      return {
+        icon: Sparkles,
+        bgClass: 'bg-[#EEF2FF]',
+        colorClass: 'text-[#252578]',
+        buttonClass: 'bg-[#252578] hover:bg-[#1E1E66] text-white',
       }
     default:
       return {

@@ -166,7 +166,7 @@ class VendorSuggestionController extends Controller
     private function isAuthorized(Request $request): bool
     {
         $role = $request->get('auth_role');
-        return in_array($role, ['Admin', 'Manager', 'Sales'], true);
+        return in_array($role, ['Admin', 'Super Admin'], true);
     }
 
     private function formatSuggestion(VendorSuggestion $suggestion): array

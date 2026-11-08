@@ -22,7 +22,7 @@ final class EmailDispatchTest extends TestCase
     {
         return [
             'Accept' => 'application/json',
-            'X-Internal-Secret' => 'cms-internal-secret-key-2026',
+            'X-Internal-Secret' => (string) (env('INTERNAL_SERVICE_SECRET') ?: 'cms-internal-secret-key-2026'),
         ];
     }
 

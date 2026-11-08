@@ -26,7 +26,16 @@ final class NotifyPrsOfContractUpdateJob implements ShouldQueue
     public function handle(): void
     {
         $url = env('PRS_WEBHOOK_URL', 'http://prs_api:8000/api/integrations/cms/contract-outcome');
-        $apiKey = env('PRS_INTEGRATION_KEY', 'cms-prs-local-service-key');
+        $apiKey = (string) env('PRS_INTEGRATION_KEY', '');
+
+        // No hardcoded fallback secret: a publicly known default key would let
+        // anyone forge CMS->PRS outcome webhooks. Fail closed instead.
+        if ($apiKey === '') {
+            Log::warning('NotifyPrsOfContractUpdateJob skipped: PRS_INTEGRATION_KEY is not configured.', [
+                'contract_id' => $this->contractId,
+            ]);
+            return;
+        }
 
         try {
             $response = Http::timeout(5)
