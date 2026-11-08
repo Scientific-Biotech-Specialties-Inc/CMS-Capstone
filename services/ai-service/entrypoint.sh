@@ -19,7 +19,7 @@ if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_DATABASE" ]; then
     while ($max-- > 0) {
         try {
             $pdo = new PDO("pgsql:host=$host;port=$port;dbname=ocr_pipeline", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = \"$db\"");
+            $stmt = $pdo->query("SELECT 1 FROM pg_database WHERE datname = '$db'");
             if (!$stmt->fetch()) {
                 $pdo->exec("CREATE DATABASE \"$db\"");
                 echo "PostgreSQL database `$db` created.\n";
