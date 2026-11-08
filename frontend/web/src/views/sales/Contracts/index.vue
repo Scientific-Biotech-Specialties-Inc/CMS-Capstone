@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import SalesContractsTable  from './SalesContractsTable.vue'
-import { remainingDays } from '@/types/contract'
+import { contractLifecycle, remainingDays } from '@/types/contract'
 import type { ContractWithDays, StatusFilter, FilterTab } from '@/types/contract'
 import { sortContractsForAll } from '@/utils/contractSort'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
@@ -40,10 +40,10 @@ const withDays = computed(() =>
 const statCards = computed(() => {
   return {
     total:    cacheState.contractsStats?.total ?? withDays.value.length,
-    active:   cacheState.contractsStats?.active ?? withDays.value.filter(c => c.days > 30 && c.approvalStatus === 'Approved').length,
-    inactive: cacheState.contractsStats?.inactive ?? withDays.value.filter(c => c.approvalStatus !== 'Approved').length,
-    expiring: cacheState.contractsStats?.expiring ?? withDays.value.filter(c => c.days >= 0 && c.days <= 30 && c.approvalStatus === 'Approved').length,
-    expired:  cacheState.contractsStats?.expired ?? withDays.value.filter(c => c.days < 0 && c.approvalStatus === 'Approved').length,
+    active:   cacheState.contractsStats?.active ?? withDays.value.filter(c => contractLifecycle(c) === 'active').length,
+    inactive: cacheState.contractsStats?.inactive ?? withDays.value.filter(c => contractLifecycle(c) === 'inactive').length,
+    expiring: cacheState.contractsStats?.expiring ?? withDays.value.filter(c => contractLifecycle(c) === 'expiring').length,
+    expired:  cacheState.contractsStats?.expired ?? withDays.value.filter(c => contractLifecycle(c) === 'expired').length,
   }
 })
 
@@ -73,12 +73,7 @@ const filtered = computed(() => {
       || c.category.toLowerCase().includes(q)
       || c.itemCode.toLowerCase().includes(q)
 
-    const byTab =
-      activeFilter.value === 'all'      ? true :
-      activeFilter.value === 'active'   ? (c.days > 30 && c.approvalStatus === 'Approved') :
-      activeFilter.value === 'expiring' ? (c.days >= 0 && c.days <= 30 && c.approvalStatus === 'Approved') :
-      activeFilter.value === 'expired'  ? (c.days < 0 && c.approvalStatus === 'Approved') :
-      (c.approvalStatus !== 'Approved')
+    const byTab = activeFilter.value === 'all' || contractLifecycle(c) === activeFilter.value
 
     const byCategory = !cat || c.category === cat
     const byRegion = !reg || c.region === reg
@@ -193,7 +188,8 @@ async function executeApprove() {
       body: JSON.stringify({ approval_status: 'Approved', workflow_status: 'SBSI Review' })
     })
     if (!res.ok) throw new Error()
-    updateContractInCache(contractToApprove.value, { approvalStatus: 'Approved', workflowStatus: 'SBSI Review' })
+    const { data: approved } = await res.json()
+    updateContractInCache(contractToApprove.value, { approvalStatus: approved.approval_status, workflowStatus: approved.workflow_status, lifecycleStatus: approved.lifecycle_status })
     success('Contract approved', 'The contract has been approved.')
     await fetchContracts()
   } catch (e) {

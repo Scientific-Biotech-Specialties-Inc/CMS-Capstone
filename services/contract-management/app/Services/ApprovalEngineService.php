@@ -54,7 +54,7 @@ class ApprovalEngineService
     public function hasActiveInstance(int $contractId): bool
     {
         return ApprovalInstance::where('contract_id', $contractId)
-            ->whereIn('status', ['in_progress', 'revisions_required'])
+            ->awaitingOutcome()
             ->exists();
     }
 
@@ -87,6 +87,7 @@ class ApprovalEngineService
                 'workflow_id' => $workflow->id,
                 'run_number'  => 1,
                 'status'      => 'in_progress',
+                'draft_document_id' => $contract->execution_draft_id,
             ]);
 
             $firstStep = $workflow->steps->sortBy('order_index')->first();
@@ -105,13 +106,13 @@ class ApprovalEngineService
      * 'restart', the default) or at the step that rejected
      * ('resume_at_rejected').
      */
-    public function resubmit(Contract $contract): ?ApprovalInstance
+    public function resubmit(Contract $contract, bool $restartApproved = false): ?ApprovalInstance
     {
         $lastInstance = ApprovalInstance::where('contract_id', $contract->contract_id)
             ->orderByDesc('run_number')
             ->first();
 
-        if (!$lastInstance || $lastInstance->status !== 'revisions_required') {
+        if (!$lastInstance || $lastInstance->status !== ($restartApproved ? 'approved' : 'revisions_required')) {
             return null;
         }
 
@@ -120,17 +121,18 @@ class ApprovalEngineService
             return null;
         }
 
-        return DB::transaction(function () use ($contract, $workflow, $lastInstance) {
+        return DB::transaction(function () use ($contract, $workflow, $lastInstance, $restartApproved) {
             $newInstance = ApprovalInstance::create([
                 'contract_id' => $contract->contract_id,
                 'workflow_id' => $workflow->id,
                 'run_number'  => $lastInstance->run_number + 1,
                 'status'      => 'in_progress',
+                'draft_document_id' => $contract->execution_draft_id,
             ]);
 
             $steps = $workflow->steps->sortBy('order_index')->values();
 
-            $startStep = $workflow->resubmit_mode === 'resume_at_rejected' && $lastInstance->current_step_id
+            $startStep = !$restartApproved && $workflow->resubmit_mode === 'resume_at_rejected' && $lastInstance->current_step_id
                 ? $steps->firstWhere('id', $lastInstance->current_step_id)
                 : $steps->first();
 
@@ -171,6 +173,9 @@ class ApprovalEngineService
         }
 
         return DB::transaction(function () use ($task, $actingUserId, $decision, $comment) {
+            $instance = ApprovalInstance::lockForUpdate()->findOrFail($task->instance_id);
+            $task = ApprovalTask::lockForUpdate()->findOrFail($task->getKey());
+            abort_unless($instance->isInProgress() && $task->isPending(), 409, 'This approval task is no longer pending.');
             $task->update([
                 'status'           => $decision,
                 'acted_by_user_id' => $actingUserId,
@@ -188,6 +193,11 @@ class ApprovalEngineService
 
             return $task->refresh();
         });
+    }
+
+    public function canActOn(ApprovalTask $task, int $actor): bool
+    {
+        return $task->isPending() && $this->findHolderInfo((int) $task->auth_role_id, $actor) !== null;
     }
 
     // ── Internal step/task mechanics ───────────────────────────────────
@@ -289,12 +299,21 @@ class ApprovalEngineService
         $statusRow = ContractApprovalStatus::firstOrCreate(['status_name' => $outcome]);
 
         $updates = ['approval_status_id' => $statusRow->approval_status_id];
+        if ($contract->execution_required) {
+            $updates['workflow_status_id'] = $outcome === 'Approved'
+                ? \App\Models\ContractStatus::where('status_name', 'SBSI Review')->value('status_id') : null;
+            $updates['rejection_reason'] = null;
+            $updates['internal_approved_at'] = $outcome === 'Approved' ? now() : null;
+        }
         if ($outcome === 'Rejected') {
             $updates['rejection_reason'] = $rejectionReason;
             $updates['notify_manager_count'] = 0;
         }
 
         $contract->update($updates);
+        if ($contract->execution_required) {
+            \App\Jobs\SyncContractToMeilisearch::dispatch((int) $contract->getKey())->afterCommit();
+        }
     }
 
     /**

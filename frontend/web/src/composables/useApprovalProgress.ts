@@ -20,6 +20,7 @@ export function useApprovalProgress() {
   // `current_step_roles` from the progress response). Empty for legacy
   // contracts — the nudge button falls back to "Notify Manager".
   const currentStepRoles = ref<string[]>([])
+  const myTasks = ref<{ id: number; role_name: string }[]>([])
   let aborter: AbortController | null = null
 
   function apiBase(): string {
@@ -43,6 +44,7 @@ export function useApprovalProgress() {
       if (!res.ok) throw new Error('Failed to load approval progress.')
       const json = await res.json()
       const data = json.data ?? json
+      myTasks.value = data.my_tasks ?? []
 
       if (!data.engine || !data.runs?.length) {
         workflow.value = null
@@ -59,6 +61,7 @@ export function useApprovalProgress() {
       error.value = err instanceof Error ? err.message : 'Failed to load approval progress.'
       status.value = 'error'
       currentStepRoles.value = []
+      myTasks.value = []
     }
   }
 
@@ -68,5 +71,15 @@ export function useApprovalProgress() {
 
   onUnmounted(() => aborter?.abort())
 
-  return { workflow, status, error, currentStepRoles, fetchProgress, retry }
+  async function decide(contractId: string, taskId: number, decision: 'approved' | 'rejected', comment?: string) {
+    const response = await fetch(`${apiBase()}/contracts/${contractId}/approval-tasks/${taskId}/decision`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
+      body: JSON.stringify({ decision, comment }),
+    })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.message ?? 'Approval decision could not be saved.')
+  }
+
+  return { workflow, status, error, currentStepRoles, myTasks, fetchProgress, retry, decide }
 }

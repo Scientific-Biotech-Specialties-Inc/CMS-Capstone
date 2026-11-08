@@ -44,11 +44,16 @@ class Document extends BaseDocument
         'uploaded_at',
         'scan_status',
         'scan_result',
+        'doc_category',
+        'signature_method',
+        'replaces_document_id',
+        'signature_evidence',
     ];
 
     protected $casts = [
         'file_path' => EncryptedCast::class,
         'uploaded_at' => 'datetime',
+        'signature_evidence' => 'array',
     ];
 
     public function contract()

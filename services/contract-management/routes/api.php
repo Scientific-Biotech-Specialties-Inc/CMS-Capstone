@@ -25,6 +25,10 @@ Route::middleware(['auth.internal'])->group(function () {
         ->middleware('permission:cms.contracts.view');
     Route::patch('/contracts/{id}/status', [ContractController::class, 'updateStatus'])
         ->middleware('permission:cms.contracts.approve');
+    Route::get('/contracts/{id}/execution', [\App\Http\Controllers\ContractExecutionController::class, 'show'])
+        ->middleware('permission:cms.contracts.view');
+    Route::post('/contracts/{id}/execution', [\App\Http\Controllers\ContractExecutionController::class, 'store'])
+        ->middleware(['permission:cms.contracts.view', 'throttle:20,1']);
     Route::post('/contracts/{id}/notify-manager', [ContractController::class, 'notifyManager'])
         ->middleware('permission:cms.contracts.view');
     // Phase 7 (decision #13): canonical generalized nudge — notifies the
@@ -82,7 +86,7 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::get('/contracts/{id}/approval-progress', [\App\Http\Controllers\ApprovalEngineController::class, 'progress'])
         ->middleware('permission:cms.contracts.view');
     Route::post('/contracts/{id}/approval-tasks/{taskId}/decision', [\App\Http\Controllers\ApprovalEngineController::class, 'decide'])
-        ->middleware('permission:cms.contracts.approve');
+        ->middleware('permission:cms.contracts.view|cms.contracts.approve');
 
 });
 

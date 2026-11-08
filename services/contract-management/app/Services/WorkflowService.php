@@ -28,7 +28,7 @@ class WorkflowService
     public function listContractTypesWithWorkflows(): array
     {
         $categories = ContractCategory::with(['workflows' => function ($q) {
-            $q->orderByDesc('updated_at');
+            $q->whereNull('superseded_at')->orderByDesc('updated_at')->orderByDesc('id');
         }])->orderBy('category_name')->get();
 
         return $categories->map(function (ContractCategory $cat) {
@@ -71,17 +71,38 @@ class WorkflowService
 
         if ($status === 'active') {
             $this->validateForActivation($payload, $token, $sessionId);
-            $this->assertSingleActiveWorkflowPerType($payload['contract_type_id'], $workflowId);
         }
 
         return DB::transaction(function () use ($payload, $workflowId, $actorUserId, $status) {
+            $categoryId = (int) $payload['contract_type_id'];
+            ContractCategory::lockForUpdate()->findOrFail($categoryId);
+
+            $replacesId = isset($payload['replace_active_workflow_id']) ? (int) $payload['replace_active_workflow_id'] : null;
+            if ($status === 'active') {
+                if ($replacesId !== null) {
+                    abort_if($replacesId === $workflowId, 422, 'Activate a separate version to replace the current workflow.');
+                    $replaced = Workflow::where('contract_type_id', $categoryId)->where('status', 'active')
+                        ->lockForUpdate()->find($replacesId);
+                    abort_unless($replaced, 409, 'The active workflow changed. Reload Approval Workflows and review the current version.');
+                    $replaced->forceFill(['status' => 'draft', 'superseded_at' => now()])->save();
+                }
+                $this->assertSingleActiveWorkflowPerType($categoryId, $workflowId);
+            }
+
             if ($workflowId) {
-                $workflow = Workflow::findOrFail($workflowId);
+                $workflow = Workflow::where('contract_type_id', $categoryId)->lockForUpdate()->findOrFail($workflowId);
+                abort_if($workflow->superseded_at !== null, 409, 'This version was replaced. Reload Approval Workflows to open the current version.');
+                $reviewers = $payload['execution_reviewers'] ?? $workflow->execution_reviewers;
+                $resubmitMode = $payload['resubmit_mode'] ?? $workflow->resubmit_mode;
+                if (($reviewers ?: []) != ($workflow->execution_reviewers ?: []) || $resubmitMode !== $workflow->resubmit_mode) {
+                    $this->assertStepsEditable($workflow);
+                }
                 $workflow->update([
                     'contract_type_id' => $payload['contract_type_id'],
                     'name'             => $payload['name'],
                     'status'           => $status,
-                    'resubmit_mode'    => $payload['resubmit_mode'] ?? $workflow->resubmit_mode,
+                    'resubmit_mode'    => $resubmitMode,
+                    'execution_reviewers' => $reviewers,
                 ]);
                 $newSteps = $payload['steps'] ?? [];
                 if ($this->stepSignature($workflow) === $this->payloadSignature($newSteps)) {
@@ -97,11 +118,18 @@ class WorkflowService
                 $this->assertStepsEditable($workflow);
                 $workflow->steps()->delete(); // cascades to workflow_step_roles
             } else {
+                if (isset($payload['replace_draft_workflow_id'])) {
+                    $draft = Workflow::where('contract_type_id', $categoryId)->where('status', 'draft')
+                        ->whereNull('superseded_at')->lockForUpdate()->find($payload['replace_draft_workflow_id']);
+                    abort_unless($draft, 409, 'The draft changed. Reload Approval Workflows to open the current draft.');
+                    $draft->forceFill(['superseded_at' => now()])->save();
+                }
                 $workflow = Workflow::create([
                     'contract_type_id' => $payload['contract_type_id'],
                     'name'             => $payload['name'],
                     'status'           => $status,
                     'resubmit_mode'    => $payload['resubmit_mode'] ?? 'restart',
+                    'execution_reviewers' => $payload['execution_reviewers'] ?? null,
                     'created_by'       => $actorUserId,
                 ]);
             }
@@ -138,7 +166,7 @@ class WorkflowService
         if ($workflow->instances()->exists()) {
             throw new HttpResponseException(
                 response()->json([
-                    'message' => 'This workflow already has contracts that have gone through it, so its steps can no longer be changed. Duplicate it to evolve the chain instead.',
+                    'message' => 'This version is assigned to existing contracts. Reopen the editor to save your changes as a new version.',
                 ], 409)
             );
         }
@@ -198,6 +226,7 @@ class WorkflowService
                 'name'             => $newName,
                 'status'           => 'draft',
                 'resubmit_mode'    => $source->resubmit_mode,
+                'execution_reviewers' => $source->execution_reviewers,
                 'created_by'       => $actorUserId,
             ]);
 
@@ -275,6 +304,19 @@ class WorkflowService
                             '. Grant these permissions to the role before it can be used in an active workflow.',
                         ],
                     ]);
+                }
+            }
+        }
+
+        foreach ($payload['execution_reviewers'] ?? [] as $stage => $reviewers) {
+            foreach ($reviewers as $reviewer) {
+                $role = $this->roleProxy->describeRole((int) $reviewer['auth_role_id']);
+                if (!($role['exists'] ?? false) || ($role['deleted'] ?? false)
+                    || ($stage === 'For Signing' && !in_array($role['current_name'] ?? '', ['Manager', 'CEO'], true))) {
+                    throw ValidationException::withMessages(['execution_reviewers' => "Select an eligible reviewer for {$stage}."]);
+                }
+                if (!in_array('cms.contracts.view', $this->roleProxy->getRolePermissionSlugs((int) $reviewer['auth_role_id'], $token, $sessionId), true)) {
+                    throw ValidationException::withMessages(['execution_reviewers' => "Reviewers for {$stage} need permission to view contracts."]);
                 }
             }
         }

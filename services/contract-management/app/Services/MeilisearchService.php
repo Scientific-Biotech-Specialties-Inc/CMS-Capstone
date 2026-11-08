@@ -21,7 +21,7 @@ final class MeilisearchService
     {
         $this->createIndexIfMissing();
         
-        $document = array_merge(['id' => (int) $contract['contract_id']], $contract);
+        $document = array_merge(['id' => (int) $contract['contract_db_id']], $contract);
         $this->client->index('contracts')->addDocuments([$document]);
     }
 

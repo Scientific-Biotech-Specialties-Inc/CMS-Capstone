@@ -1,4 +1,4 @@
-export type ContractWorkflowStatus  = 'Notarized PDF' | 'Client Review' | 'SBSI Review'
+export type ContractWorkflowStatus = 'SBSI Review' | 'Client Review' | 'For Signing' | 'Signed' | 'Notarized PDF'
 export type ContractApprovalStatus  = 'Pending' | 'Approved' | 'Rejected'
 
 export interface UploadedDoc {
@@ -11,9 +11,12 @@ export interface UploadedDoc {
   uploadStatus?: 'uploading' | 'scanning' | 'success' | 'error'
   errorMessage?: string
   scanWarning?: string
+  category?: 'draft' | 'signed' | 'notarized'
+  isCurrentDraft?: boolean
+  isPrimary?: boolean
 }
 export type ContractRegion = 'Luzon' | 'Visayas' | 'Mindanao'
-export type FilterTab      = 'all' | 'active' | 'inactive' | 'expiring' | 'expired'
+export type FilterTab = 'all' | ContractLifecycleStatus
 export type StatusFilter   = '' | ContractApprovalStatus | ContractWorkflowStatus
 
 export interface Contract {
@@ -31,6 +34,9 @@ export interface Contract {
   endDate:         string
   approvalStatus:  ContractApprovalStatus
   workflowStatus:  ContractWorkflowStatus | null
+  lifecycleStatus?: ContractLifecycleStatus
+  executionRequired?: boolean
+  hasPendingApprovalWorkflow?: boolean
   contractLink:    string
   createdBy:       string
   docs:            UploadedDoc[]
@@ -48,6 +54,8 @@ export const approvalStatusBadge: Record<ContractApprovalStatus, string> = {
 }
 
 export const workflowStatusBadge: Record<ContractWorkflowStatus, string> = {
+  'For Signing': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Signed': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'Notarized PDF': 'bg-black/5 text-black/60 border-black/12',
   'Client Review': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'SBSI Review':   'bg-red-50 text-red-600 border-red-200',
@@ -112,7 +120,7 @@ export function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export type ContractLifecycleStatus = 'active' | 'expiring' | 'expired' | 'inactive'
+export type ContractLifecycleStatus = 'active' | 'expiring' | 'expired' | 'inactive' | 'pending_execution'
 
 export const EXPIRING_THRESHOLD_DAYS = 30
 
@@ -121,5 +129,9 @@ export function deriveLifecycleStatus(days: number, approvalStatus?: ContractApp
   if (days < 0) return 'expired'
   if (days <= EXPIRING_THRESHOLD_DAYS) return 'expiring'
   return 'active'
+}
+
+export function contractLifecycle(contract: ContractWithDays): ContractLifecycleStatus {
+  return contract.lifecycleStatus ?? deriveLifecycleStatus(contract.days, contract.approvalStatus)
 }
 
