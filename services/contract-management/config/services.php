@@ -35,4 +35,51 @@ return [
         ],
     ],
 
+    'meilisearch' => [
+        'host' => env('MEILISEARCH_HOST', 'http://meilisearch:7700'),
+        'key' => env('MEILISEARCH_KEY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Feature Flags
+    |--------------------------------------------------------------------------
+    |
+    | high_risk_approval_gate_enabled: US-023's mandatory approval gate (block
+    | "Approved" for High/Critical AI Risk Assessment results until a
+    | rationale'd decision is recorded). Defaults to OFF — the AI Risk
+    | Assessment is currently advisory only: it surfaces a flag/warning on
+    | the contract but never prevents approval. All of the gate's supporting
+    | code (HighRiskApprovalGateService, ContractApproval model/migration,
+    | ContractApprovalController, the SLA escalation command) is left in
+    | place, inert behind this flag, so it can be re-enabled later by simply
+    | flipping HIGH_RISK_APPROVAL_GATE_ENABLED=true without further code changes.
+    |
+    */
+
+    'features' => [
+        'high_risk_approval_gate_enabled' => env('HIGH_RISK_APPROVAL_GATE_ENABLED', false),
+
+        /*
+        | enforce_sod: Four-eyes Separation of Duties on contract approval.
+        | Rejects approval or rejection if the acting user is also the contract
+        | creator. Default true in production; false in local/testing to allow
+        | single-user seeders and dev tests.
+        */
+        'enforce_sod' => env('ENFORCE_SOD', !in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)),
+
+        /*
+        | workflow_engine_enabled: Phase 5 of the dynamic approval workflow
+        | engine plan. Defaults to OFF — with the flag off, contract
+        | creation/approval behaves exactly as before (the legacy single
+        | manager-approval flow), and no ApprovalInstance/ApprovalTask rows
+        | are ever created. When ON, a contract whose category has an
+        | ACTIVE workflow (see Workflow::status) is routed through that
+        | chain instead of the legacy immediate Approved/Pending path.
+        | Categories with no active workflow always use the legacy flow
+        | regardless of this flag (decision #9's fallback behavior).
+        */
+        'workflow_engine_enabled' => env('WORKFLOW_ENGINE_ENABLED', false),
+    ],
+
 ];

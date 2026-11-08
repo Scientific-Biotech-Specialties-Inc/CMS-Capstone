@@ -1,0 +1,7 @@
+--- Verification Started ---
+Logging in as finance-admin@example.com...
+Login Response Status: 200
+Login successful! Token and Session ID acquired.
+
+Sending POST request to contract-management proxy on port 8002...
+Network error connecting to contract-management proxy: fetch failed

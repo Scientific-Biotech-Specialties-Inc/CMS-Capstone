@@ -1,0 +1,218 @@
+﻿AGENTS.md:1:# CRMS Capstone ΓÇö Codex Rules
+CLAUDE.md:1:# CRMS Capstone ΓÇö Claude Code Rules
+README.md:1:# CRMS Capstone
+SHARED_GATEWAY.md:3:This document explains how the **Nginx Reverse Proxy** (Shared Gateway) is configured to manage traffic across multiple microservices in the CRMS and Auth modules.
+SHARED_GATEWAY.md:10:1.  **Shared Docker Network:** All services (Auth, CRMS, Databases) are connected to an external Docker network called `shared-capstone-network`.
+SHARED_GATEWAY.md:11:2.  **Service Discovery:** Because they are on the same network, Nginx can reach other containers using their `container_name` or `service_name` (e.g., `http://crms-web:5001`) instead of an IP address.
+SHARED_GATEWAY.md:23:    subgraph "CRMS Capstone Project"
+SHARED_GATEWAY.md:24:        Nginx -- "/crms/" --> CRMSWeb[CRMS Frontend:5001]
+SHARED_GATEWAY.md:36:*   **Seamless Integration:** You can host the Auth module and CRMS module as if they were a single website.
+SHARED_GATEWAY.md:87:| `/crms/` | `http://crms-web:5001` | CRMS Capstone |
+SHARED_GATEWAY.md:89:| `localhost:8001` | `vendor-management` (Direct) | CRMS API |
+STRUCTURE.md:3:This document outlines the file structure of the CRMS-Capstone project and explains the purpose of the key directories and files.
+STRUCTURE.md:8:crms-capstone/              # root directory
+docker-compose.yml:6:    container_name: crms-mysql
+docker-compose.yml:24:    container_name: crms-mongodb
+docker-compose.yml:34:    container_name: crms-redis
+docker-compose.yml:42:    container_name: crms-meilisearch
+docker-compose.yml:56:    container_name: crms-vendor-management
+docker-compose.yml:77:    container_name: crms-contract-management
+docker-compose.yml:98:    container_name: crms-search
+docker-compose.yml:115:    container_name: crms-notification
+docker-compose.yml:135:    container_name: crms-clamav
+docker-compose.yml:156:    container_name: crms-web
+frontend/web/e2e/helpers/auth.ts:20:    email: `${role.toLowerCase()}@crms-test.com`,
+frontend/web/e2e/helpers/auth.ts:25:      'crms.dashboard.view',
+frontend/web/e2e/helpers/auth.ts:26:      'crms.users.view',
+frontend/web/e2e/helpers/auth.ts:27:      'crms.roles.view',
+frontend/web/e2e/helpers/auth.ts:28:      'crms.partners.view',
+frontend/web/e2e/helpers/auth.ts:29:      'crms.system.ocr',
+frontend/web/e2e/helpers/auth.ts:30:      'crms.system.risk_assessment'
+frontend/web/src/composables/useAuth.ts:63:      const localSaved = localStorage.getItem(`crms_frontend_perms_${activeRole}`)
+frontend/web/src/composables/useAuth.ts:66:        if (savedIds.includes(-1)) perms.push('crms.system.ocr')
+frontend/web/src/composables/useAuth.ts:67:        if (savedIds.includes(-2)) perms.push('crms.system.risk_assessment')
+frontend/web/src/composables/useAuth.ts:71:          perms.push('crms.system.ocr', 'crms.system.risk_assessment')
+frontend/web/src/composables/useAuth.ts:203:    // 2. Map standard dot slugs like "crms.partners.view" to alternative formats:
+frontend/web/src/composables/useAuth.ts:205:    const match = permission.match(/^crms\.([^.]+)\.([^.]+)$/)
+frontend/web/src/composables/useRolePermissions.ts:8:// Add new slugs here when new CRMS permissions are seeded.
+frontend/web/src/composables/useRolePermissions.ts:11:  'crms.contracts.view':    { category: 'contracts', label: 'View' },
+frontend/web/src/composables/useRolePermissions.ts:12:  'crms.contracts.create':  { category: 'contracts', label: 'Create' },
+frontend/web/src/composables/useRolePermissions.ts:13:  'crms.contracts.edit':    { category: 'contracts', label: 'Edit' },
+frontend/web/src/composables/useRolePermissions.ts:14:  'crms.contracts.delete':  { category: 'contracts', label: 'Delete' },
+frontend/web/src/composables/useRolePermissions.ts:15:  'crms.contracts.approve': { category: 'contracts', label: 'Approve' },
+frontend/web/src/composables/useRolePermissions.ts:18:  'crms.partners.view':   { category: 'partners', label: 'View' },
+frontend/web/src/composables/useRolePermissions.ts:19:  'crms.partners.create': { category: 'partners', label: 'Create' },
+frontend/web/src/composables/useRolePermissions.ts:20:  'crms.partners.edit':   { category: 'partners', label: 'Edit' },
+frontend/web/src/composables/useRolePermissions.ts:21:  'crms.partners.delete': { category: 'partners', label: 'Delete' },
+frontend/web/src/composables/useRolePermissions.ts:24:  'crms.system.ocr':             { category: 'system', label: 'Use of OCR' },
+frontend/web/src/composables/useRolePermissions.ts:25:  'crms.system.risk_assessment': { category: 'system', label: 'AI Risk Assessment' },
+frontend/web/src/composables/useRolePermissions.ts:34:      { key: 'crms.contracts.view',    label: 'View' },
+frontend/web/src/composables/useRolePermissions.ts:35:      { key: 'crms.contracts.create',  label: 'Create' },
+frontend/web/src/composables/useRolePermissions.ts:36:      { key: 'crms.contracts.edit',    label: 'Edit' },
+frontend/web/src/composables/useRolePermissions.ts:37:      { key: 'crms.contracts.delete',  label: 'Delete' },
+frontend/web/src/composables/useRolePermissions.ts:38:      { key: 'crms.contracts.approve', label: 'Approve' },
+frontend/web/src/composables/useRolePermissions.ts:45:      { key: 'crms.partners.view',   label: 'View' },
+frontend/web/src/composables/useRolePermissions.ts:46:      { key: 'crms.partners.create', label: 'Create' },
+frontend/web/src/composables/useRolePermissions.ts:47:      { key: 'crms.partners.edit',   label: 'Edit' },
+frontend/web/src/composables/useRolePermissions.ts:48:      { key: 'crms.partners.delete', label: 'Delete' },
+frontend/web/src/composables/useRolePermissions.ts:55:      { key: 'crms.system.ocr',             label: 'Use of OCR' },
+frontend/web/src/composables/useRolePermissions.ts:56:      { key: 'crms.system.risk_assessment', label: 'AI Risk Assessment' },
+frontend/web/src/composables/useRolePermissions.ts:117:    // Only keep CRMS CRUD permissions that appear in the UI map
+frontend/web/src/composables/useRolePermissions.ts:122:      { id: -1, name: 'Use of OCR', slug: 'crms.system.ocr', system: 'crms' },
+frontend/web/src/composables/useRolePermissions.ts:123:      { id: -2, name: 'AI Risk Assessment', slug: 'crms.system.risk_assessment', system: 'crms' }
+frontend/web/src/composables/useRolePermissions.ts:130:    // Filter to only include IDs that exist in allPermissions (which contains only crms slugs)
+frontend/web/src/composables/useRolePermissions.ts:139:      const localSaved = localStorage.getItem(`crms_frontend_perms_${roleName}`)
+frontend/web/src/composables/useRolePermissions.ts:211:      localStorage.setItem(`crms_frontend_perms_${roleName}`, JSON.stringify(frontendIds))
+frontend/web/src/layouts/ManagerLayout.vue:67:  if (hasPermission('crms.contracts.view')) {
+frontend/web/src/layouts/ManagerLayout.vue:70:  if (hasPermission('crms.contracts.create')) {
+frontend/web/src/layouts/ManagerLayout.vue:162:        <SidebarGroup v-if="hasPermission('crms.contracts.view') || hasPermission('crms.contracts.create')" class="mb-1 p-0">
+frontend/web/src/layouts/ManagerLayout.vue:219:        <SidebarGroup v-if="hasPermission('crms.partners.view')" class="mb-1 p-0">
+frontend/web/src/layouts/SalesLayout.vue:67:  if (hasPermission('crms.contracts.view')) {
+frontend/web/src/layouts/SalesLayout.vue:159:        <SidebarGroup v-if="hasPermission('crms.contracts.view') || hasPermission('crms.contracts.create')" class="mb-1 p-0">
+frontend/web/src/layouts/SalesLayout.vue:214:        <SidebarGroup v-if="hasPermission('crms.partners.view')" class="mb-1 p-0">
+frontend/web/src/router/index.ts:148:        meta: { requiresPermission: 'crms.partners.create' },
+frontend/web/src/router/index.ts:204:        meta: { requiresPermission: 'crms.partners.view' },
+frontend/web/src/router/index.ts:210:        meta: { requiresPermission: 'crms.partners.view' },
+frontend/web/src/router/index.ts:229:      // Fallback: escape CRMS router entirely and go to auth-module login
+frontend/web/src/router/index.ts:237:  history: createWebHistory('/crms/'),
+frontend/web/src/router/index.ts:266:  // CRMS-capstone only supports standard roles: Admin, Manager, Sales, Employee, Finance
+frontend/web/src/router/index.ts:269:  // If the user's role isn't recognized by CRMS (e.g., IT Admin, Super Admin), block them entirely
+frontend/web/src/types/auditLog.ts:14:  source: 'crms' | 'auth'
+frontend/web/src/views/admin/Contracts/ContractsTable.vue:320:                  <DropdownMenuItem v-if="hasPermission('crms.contracts.delete')" @click="emit('delete', c.id)"
+frontend/web/src/views/admin/Partners/PartnerDetail/index.vue:212:          <Button v-if="hasPermission('crms.partners.delete')" variant="outline" @click="showDelete = true"
+frontend/web/src/views/admin/Partners/index.vue:176:        <Button id="add-partner-btn" v-if="hasPermission('crms.partners.create')" @click="router.push('/admin/partners/create?type=' + activeTab)" class="h-9 w-9 p-0 bg-[#252578] hover:bg-[#2F2F73] text-white rounded-lg shadow-sm">
+frontend/web/src/views/admin/Partners/index.vue:233:      :can-delete="hasPermission('crms.partners.delete')"
+frontend/web/src/views/admin/Partners/index.vue:239:      :can-edit="hasPermission('crms.partners.edit')" :can-delete="hasPermission('crms.partners.delete')" :loading="loading"
+frontend/web/src/views/manager/Contracts/index.vue:175:        <Button v-if="hasPermission('crms.contracts.create')" @click="router.push('/manager/contracts/create')" class="group h-9 w-9 p-0 bg-[#252578] hover:bg-[#2F2F73] text-white rounded-lg shadow-sm transition-all duration-200 hover:scale-105 active:scale-95">
+frontend/web/src/views/manager/Dashboard/index.vue:18:const canViewContracts = computed(() => hasPermission('crms.contracts.view'))
+frontend/web/src/views/manager/Partners/index.vue:159:        <Button v-if="hasPermission('crms.partners.create')" @click="router.push('/manager/partners/create?type=' + activeTab)" class="h-9 w-9 p-0 bg-[#252578] hover:bg-[#2F2F73] text-white rounded-lg shadow-sm">
+frontend/web/src/views/manager/Partners/index.vue:216:      :can-delete="hasPermission('crms.partners.delete')"
+frontend/web/src/views/manager/Partners/index.vue:222:      :can-delete="hasPermission('crms.partners.delete')" :loading="loading"
+frontend/web/src/views/sales/Contracts/index.vue:133:        <Button v-if="hasPermission('crms.contracts.create')" @click="router.push('/sales/contracts/create')" class="group h-9 w-9 p-0 bg-[#252578] hover:bg-[#2F2F73] text-white rounded-lg shadow-sm transition-all duration-200 hover:scale-105 active:scale-95">
+frontend/web/src/views/sales/Partners/index.vue:211:      :can-delete="hasPermission('crms.partners.delete')"
+frontend/web/src/views/sales/Partners/index.vue:217:      :can-delete="hasPermission('crms.partners.delete')" :loading="loading"
+frontend/web/vite.config.ts:7:  base: '/crms/',
+services/contract-management/.env.example:72:MONGODB_URI=mongodb+srv://capstone_user:<db_password>@capstone-cluster.pyexefx.mongodb.net/crms-db?appName=Capstone-Cluster
+services/contract-management/.env.example:73:MONGODB_DATABASE=crms-db
+services/contract-management/app/Http/Controllers/AuditLogController.php:13:     * Display a listing of local CRMS audit logs (login/logout events are written
+services/contract-management/app/Http/Controllers/AuditLogController.php:48:        // 2. Fetch local CRMS logs
+services/contract-management/app/Http/Controllers/AuditLogController.php:49:        $crmsLogsQuery = AuditLog::query()->where(function ($query) {
+services/contract-management/app/Http/Controllers/AuditLogController.php:57:                $crmsLogsQuery->where('action', 'created')->where('entity_type', 'Contract');
+services/contract-management/app/Http/Controllers/AuditLogController.php:59:                $crmsLogsQuery->where('action', 'updated')->where('entity_type', 'Contract');
+services/contract-management/app/Http/Controllers/AuditLogController.php:61:                $crmsLogsQuery->where('action', 'deleted')->where('entity_type', 'Contract');
+services/contract-management/app/Http/Controllers/AuditLogController.php:63:                $crmsLogsQuery->where(function($q) {
+services/contract-management/app/Http/Controllers/AuditLogController.php:70:                $crmsLogsQuery->where(function($q) {
+services/contract-management/app/Http/Controllers/AuditLogController.php:77:                $crmsLogsQuery->where('action', 'created')->where('entity_type', 'BusinessPartner');
+services/contract-management/app/Http/Controllers/AuditLogController.php:79:                $crmsLogsQuery->where('action', 'updated')->where('entity_type', 'BusinessPartner');
+services/contract-management/app/Http/Controllers/AuditLogController.php:81:                $crmsLogsQuery->where('action', 'user_created');
+services/contract-management/app/Http/Controllers/AuditLogController.php:83:                $crmsLogsQuery->where('action', 'Login Success');
+services/contract-management/app/Http/Controllers/AuditLogController.php:85:                $crmsLogsQuery->where('action', 'Logout');
+services/contract-management/app/Http/Controllers/AuditLogController.php:87:                $crmsLogsQuery->where('action', $actionFilter);
+services/contract-management/app/Http/Controllers/AuditLogController.php:91:            $crmsLogsQuery->whereDate('performed_at', $request->date);
+services/contract-management/app/Http/Controllers/AuditLogController.php:94:        $crmsLogs = $crmsLogsQuery->orderBy('performed_at', 'desc')->limit(150)->get();
+services/contract-management/app/Http/Controllers/AuditLogController.php:96:        // 3. Normalize local CRMS logs
+services/contract-management/app/Http/Controllers/AuditLogController.php:99:        // Process CRMS logs
+services/contract-management/app/Http/Controllers/AuditLogController.php:100:        foreach ($crmsLogs as $log) {
+services/contract-management/app/Http/Controllers/AuditLogController.php:193:                'id' => 'crms-' . $log->audit_id,
+services/contract-management/app/Http/Controllers/AuditLogController.php:194:                'source' => 'crms',
+services/contract-management/app/Http/Controllers/InternalAuditController.php:11:     * Receive an audit event from internal auth service and write it to CRMS audit log.
+services/contract-management/app/Http/Middleware/AuthenticateInternal.php:41:        // CRMS-capstone Strict Role Isolation
+services/contract-management/config/database.php:118:            'database' => env('MONGODB_DATABASE', 'crms-db'),
+services/contract-management/database/migrations/2026_05_22_000010_add_action_index_to_audit_logs_table.php:12:     * Safe guard: skips if the index already exists (shared crms-db scenario).
+services/contract-management/database/migrations/2026_05_22_000010_add_action_index_to_audit_logs_table.php:17:        // when two services share the same crms-db and one has already run this migration.
+services/contract-management/routes/api.php:15:        ->middleware('permission:crms.contracts.view');
+services/contract-management/routes/api.php:17:        ->middleware('permission:crms.contracts.create');
+services/contract-management/routes/api.php:19:        ->middleware('permission:crms.contracts.edit');
+services/contract-management/routes/api.php:21:        ->middleware('permission:crms.contracts.delete');
+services/contract-management/routes/api.php:25:        ->middleware('permission:crms.contracts.view');
+services/contract-management/routes/api.php:27:        ->middleware('permission:crms.contracts.approve');
+services/contract-management/routes/api.php:30:        ->middleware('permission:crms.users.create');
+services/contract-management/routes/api.php:34:        ->middleware('permission:crms.users.view');
+services/contract-management/routes/api.php:38:        ->middleware('permission:crms.contracts.create');
+services/contract-management/routes/api.php:42:        ->middleware('permission:crms.contracts.view');
+services/contract-management/routes/api.php:44:        ->middleware('permission:crms.contracts.view');
+services/contract-management/tests/Feature/AdminUserProxyTest.php:17:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/contract-management/tests/Feature/AdminUserProxyTest.php:50:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/contract-management/tests/Feature/AdminUserProxyTest.php:72:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/contract-management/tests/Feature/AuditLogTest.php:25:        config(['app.internal_service_secret' => 'crms-internal-secret-key-2026']);
+services/contract-management/tests/Feature/AuditLogTest.php:26:        putenv('INTERNAL_SERVICE_SECRET=crms-internal-secret-key-2026');
+services/contract-management/tests/Feature/AuditLogTest.php:29:            'X-Internal-Secret' => 'crms-internal-secret-key-2026'
+services/contract-management/tests/Feature/AuditLogTest.php:53:        config(['app.internal_service_secret' => 'crms-internal-secret-key-2026']);
+services/contract-management/tests/Feature/AuditLogTest.php:54:        putenv('INTERNAL_SERVICE_SECRET=crms-internal-secret-key-2026');
+services/contract-management/tests/Feature/AuditLogTest.php:72:        config(['app.internal_service_secret' => 'crms-internal-secret-key-2026']);
+services/contract-management/tests/Feature/AuditLogTest.php:73:        putenv('INTERNAL_SERVICE_SECRET=crms-internal-secret-key-2026');
+services/contract-management/tests/Feature/AuditLogTest.php:113:                    'permissions' => ['crms.users.view'],
+services/contract-management/tests/Feature/AuditLogTest.php:147:        // All entries must be from the local CRMS store ΓÇö no 'auth' source rows
+services/contract-management/tests/Feature/AuditLogTest.php:149:        $this->assertContains('crms', $sources);
+services/contract-management/tests/Feature/AuthCommunicationTest.php:24:                    'permissions' => ['crms.contracts.view'],
+services/contract-management/tests/Feature/FinanceEmployeeContractNotificationTest.php:27:                    'permissions' => ['crms.contracts.create'],
+services/contract-management/tests/Feature/FinanceEmployeeContractNotificationTest.php:48:                    'permissions' => ['crms.contracts.create'],
+services/contract-management/tests/Feature/FinanceEmployeeContractNotificationTest.php:99:                    'permissions' => ['crms.contracts.create'],
+services/contract-management/tests/Feature/UploadDocumentTest.php:66:        $this->mockAuth('Sales', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:124:        $this->mockAuth('Manager', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:156:        $this->mockAuth('Sales', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:296:        $this->mockAuth('Sales', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:317:        $this->mockAuth('Sales', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:373:        $this->mockAuth('Sales', ['crms.contracts.create', 'crms.contracts.edit']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:477:        $this->mockAuth('Sales', ['crms.contracts.create', 'crms.contracts.delete']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:549:        $this->mockAuth('Sales', ['crms.contracts.create']);
+services/contract-management/tests/Feature/UploadDocumentTest.php:586:        $this->mockAuth('Sales', ['crms.contracts.view']);
+services/notification/.env.example:58:MAIL_FROM_NAME="CRMS Notification"
+services/notification/app/Http/Middleware/AuthenticateInternal.php:40:        // CRMS-capstone Strict Role Isolation
+services/notification/app/Jobs/SendContractExpiryEmail.php:264:            default => '≡ƒöö CRMS Contract Expiry Notice',
+services/notification/app/Mail/ContractExpiryMail.php:37:            default => '≡ƒöö CRMS Contract Expiry Notice',
+services/notification/routes/console.php:14:        \Illuminate\Support\Facades\Mail::raw('This is a test email sent from CRMS Capstone using Brevo!', function ($message) use ($email) {
+services/notification/routes/console.php:16:                    ->subject('CRMS Brevo SMTP Test');
+services/notification/tests/Feature/EmailDispatchTest.php:25:            'X-Internal-Secret' => 'crms-internal-secret-key-2026',
+services/search/app/Http/Middleware/AuthenticateInternal.php:40:        // CRMS-capstone Strict Role Isolation
+services/vendor-management/.env.example:70:MONGODB_URI=mongodb+srv://capstone_user:<db_password>@capstone-cluster.pyexefx.mongodb.net/crms-db?appName=Capstone-Cluster
+services/vendor-management/.env.example:71:MONGODB_DATABASE=crms-db
+services/vendor-management/app/Http/Controllers/AdminUserProxyController.php:22:     * Proxy user creation to auth-service with CRMS-specific constraints.
+services/vendor-management/app/Http/Controllers/AdminUserProxyController.php:35:        // 2. Enforce CRMS Constraints
+services/vendor-management/app/Http/Controllers/AuditLogController.php:48:        $crmsLogsQuery = AuditLog::query()->where('user_department', 'Finance');
+services/vendor-management/app/Http/Controllers/AuditLogController.php:51:            $crmsLogsQuery->where('action', $request->action);
+services/vendor-management/app/Http/Controllers/AuditLogController.php:54:            $crmsLogsQuery->whereDate('performed_at', $request->date);
+services/vendor-management/app/Http/Controllers/AuditLogController.php:58:            $crmsLogsQuery->where(function ($q) use ($s) {
+services/vendor-management/app/Http/Controllers/AuditLogController.php:67:        $paginator = $crmsLogsQuery->orderBy('performed_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
+services/vendor-management/app/Http/Controllers/AuditLogController.php:69:        // 3. Remote Auth logs disabled (login/logout events are pushed directly to CRMS)
+services/vendor-management/app/Http/Controllers/AuditLogController.php:106:                'id'           => 'crms-' . $log->audit_id,
+services/vendor-management/app/Http/Controllers/AuditLogController.php:107:                'source'       => 'crms',
+services/vendor-management/app/Http/Controllers/InternalAuditController.php:11:     * Receive an audit event from internal auth service and write it to CRMS audit log.
+services/vendor-management/app/Http/Middleware/AuthenticateInternal.php:45:        // CRMS-capstone Strict Role Isolation
+services/vendor-management/config/database.php:118:            'database' => env('MONGODB_DATABASE', 'crms-db'),
+services/vendor-management/database/migrations/2026_05_22_000010_add_action_index_to_audit_logs_table.php:12:     * Safe guard: skips if the index already exists (shared crms-db scenario).
+services/vendor-management/database/migrations/2026_05_22_000010_add_action_index_to_audit_logs_table.php:17:        // when two services share the same crms-db and one has already run this migration.
+services/vendor-management/routes/api.php:12:        ->middleware('permission:crms.users.create');
+services/vendor-management/routes/api.php:16:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:18:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:20:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:22:        ->middleware('permission:crms.partners.create');
+services/vendor-management/routes/api.php:24:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:26:        ->middleware('permission:crms.partners.delete');
+services/vendor-management/routes/api.php:30:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:32:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:34:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:36:        ->middleware('permission:crms.partners.create');
+services/vendor-management/routes/api.php:38:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:40:        ->middleware('permission:crms.partners.delete');
+services/vendor-management/routes/api.php:44:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:46:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:48:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:52:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:54:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:56:        ->middleware('permission:crms.partners.edit');
+services/vendor-management/routes/api.php:60:        ->middleware('permission:crms.partners.view');
+services/vendor-management/routes/api.php:64:        ->middleware('permission:crms.partners.view');
+services/vendor-management/tests/Feature/AdminUserProxyTest.php:21:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/vendor-management/tests/Feature/AdminUserProxyTest.php:62:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/vendor-management/tests/Feature/AdminUserProxyTest.php:88:                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => ['crms.users.create'], 'department' => 'Finance']
+services/vendor-management/tests/Feature/AuthCommunicationTest.php:25:                    'permissions' => ['crms.partners.view', 'crms.partners.create'],
+services/vendor-management/tests/Feature/AuthCommunicationTest.php:81:                    'permissions' => ['crms.partners.view'], // Lacks 'crms.partners.create'
+services/vendor-management/tests/Feature/AuthCommunicationTest.php:87:        // Try to POST to suppliers (which requires 'crms.partners.create')
+services/vendor-management/tests/Feature/BusinessPartnerCrudTest.php:15:    protected function mockAuthService(string $role = 'Admin', array $permissions = ['crms.partners.view', 'crms.partners.create', 'crms.partners.edit', 'crms.partners.delete'])
+services/vendor-management/tests/Feature/BusinessPartnerCrudTest.php:63:        $this->mockAuthService('Employee', ['crms.partners.view']);
+services/vendor-management/tests/Feature/SupplierCrudTest.php:15:    protected function mockAuthService(string $role = 'Admin', array $permissions = ['crms.partners.view', 'crms.partners.create', 'crms.partners.edit', 'crms.partners.delete'])
+services/vendor-management/tests/Feature/SupplierCrudTest.php:63:        $this->mockAuthService('Employee', ['crms.partners.view']);
+services/vendor-management/tests/Feature/VendorContractEndpointsTest.php:22:        array $permissions = ['crms.partners.view', 'crms.partners.create', 'crms.partners.edit', 'crms.partners.delete'],
+services/vendor-management/tests/Feature/VendorContractEndpointsTest.php:181:        $this->mockAuthService('Sales', ['crms.partners.view'], 15);
+services/vendor-management/tests/Feature/VendorContractEndpointsTest.php:227:        $this->mockAuthService('Sales', ['crms.partners.view'], 15);

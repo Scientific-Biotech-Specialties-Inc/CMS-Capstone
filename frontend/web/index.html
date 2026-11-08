@@ -2,12 +2,149 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/sbsi-favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
+    <title>CMS - Contract & Vendor Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Blurred Shell Overlay (The "Skeleton" state) -->
+      <div class="loader-bg-overlay">
+        <!-- SideNavBar Skeleton -->
+        <aside class="loader-sidebar">
+          <div class="loader-sidebar-header">
+            <div class="loader-avatar skeleton"></div>
+            <div class="loader-text-group">
+              <div class="loader-text-line-long skeleton"></div>
+              <div class="loader-text-line-short skeleton"></div>
+            </div>
+          </div>
+          <div class="loader-nav-items">
+            <div class="loader-nav-item skeleton"></div>
+            <div class="loader-nav-item skeleton"></div>
+            <div class="loader-nav-item skeleton"></div>
+            <div class="loader-nav-item skeleton"></div>
+            <div class="loader-nav-item skeleton"></div>
+          </div>
+        </aside>
+        
+        <!-- TopAppBar Skeleton -->
+        <header class="loader-topbar">
+          <div class="loader-topbar-title skeleton"></div>
+          <div class="loader-topbar-actions">
+            <div class="loader-icon-btn skeleton"></div>
+            <div class="loader-icon-btn skeleton"></div>
+          </div>
+        </header>
+
+        <!-- Content Area Skeleton -->
+        <main class="loader-main">
+          <div class="loader-content-header skeleton"></div>
+          <div class="loader-content-card-lg skeleton"></div>
+          <div class="loader-content-card-sm skeleton"></div>
+          <div class="loader-content-card-xs skeleton"></div>
+          <div class="loader-content-card-xs skeleton"></div>
+          <div class="loader-content-card-xs skeleton"></div>
+        </main>
+      </div>
+
+      <!-- Central Loading Modal / Screen -->
+      <div class="loader-modal-overlay">
+        <div class="loader-modal-content">
+          <div class="fade-in-up loader-brand-title">
+            <h1>SBSI Contract Management</h1>
+          </div>
+          <div class="fade-in-up loader-spinner-wrapper" style="animation-delay: 0.2s;">
+            <div class="loader-spinner-container">
+              <div class="loader-circular-spinner"></div>
+              <p id="loading-message">Preparing CMS</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+          background-color: #f9fafb;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          overflow: auto;
+        }
+
+        /* Layout CSS */
+        .loader-bg-overlay { position: fixed; inset: 0; z-index: 0; display: flex; pointer-events: none; opacity: 0.4; filter: grayscale(20%); }
+        .loader-sidebar { position: fixed; left: 0; top: 0; height: 100%; width: 260px; background-color: #ffffff; border-right: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 32px 24px; box-sizing: border-box; }
+        .loader-sidebar-header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .loader-avatar { width: 40px; height: 40px; border-radius: 9999px; }
+        .loader-text-group { display: flex; flex-direction: column; gap: 8px; }
+        .loader-text-line-long { width: 96px; height: 16px; border-radius: 4px; }
+        .loader-text-line-short { width: 64px; height: 12px; border-radius: 4px; }
+        .loader-nav-items { display: flex; flex-direction: column; gap: 24px; }
+        .loader-nav-item { width: 100%; height: 40px; border-radius: 8px; }
+        
+        .loader-topbar { position: fixed; top: 0; right: 0; left: 260px; height: 64px; background-color: #f9fafb; display: flex; justify-content: space-between; align-items: center; padding: 0 32px; box-sizing: border-box; }
+        .loader-topbar-title { width: 192px; height: 24px; border-radius: 4px; }
+        .loader-topbar-actions { display: flex; align-items: center; gap: 16px; }
+        .loader-icon-btn { width: 32px; height: 32px; border-radius: 9999px; }
+        
+        .loader-main { margin-left: 260px; margin-top: 64px; width: calc(100% - 260px); padding: 32px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; box-sizing: border-box; }
+        .loader-content-header { grid-column: span 12 / span 12; height: 48px; width: 33.333333%; border-radius: 8px; margin-bottom: 16px; }
+        .loader-content-card-lg { grid-column: span 8 / span 8; height: 256px; border-radius: 12px; }
+        .loader-content-card-sm { grid-column: span 4 / span 4; height: 256px; border-radius: 12px; }
+        .loader-content-card-xs { grid-column: span 4 / span 4; height: 192px; border-radius: 12px; }
+
+        /* Modal CSS */
+        .loader-modal-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background-color: rgba(249, 250, 251, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .loader-modal-content { max-width: 28rem; width: 100%; padding: 48px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; box-sizing: border-box; }
+        .loader-brand-title { margin-bottom: 40px; }
+        .loader-brand-title h1 { font-size: 28px; font-weight: 700; color: #252578; letter-spacing: -0.025em; margin: 0; }
+        .loader-spinner-wrapper { width: 100%; }
+        .loader-spinner-container { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+        .loader-circular-spinner { width: 48px; height: 48px; border: 4px solid rgba(37, 37, 120, 0.1); border-top-color: #252578; border-radius: 9999px; animation: loader-spin 1s linear infinite; }
+        #loading-message { font-size: 17px; font-weight: 600; color: rgba(0, 0, 0, 0.7); margin: 0; transition: opacity 0.3s; }
+
+        @keyframes loader-spin { to { transform: rotate(360deg); } }
+        
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton {
+          background: linear-gradient(90deg, rgba(0,0,0,0.03) 25%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.03) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 2s infinite linear;
+        }
+
+        .fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+          opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      </style>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const loadingMsg = document.getElementById('loading-message');
+          setTimeout(() => {
+            if (loadingMsg) {
+              loadingMsg.style.opacity = '0';
+              setTimeout(() => {
+                loadingMsg.innerText = "Loading Modules...";
+                loadingMsg.style.opacity = '1';
+              }, 300);
+            }
+          }, 1500);
+        });
+      </script>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

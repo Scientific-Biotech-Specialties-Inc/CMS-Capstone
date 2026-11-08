@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'contract_management' => [
+        'url' => env('CONTRACT_SERVICE_URL', 'http://contract-management:8000'),
+    ],
+
 ];

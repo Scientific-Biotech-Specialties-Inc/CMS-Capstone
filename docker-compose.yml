@@ -3,85 +3,315 @@ services:
   # ── Databases ──────────────────────────────────
   mysql:
     image: mysql:8.0
+    container_name: cms-mysql
+    ports:
+      - "127.0.0.1:3307:3306"
+    command: --innodb-buffer-pool-size=64M --innodb-log-buffer-size=8M --max-connections=10 --key-buffer-size=8M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-
-  mongodb:
-    image: mongo:7
-    ports:
-      - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 
   redis:
-    image: redis:7-alpine
+    image: redis:7
+    container_name: cms-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
 
-  elasticsearch:
-    image: elasticsearch:8.13.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cms-postgres
     ports:
-      - "9200:9200"
+      - "127.0.0.1:5433:5432"
+    command: -c shared_buffers=64MB -c work_mem=4MB -c max_connections=20
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.8
+    container_name: cms-meilisearch
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-}
+      - MEILI_ENV=development
+    ports:
+      - "127.0.0.1:7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ── MySQL Administration Tool ──────────────────
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2.3
+    container_name: cms-phpmyadmin
+    profiles:
+      - gui
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  pgadmin:
+    image: dpage/pgadmin4:9.16
+    container_name: cms-pgadmin
+    profiles:
+      - gui
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   # ── Laravel Services ───────────────────────────
   vendor-management:
     build: ./services/vendor-management
+    container_name: cms-vendor-management
     volumes:
       - ./services/vendor-management:/var/www/html
+      - vendor-management-vendor:/var/www/html/vendor
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
+    command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
     depends_on:
-      - mysql
-      - mongodb
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   contract-management:
     build: ./services/contract-management
+    container_name: cms-contract-management
     volumes:
       - ./services/contract-management:/var/www/html
+      - contract-management-vendor:/var/www/html/vendor
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
+    command: sh -c "composer install --no-scripts && sleep 10 && php artisan migrate --force && (php artisan schedule:work &) && (php artisan queue:work --queue=contract_queue,default --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - PRS_INTEGRATION_KEY=${PRS_INTEGRATION_KEY:-}
+      - PHP_CLI_SERVER_WORKERS=4
     depends_on:
-      - mysql
-      - mongodb
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   search:
     build: ./services/search
+    container_name: cms-search
     volumes:
       - ./services/search:/var/www/html
+      - search-vendor:/var/www/html/vendor
     ports:
-      - "8003:8000"
+      - "127.0.0.1:8003:8000"
+    command: sh -c "composer install --no-scripts && sleep 15 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     depends_on:
-      - elasticsearch
+      meilisearch:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   notification:
     build: ./services/notification
+    container_name: cms-notification
     volumes:
       - ./services/notification:/var/www/html
+      - notification-vendor:/var/www/html/vendor
     ports:
-      - "8004:8000"
+      - "127.0.0.1:8004:8000"
+    command: sh -c "composer install --no-scripts && sleep 20 && php artisan migrate --force && (php artisan queue:work --queue=notification_queue --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  analytics-service:
+    build: ./services/analytics-service
+    container_name: cms-analytics-service
+    volumes:
+      - ./services/analytics-service:/var/www/html
+      - analytics-service-vendor:/var/www/html/vendor
+    ports:
+      - "127.0.0.1:8005:8000"
+    command: sh -c "composer install --no-scripts && sleep 5 && mysql --skip-ssl -h mysql -u root -p${MYSQL_PASSWORD} -e 'CREATE DATABASE IF NOT EXISTS \`cms-analytics-db\`;' && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ai-service:
+    build: ./services/ai-service
+    container_name: cms-ai-service
+    volumes:
+      - ./services/ai-service:/var/www/html
+      - ai-service-vendor:/var/www/html/vendor
+    ports:
+      - "127.0.0.1:8006:8000"
+    command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && (php artisan queue:work --queue=ai_queue --sleep=3 --tries=1 --timeout=300 &) && php artisan serve --host=0.0.0.0 --port=8000"
+    environment:
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - PHP_CLI_SERVER_WORKERS=4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ── ClamAV Antivirus Daemon ──────────────────────
+  clamav:
+    image: clamav/clamav:1.4_base
+    container_name: cms-clamav
+    profiles:
+      - scanning
+    environment:
+      - CLAMAV_NO_FRESHCLAMD=false
+      - CLAMAV_NO_CLAMD=false
+      - CLAMAV_NO_MILTERD=true
+    volumes:
+      - clamav_db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - shared-capstone-network
 
   # ── Vue Frontend ───────────────────────────────
   web:
     image: node:22-alpine
+    container_name: cms-web
     working_dir: /app
     volumes:
       - ./frontend/web:/app
+      - web-node-modules:/app/node_modules
     ports:
-      - "5173:5173"
-    command: sh -c "npm install && npm run dev -- --host"
+      - "127.0.0.1:5001:5001"
+    expose:
+      - "5001"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5001"
+    networks:
+      - shared-capstone-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+networks:
+  shared-capstone-network:
+    external: true
 
 volumes:
   mysql_data:
-  mongo_data:
-  es_data:
+  postgres_data:
+  meili_data:
+  vendor-management-vendor:
+  contract-management-vendor:
+  search-vendor:
+  notification-vendor:
+  analytics-service-vendor:
+  ai-service-vendor:
+  web-node-modules:
+  clamav_db:

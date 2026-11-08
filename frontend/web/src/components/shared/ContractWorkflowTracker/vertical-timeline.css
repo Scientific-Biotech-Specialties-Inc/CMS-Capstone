@@ -1,0 +1,79 @@
+/* Shared vertical-timeline motion + stagger (single source of truth).
+   Imported by ContractWorkflowTracker (index.vue, RunHistoryToggle.vue)
+   and ContractDetail/VersionHistoryDrawer.vue so the workflow tracker
+   and version history share one design principle: a continuous spine
+   rail with an animated brand-blue fill, staggered card entrances,
+   and popping spine dots.
+   DOM contract: container.wf-timeline whose step children are either
+   <li> elements or <div class="wf-step">. Rail/fill divs must be placed
+   LAST in the container so the nth-child stagger indices align with
+   the steps. */
+
+.wf-timeline > li,
+.wf-timeline > div.wf-step {
+  animation: wf-step-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--wf-delay, 0ms);
+  /* Steps paint above the spine rails (rails sit last in DOM for the
+     stagger), so dots mask the line instead of the line striking
+     through hollow dots. */
+  position: relative;
+  z-index: 10;
+}
+
+.wf-timeline > li:nth-child(1),
+.wf-timeline > div.wf-step:nth-child(1) { --wf-delay: 0ms; }
+.wf-timeline > li:nth-child(2),
+.wf-timeline > div.wf-step:nth-child(2) { --wf-delay: 90ms; }
+.wf-timeline > li:nth-child(3),
+.wf-timeline > div.wf-step:nth-child(3) { --wf-delay: 180ms; }
+.wf-timeline > li:nth-child(4),
+.wf-timeline > div.wf-step:nth-child(4) { --wf-delay: 270ms; }
+.wf-timeline > li:nth-child(5),
+.wf-timeline > div.wf-step:nth-child(5) { --wf-delay: 360ms; }
+.wf-timeline > li:nth-child(6),
+.wf-timeline > div.wf-step:nth-child(6) { --wf-delay: 450ms; }
+.wf-timeline > li:nth-child(7),
+.wf-timeline > div.wf-step:nth-child(7) { --wf-delay: 540ms; }
+.wf-timeline > li:nth-child(8),
+.wf-timeline > div.wf-step:nth-child(8) { --wf-delay: 630ms; }
+.wf-timeline > li:nth-child(9),
+.wf-timeline > div.wf-step:nth-child(9) { --wf-delay: 720ms; }
+.wf-timeline > li:nth-child(n+10),
+.wf-timeline > div.wf-step:nth-child(n+10) { --wf-delay: 800ms; }
+
+.wf-timeline .wf-step-dot {
+  animation: wf-dot-pop 0.35s ease-out both;
+  animation-delay: calc(var(--wf-delay, 0ms) + 150ms);
+}
+
+/* Continuous spine fill: light rail underneath in markup, brand-blue
+   overlay wiping top-to-bottom like a loading bar. */
+.wf-spine-fill {
+  animation: wf-spine-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.15s;
+}
+
+@keyframes wf-step-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wf-dot-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes wf-spine-fill {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wf-timeline > li,
+  .wf-timeline > div.wf-step,
+  .wf-timeline .wf-step-dot,
+  .wf-spine-fill {
+    animation: none;
+  }
+}

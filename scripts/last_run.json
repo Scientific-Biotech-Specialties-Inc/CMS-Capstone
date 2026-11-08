@@ -1,0 +1,11 @@
+{
+  "run_id": "20260721T102538Z",
+  "source_endpoint": "http://localhost:5173/api/vendor/integration/customers",
+  "source_http_method": "GET",
+  "legacy_records_read": 4,
+  "analytics_records_inserted": 4,
+  "analytics_write_skipped": false,
+  "ai_schema_verified": true,
+  "legacy_database_write_performed": false,
+  "completed_at_utc": "2026-07-21T10:25:40.388519+00:00"
+}
