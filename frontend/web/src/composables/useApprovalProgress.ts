@@ -46,7 +46,10 @@ export function useApprovalProgress() {
       const data = json.data ?? json
       myTasks.value = data.my_tasks ?? []
 
-      if (!data.engine || !data.runs?.length) {
+      const hasRuns = Array.isArray(data.runs) && data.runs.length > 0
+      const hasExecution = Array.isArray(data.execution_stages) && data.execution_stages.length > 0
+
+      if (!hasRuns && !hasExecution) {
         workflow.value = null
         status.value = 'empty'
         currentStepRoles.value = []

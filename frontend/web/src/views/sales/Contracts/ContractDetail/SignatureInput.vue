@@ -3,7 +3,12 @@ import { ref, watch } from 'vue'
 import { RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 
-defineProps<{ disabled: boolean }>()
+defineProps<{
+  disabled: boolean
+  invalid?: boolean
+  required?: boolean
+  compact?: boolean
+}>()
 const emit = defineEmits<{ change: [signature: string | null] }>()
 const mode = ref<'draw' | 'upload'>('draw')
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -97,22 +102,26 @@ async function upload(file?: File) {
 
 <template>
   <fieldset class="space-y-2" :disabled="disabled">
-    <legend class="mb-2 text-sm font-semibold text-slate-800">Signature</legend>
+    <legend class="mb-2 text-sm font-semibold text-slate-800">
+      Signature <span v-if="required" class="text-red-500">*</span>
+    </legend>
     <div class="flex flex-wrap gap-4">
       <label class="flex items-center gap-2 text-sm"><input v-model="mode" type="radio" value="draw" class="accent-brand-navy" /> Draw Signature</label>
       <label class="flex items-center gap-2 text-sm"><input v-model="mode" type="radio" value="upload" class="accent-brand-navy" /> Upload Signature Image</label>
     </div>
     <div v-if="mode === 'draw'" class="space-y-2">
       <canvas ref="canvas" width="900" height="240" role="img" aria-label="Draw your signature with a mouse or touch"
-        class="block h-32 w-full touch-none rounded-lg border border-slate-300 bg-white"
+        class="block w-full touch-none rounded-lg border bg-white transition-colors"
+        :class="[compact ? 'h-24' : 'h-32', invalid ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-300']"
         @pointerdown="!disabled && draw($event, true)" @pointermove="!disabled && draw($event)" @pointerup="finish" @lostpointercapture="finish" />
       <Button type="button" size="sm" variant="outline" @click="clear"><RotateCcw class="size-4" /> Clear Signature</Button>
     </div>
-    <label v-else class="block rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
+    <label v-else class="block rounded-lg border text-sm text-slate-700 transition-colors"
+      :class="[compact ? 'p-2' : 'p-4', invalid ? 'border-red-400 bg-red-50/20' : 'border-slate-200']">
       <span class="block font-semibold">Signature Image</span>
       <span class="block">PNG or JPG, up to 2 MB</span>
       <input type="file" accept="image/png,image/jpeg" class="mt-2 block max-w-full" @change="upload(($event.target as HTMLInputElement).files?.[0])" />
-      <img v-if="image" :src="image" alt="Uploaded signature preview" class="mt-2 max-h-24 max-w-full object-contain" />
+      <img v-if="image" :src="image" alt="Uploaded signature preview" class="mt-2 max-w-full object-contain" :class="compact ? 'max-h-10' : 'max-h-24'" />
     </label>
     <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
   </fieldset>

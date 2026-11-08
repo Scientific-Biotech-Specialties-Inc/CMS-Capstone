@@ -190,8 +190,12 @@ function fmtSize(bytes: number) {
 
     <!-- View mode document cards -->
     <div v-else-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <button v-for="doc in currentDocuments" :key="doc.id" type="button" @click="viewDocument(doc)"
-        class="group border border-black/10 rounded-lg p-4 flex items-center gap-4 text-left hover:border-brand-blue transition-all cursor-pointer bg-white shadow-sm">
+      <div v-for="doc in currentDocuments" :key="doc.id" class="flex min-w-0 flex-col gap-2">
+        <p v-if="doc.isPrimary && doc.signerName" class="text-sm text-slate-700">
+          <strong>Signed by:</strong> {{ doc.signerName }}
+        </p>
+        <button type="button" @click="viewDocument(doc)"
+          class="group border border-black/10 rounded-lg p-4 flex w-full items-center gap-4 text-left hover:border-brand-blue transition-all cursor-pointer bg-white shadow-sm">
         <div class="w-12 h-12 bg-black/[0.04] flex items-center justify-center rounded-lg text-black/40 group-hover:bg-brand-blue group-hover:text-white transition-colors shrink-0">
           <FileType2 class="w-6 h-6" />
         </div>
@@ -202,7 +206,8 @@ function fmtSize(bytes: number) {
           <p v-else-if="doc.isCurrentDraft" class="mt-2 text-xs font-semibold text-brand-navy">Current Draft</p>
         </div>
         <Download class="w-5 h-5 text-black/30 group-hover:text-brand-navy shrink-0" />
-      </button>
+        </button>
+      </div>
     </div>
 
     <!-- Edit mode: Cards + upload zone -->

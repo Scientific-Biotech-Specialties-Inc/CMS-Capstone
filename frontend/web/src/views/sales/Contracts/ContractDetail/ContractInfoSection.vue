@@ -177,6 +177,8 @@ onClickOutside(suggestionsContainer, () => {
             <option value="">No status</option>
             <option value="SBSI Review">SBSI Review</option>
             <option value="Client Review">Client Review</option>
+            <option value="For Signing">For Signing</option>
+            <option value="Signed">Signed</option>
             <option value="Notarized PDF">Notarized PDF</option>
           </select>
         </div>

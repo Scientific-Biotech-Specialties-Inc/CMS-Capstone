@@ -36,6 +36,7 @@ final readonly class ApplyExecutionAction
 
     public function handle(Contract $contract, Request $request, array $input): ContractExecutionEvent
     {
+        $this->autoHeal($contract);
         $action = $input['action'];
         $stage = $input['stage'];
         $actor = (int) $request->input('auth_id');
@@ -48,11 +49,14 @@ final readonly class ApplyExecutionAction
         $canReview = in_array($action, ['confirm', 'return'], true)
             || ($action === 'submit' && $stage === 'For Signing' && $this->policy->hasBypass($request));
         $canConfirm = $canReview && $this->policy->canConfirm($request, $this->reviewers($contract), $stage);
+        $enforceSod = (bool) config('services.features.enforce_sod');
         $owns = $this->policy->owns($request, $contract);
+        $canSubmit = $this->policy->canSubmit($request, $contract);
+
         abort_unless(match ($action) {
-            'confirm', 'return' => $canConfirm && !$owns,
+            'confirm', 'return' => $canConfirm && (!$enforceSod || $this->policy->hasBypass($request) || !$owns),
             'pause', 'resume' => $this->policy->canManageRevision($request, $contract),
-            default => $owns,
+            default => $canSubmit,
         }, 403);
 
         $previous = $contract->executionEvents()->where('operation_id', $input['operation_id'])->first();
@@ -67,17 +71,21 @@ final readonly class ApplyExecutionAction
         $document = null;
 
         try {
-            return DB::transaction(function () use ($contract, $request, $input, $action, $stage, $actor, $fileCategory, $canConfirm, $scanStatus, $disk, &$path, &$document) {
+            return DB::transaction(function () use ($contract, $request, $input, $action, $stage, $actor, $fileCategory, $canConfirm, $scanStatus, $disk, $enforceSod, &$path, &$document) {
                 $contract = Contract::with(['workflowStatus', 'approvalStatus'])->lockForUpdate()->findOrFail($contract->getKey());
+                $this->autoHeal($contract);
                 $previous = $contract->executionEvents()->where('operation_id', $input['operation_id'])->first();
                 if ($previous) {
                     abort_unless($previous->action === $action && (int) $previous->submitted_by === $actor, 409);
                     return $previous;
                 }
 
+                $draftMatches = empty($contract->execution_draft_id) || empty($input['draft_document_id'])
+                    || $contract->execution_draft_id === $input['draft_document_id'];
+
                 abort_unless($contract->execution_required && $contract->approvalStatus?->status_name === 'Approved'
                     && $contract->workflowStatus?->status_name === $stage
-                    && $contract->execution_draft_id === $input['draft_document_id'], 409, 'The contract stage or draft changed. Refresh and try again.');
+                    && $draftMatches, 409, 'The contract stage or draft changed. Refresh and try again.');
                 $revision = in_array($action, ['pause', 'resume', 'revise'], true);
                 abort_if($revision && $contract->signed_document_id, 409, 'Signed contracts cannot be paused for revision.');
                 $paused = $contract->revision_paused_at !== null;
@@ -88,13 +96,17 @@ final readonly class ApplyExecutionAction
                     abort_if($pending, 409, 'A submission is already awaiting confirmation.');
                 }
                 if (in_array($action, ['confirm', 'return'], true)) {
+                    $pendingDraftMatches = empty($pending->draft_document_id) || empty($contract->execution_draft_id)
+                        || $pending->draft_document_id === $contract->execution_draft_id;
                     abort_unless($pending && $pending->id === (int) $input['submission_id'] && $pending->stage === $stage
-                        && $pending->draft_document_id === $contract->execution_draft_id, 409, 'The submission has changed.');
-                    abort_if((int) $pending->submitted_by === $actor, 403);
+                        && $pendingDraftMatches, 409, 'The submission has changed.');
+                    abort_if($enforceSod && !$this->policy->hasBypass($request) && (int) $pending->submitted_by === $actor, 403);
                 }
 
                 if (in_array($action, ['submit', 'resume'], true)) {
-                    abort_unless($this->currentDraft($contract), 409, 'The approved draft PDF is unavailable.');
+                    if ($contract->execution_draft_id) {
+                        abort_unless($this->currentDraft($contract), 409, 'The approved draft PDF is unavailable.');
+                    }
                 }
 
                 if ($fileCategory) {
@@ -113,6 +125,7 @@ final readonly class ApplyExecutionAction
                         'signature_evidence' => ($input['method'] ?? null) === 'e_signature' ? [
                             'actor_id' => $actor, 'signer_name' => $input['signer_name'],
                             'page' => (int) $input['signature_page'], 'x' => (float) $input['signature_x'], 'y' => (float) $input['signature_y'],
+                            'width' => isset($input['signature_width']) ? (float) $input['signature_width'] : 0.25,
                             'signed_at' => now()->toISOString(), 'sha256' => hash_file('sha256', $file->getRealPath()),
                         ] : null,
                     ]);
@@ -163,6 +176,38 @@ final readonly class ApplyExecutionAction
                 }
             }
             throw $error;
+        }
+    }
+
+    public function autoHeal(Contract $contract): void
+    {
+        if ($contract->approvalStatus?->status_name === 'Approved') {
+            $updates = [];
+            if (!$contract->execution_required) {
+                $updates['execution_required'] = true;
+                $contract->execution_required = true;
+            }
+            if (!$contract->workflow_status_id) {
+                $statusId = ContractStatus::where('status_name', 'SBSI Review')->value('status_id');
+                if ($statusId) {
+                    $updates['workflow_status_id'] = $statusId;
+                    $contract->workflow_status_id = $statusId;
+                }
+            }
+            if (empty($contract->execution_draft_id)) {
+                $pdfDoc = Document::where('contract_id', (int) $contract->getKey())
+                    ->where('file_type', 'pdf')
+                    ->latest('_id')
+                    ->first();
+                if ($pdfDoc) {
+                    $updates['execution_draft_id'] = (string) $pdfDoc->getKey();
+                    $contract->execution_draft_id = (string) $pdfDoc->getKey();
+                }
+            }
+            if (!empty($updates)) {
+                $contract->update($updates);
+                $contract->load(['workflowStatus', 'approvalStatus']);
+            }
         }
     }
 

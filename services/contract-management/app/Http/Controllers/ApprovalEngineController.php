@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ApprovalTask;
 use App\Models\Contract;
+use App\Models\Workflow;
 use App\Services\ApprovalEngineService;
 use App\Services\AuthService;
 use App\Services\RoleProxyService;
@@ -34,7 +35,8 @@ class ApprovalEngineController extends Controller
      */
     public function progress(Request $request, $id)
     {
-        $contract = Contract::where('contract_code', $id)->orWhere('contract_id', $id)->firstOrFail();
+        $contract = Contract::with(['approvalStatus', 'workflowStatus'])
+            ->where('contract_code', $id)->orWhere('contract_id', $id)->firstOrFail();
 
         $role = $request->get('auth_role');
         $permissions = (array) $request->get('auth_permissions', []);
@@ -47,13 +49,35 @@ class ApprovalEngineController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        // Creator display for the tracker's synthetic "Contract created"
+        // node. Resolved in batch style.
+        $creatorName = null;
+        if ($contract->created_by) {
+            foreach ($this->authService->getUsersBatch([(int) $contract->created_by]) as $u) {
+                $full = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                $creatorName = $full !== '' ? $full : ($u['email'] ?? null);
+            }
+        }
+
         $instances = \App\Models\ApprovalInstance::with(['tasks', 'workflow.steps.workflowStepRoles'])
             ->where('contract_id', $contract->contract_id)
             ->orderBy('run_number')
             ->get();
 
         if ($instances->isEmpty()) {
-            return response()->json(['data' => ['engine' => false, 'runs' => []]]);
+            return response()->json([
+                'data' => [
+                    'engine' => false,
+                    'contract_id' => $contract->contract_code ?? (string) $contract->contract_id,
+                    'contract_created_at' => $contract->created_at?->toIso8601String(),
+                    'contract_created_by' => $creatorName,
+                    'my_tasks' => [],
+                    'current_step_roles' => $contract->approvalStatus?->status_name === 'Pending' ? ['Manager'] : [],
+                    'runs' => [],
+                    'legacy_run' => $this->synthesizeLegacyRun($contract, $creatorName),
+                    'execution_stages' => $this->buildExecutionStages($contract, null),
+                ],
+            ]);
         }
 
         // Phase 6 live-data wiring: enrich every task once per response so
@@ -85,17 +109,6 @@ class ApprovalEngineController extends Controller
             }
         }
 
-        // Creator display for the tracker's synthetic "Contract created"
-        // node (Phase 6 mocks always start with one; the engine itself
-        // only stores workflow steps). Resolved in the same batch style.
-        $creatorName = null;
-        if ($contract->created_by) {
-            foreach ($this->authService->getUsersBatch([(int) $contract->created_by]) as $u) {
-                $full = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
-                $creatorName = $full !== '' ? $full : ($u['email'] ?? null);
-            }
-        }
-
         $latest = $instances->last();
         $actor = (int) $request->get('auth_id');
         $mayAct = $latest->isInProgress() && (!config('services.features.enforce_sod') || (int) $contract->created_by !== $actor);
@@ -116,6 +129,7 @@ class ApprovalEngineController extends Controller
                 // deriving it from tracker nodes. [] when no run is active.
                 'current_step_roles' => $this->resolveCurrentStepRoleNames($instances->last(), $roleMeta),
                 'runs' => $instances->map(fn ($instance) => $this->formatRun($instance, $roleMeta, $userNames))->values(),
+                'execution_stages' => $this->buildExecutionStages($contract, $instances->last()?->workflow),
             ],
         ]);
     }
@@ -284,5 +298,121 @@ class ApprovalEngineController extends Controller
             'acted_at'             => $task->acted_at?->toIso8601String(),
             'comment'              => $task->comment,
         ];
+    }
+
+    private function synthesizeLegacyRun(Contract $contract, ?string $creatorName): array
+    {
+        $statusName = $contract->approvalStatus?->status_name ?? 'Pending';
+        $nodeStatus = match ($statusName) {
+            'Approved' => 'completed',
+            'Rejected' => 'rejected',
+            default => 'active',
+        };
+
+        return [
+            'run_number' => 1,
+            'status' => $nodeStatus === 'completed' ? 'approved' : ($nodeStatus === 'rejected' ? 'revisions_required' : 'in_progress'),
+            'current_step_id' => 1,
+            'draft_document_id' => $contract->execution_draft_id,
+            'groups' => [
+                [
+                    'step_id' => 1,
+                    'mode' => 'sequential',
+                    'roles' => [
+                        [
+                            'auth_role_id' => 0,
+                            'role_name' => 'Manager',
+                            'role_deleted' => false,
+                            'role_renamed_from' => null,
+                        ],
+                    ],
+                    'tasks' => [
+                        [
+                            'id' => 1,
+                            'step_id' => 1,
+                            'auth_role_id' => 0,
+                            'role_name' => 'Manager',
+                            'role_deleted' => false,
+                            'role_renamed_from' => null,
+                            'delegate_name' => null,
+                            'is_current' => $nodeStatus === 'active',
+                            'status' => $nodeStatus,
+                            'acted_by_user_id' => null,
+                            'acted_via_delegation' => false,
+                            'acted_at' => $nodeStatus !== 'active' ? ($contract->internal_approved_at?->toIso8601String() ?? $contract->updated_at?->toIso8601String()) : null,
+                            'comment' => $contract->rejection_reason,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function buildExecutionStages(Contract $contract, ?Workflow $workflow): array
+    {
+        $stages = ['SBSI Review', 'Client Review', 'For Signing', 'Signed', 'Notarized PDF'];
+        $isApproved = $contract->approvalStatus?->status_name === 'Approved';
+        $currentWorkflowStage = $contract->workflowStatus?->status_name;
+        $events = $contract->executionEvents()->orderBy('id')->get();
+        $pendingEvent = $events->where('state', 'pending')->first();
+        $latestEventByStage = $events->groupBy('stage')->map(fn ($evts) => $evts->last());
+        $configuredReviewers = $workflow?->execution_reviewers ?? [];
+
+        $currIdx = -1;
+        if ($isApproved) {
+            $found = array_search($currentWorkflowStage, $stages, true);
+            $currIdx = $found !== false ? $found : 0;
+            if ($currentWorkflowStage === 'Notarized PDF' || $contract->notarized_document_id) {
+                $currIdx = 4;
+            }
+        }
+
+        $result = [];
+        foreach ($stages as $i => $stageName) {
+            $revConfig = $configuredReviewers[$stageName] ?? [];
+            $reviewerNames = !empty($revConfig)
+                ? array_column($revConfig, 'role_name')
+                : ($stageName === 'For Signing' ? ['Manager', 'CEO'] : ['Manager']);
+
+            $latestEvt = $latestEventByStage->get($stageName);
+            $actedAt = $latestEvt?->decided_at?->toIso8601String() ?? $latestEvt?->created_at?->toIso8601String();
+
+            if (!$isApproved) {
+                $status = 'pending';
+                $subText = 'Execution starts after approval';
+            } elseif ($currentWorkflowStage === 'Notarized PDF' || ($i < $currIdx) || ($i === 4 && $contract->notarized_document_id)) {
+                $status = 'completed';
+                $subText = $latestEvt?->reason ? 'Confirmed · ' . $latestEvt->reason : 'Confirmed';
+            } elseif ($i === $currIdx) {
+                if ($contract->revision_paused_at) {
+                    $status = 'on_hold';
+                    $subText = 'Revision requested';
+                } elseif ($pendingEvent && $pendingEvent->stage === $stageName) {
+                    $status = 'active';
+                    $subText = 'Submitted · Awaiting confirmation';
+                } elseif ($latestEvt && $latestEvt->state === 'returned') {
+                    $status = 'on_hold';
+                    $subText = 'Returned' . ($latestEvt->reason ? ' · ' . $latestEvt->reason : '');
+                } else {
+                    $status = 'active';
+                    $subText = $stageName === 'For Signing' ? 'Awaiting signed document' : 'In progress';
+                }
+            } else {
+                $status = 'pending';
+                $subText = $stageName === 'Notarized PDF' ? 'Optional post-signing step' : 'Pending';
+            }
+
+            $result[] = [
+                'stage' => $stageName,
+                'status' => $status,
+                'is_current' => $isApproved && ($i === $currIdx) && ($currentWorkflowStage !== 'Notarized PDF'),
+                'acted_at' => $actedAt,
+                'reviewer_roles' => $reviewerNames,
+                'sub_text' => $subText,
+                'document_id' => $latestEvt?->document_id,
+            ];
+        }
+
+        return $result;
     }
 }

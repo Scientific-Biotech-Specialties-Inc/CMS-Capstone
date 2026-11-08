@@ -153,6 +153,7 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
       category: doc.doc_category,
       isCurrentDraft: doc.is_current_draft,
       isPrimary: doc.is_primary,
+      signerName: doc.signer_name,
     })),
     prsActivityId: d.prs_activity_id ? Number(d.prs_activity_id) : undefined,
   }

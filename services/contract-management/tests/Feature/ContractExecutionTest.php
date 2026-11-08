@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Jobs\SyncContractToMeilisearch;
+use App\Jobs\NotifyExecutionReviewers;
 use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\Document;
@@ -31,7 +32,7 @@ final class ContractExecutionTest extends TestCase
         parent::setUp();
         config(['clamav.enabled' => false]);
         Storage::fake(config('filesystems.default', 'local'));
-        Bus::fake([SyncContractToMeilisearch::class]);
+        Bus::fake([SyncContractToMeilisearch::class, NotifyExecutionReviewers::class]);
         $this->draft = $this->createDraftPdf();
         $this->contract = Contract::create([
             'created_by' => 42, 'execution_required' => true, 'execution_draft_id' => $this->draft,
@@ -113,6 +114,26 @@ final class ContractExecutionTest extends TestCase
         $this->assertSame(2, $document->signature_evidence['page']);
         $this->assertSame(0.4, $document->signature_evidence['x']);
         $this->assertSame(0.65, $document->signature_evidence['y']);
+    }
+
+    public function test_pending_signed_pdf_notifies_reviewers_using_the_contract_number(): void
+    {
+        $this->contract->update(['workflow_status_id' => ContractStatus::where('status_name', 'For Signing')->value('status_id')]);
+        $eventId = $this->stageAction('owner', 'submit', 'For Signing', [
+            'method' => 'scanned_upload', 'file' => $this->pdf(),
+        ])->assertOk()->json('data.id');
+
+        Bus::assertDispatched(NotifyExecutionReviewers::class);
+        Http::fake([
+            '*/internal/users-by-roles*' => Http::response(['data' => [['id' => 43, 'role' => 'Manager']]]),
+            '*/internal/push' => Http::response([], 201),
+        ]);
+        app()->call([(new NotifyExecutionReviewers($eventId)), 'handle']);
+
+        $number = $this->contract->getKey();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/internal/push')
+            && $request['target_user_id'] === 43
+            && $request['message'] === "Contract Number #{$number} with a submitted signed PDF is waiting for confirmation from Manager or CEO.");
     }
 
     private function stageAction(string $token, string $action, string $stage, array $payload = []): TestResponse
