@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Shield, Users, UserCheck, Save, Loader2, AlertCircle, KeyRound, Workflow as WorkflowIcon } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useRolePermissions, UI_CATEGORIES } from '@/composables/useRolePermissions'
@@ -14,7 +15,13 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 // matrix stays exactly as-is, and the new Workflow Builder is added
 // alongside it, not in place of it.
 type AdminRolesTab = 'permissions' | 'workflows'
-const activeTab = ref<AdminRolesTab>('permissions')
+const route = useRoute()
+const router = useRouter()
+const activeTab = computed<AdminRolesTab>(() => route.query.tab === 'workflows' ? 'workflows' : 'permissions')
+
+function selectTab(tab: AdminRolesTab) {
+  router.replace({ query: { ...route.query, tab: tab === 'workflows' ? tab : undefined } })
+}
 
 const { success, error: toastError } = useToast()
 
@@ -149,14 +156,14 @@ onMounted(async () => {
     <!-- Tabs -->
     <div class="flex items-center gap-1 bg-black/4 rounded-xl p-1 w-fit border border-black/5">
       <button
-        @click="activeTab = 'permissions'"
+        @click="selectTab('permissions')"
         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all"
         :class="activeTab === 'permissions' ? 'bg-white text-black shadow-xs' : 'text-black/50 hover:text-black'"
       >
         <KeyRound class="w-4 h-4 text-brand-navy" /> Permissions
       </button>
       <button
-        @click="activeTab = 'workflows'"
+        @click="selectTab('workflows')"
         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all"
         :class="activeTab === 'workflows' ? 'bg-white text-black shadow-xs' : 'text-black/50 hover:text-black'"
       >

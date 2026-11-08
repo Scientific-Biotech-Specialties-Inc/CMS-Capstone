@@ -4,6 +4,11 @@ import { useToast } from '@/composables/useToast'
 import { useLoader } from '@/composables/useLoader'
 import { setBreadcrumbTitle } from '@/composables/useBreadcrumbs'
 
+function requireRolesAdmin() {
+  const { role } = useAuth()
+  if (!['Admin', 'Super Admin'].includes(role.value || '')) return { name: 'admin-dashboard' }
+}
+
 const routes: Array<RouteRecordRaw> = [
   // Admin Route Group
   {
@@ -88,14 +93,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'roles',
         name: 'admin-roles',
         component: () => import('@/views/admin/Roles/index.vue'),
-        beforeEnter: (_to, _from, next) => {
-          const { role } = useAuth()
-          if (['Admin', 'Super Admin'].includes(role.value || '')) {
-            next()
-          } else {
-            next('/admin/dashboard')
-          }
-        },
+        beforeEnter: requireRolesAdmin,
+      },
+      {
+        path: 'roles/workflows/:contractTypeId/:workflowId?',
+        name: 'admin-workflow-editor',
+        component: () => import('@/views/admin/Roles/ApprovalWorkflows/WorkflowEditorPage.vue'),
+        beforeEnter: requireRolesAdmin,
       },
       {
         path: 'partners',

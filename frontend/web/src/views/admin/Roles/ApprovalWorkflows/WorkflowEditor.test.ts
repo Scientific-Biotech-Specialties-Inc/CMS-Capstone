@@ -1,6 +1,7 @@
 import { shallowMount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import WorkflowEditor from './WorkflowEditor.vue'
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 import type { ContractTypeWithWorkflow, Workflow } from '@/types/workflow'
 
 const { saveWorkflow } = vi.hoisted(() => ({ saveWorkflow: vi.fn().mockResolvedValue({}) }))
@@ -18,7 +19,7 @@ const contractType: ContractTypeWithWorkflow = {
 function mountEditor(id: number, status: Workflow['status'], hasRuns = false) {
   return shallowMount(WorkflowEditor, {
     props: {
-      open: true, contractType, assignableRoles: [],
+      contractType, assignableRoles: [],
       workflow: { id, contract_type_id: 1, name: 'Edited version', status, has_runs: hasRuns, resubmit_mode: 'restart', steps: [] },
     },
     global: { renderStubDefaultSlot: true },
@@ -32,6 +33,8 @@ describe('workflow version saves', () => {
     const editor = mountEditor(4, 'active', true)
     const button = editor.findAll('button-stub').find(button => button.text().includes('Activate New Version'))
     await button?.trigger('click')
+    expect(saveWorkflow).not.toHaveBeenCalled()
+    editor.getComponent(ConfirmationDialog).vm.$emit('confirm')
     expect(saveWorkflow).toHaveBeenCalledWith(expect.objectContaining({ status: 'active', replace_active_workflow_id: 4 }), undefined)
     editor.unmount()
   })
@@ -40,6 +43,7 @@ describe('workflow version saves', () => {
     const editor = mountEditor(6, 'draft')
     const button = editor.findAll('button-stub').find(button => button.text().includes('Activate New Version'))
     await button?.trigger('click')
+    editor.getComponent(ConfirmationDialog).vm.$emit('confirm')
     expect(saveWorkflow).toHaveBeenCalledWith(expect.objectContaining({ status: 'active', replace_active_workflow_id: 4 }), 6)
     editor.unmount()
   })
