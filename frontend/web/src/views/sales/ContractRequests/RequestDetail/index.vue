@@ -33,9 +33,9 @@ watchEffect(() => {
 })
 
 const backPath = computed(() =>
-  route.path.startsWith('/manager') ? '/manager/contract-requests' : '/sales/contract-requests'
+  route.path.slice(0, route.path.lastIndexOf('/'))
 )
-const isManager = computed(() => route.path.startsWith('/manager'))
+const isManager = computed(() => route.meta.requiresPermission === 'cms.contracts.approve')
 
 const days = computed(() =>
   request.value?.endDate ? remainingDays(request.value.endDate) : 0

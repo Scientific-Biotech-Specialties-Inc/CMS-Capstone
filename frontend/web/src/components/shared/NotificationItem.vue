@@ -47,7 +47,13 @@ const typeIcon: Record<NotifType, Component> = {
       <component :is="typeIcon[notif.type]" class="w-4 h-4" />
     </div>
 
-    <p class="flex-1 min-w-0 text-sm leading-snug cursor-pointer select-none line-clamp-2 break-words"
+    <RouterLink v-if="notif.notifType?.startsWith('execution_confirmation_') && notif.contractId"
+      :to="{ name: `${$route.path.split('/')[1]}-contracts-detail`, params: { id: notif.contractId }, query: { execution: '1' } }"
+      class="flex-1 min-w-0 text-sm leading-snug text-brand-navy hover:underline"
+      @click="$emit('toggle-read', notif.id)">
+      {{ notif.message }}
+    </RouterLink>
+    <p v-else class="flex-1 min-w-0 text-sm leading-snug cursor-pointer select-none line-clamp-2 break-words"
       :class="!notif.isRead ? 'text-black font-medium' : 'text-black/55'"
       :title="notif.message"
       @click="$emit('toggle-read', notif.id)">

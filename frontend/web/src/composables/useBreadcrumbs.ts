@@ -60,6 +60,9 @@ export function useBreadcrumbs() {
         if (deep === 'amend') {
           items.push({ label: contractLabel, to: contractDetailUrl })
           items.push({ label: 'Amend Contract' })
+        } else if (deep === 'sign') {
+          items.push({ label: contractLabel, to: contractDetailUrl })
+          items.push({ label: 'Sign Contract' })
         } else if (deep === 'documents' && leaf) {
           items.push({ label: contractLabel, to: contractDetailUrl })
           items.push({ label: 'Document Viewer' })
@@ -74,8 +77,8 @@ export function useBreadcrumbs() {
     }
 
     // 3. Contract Requests
-    if (section === 'contract-requests') {
-      const requestsRoot = `${base}/contract-requests`
+    if (section === 'contract-requests' || section === 'contract-requests-review') {
+      const requestsRoot = `${base}/${section}`
       items.push({ label: 'Contract Requests', to: sub ? requestsRoot : undefined })
 
       if (sub === 'create') {

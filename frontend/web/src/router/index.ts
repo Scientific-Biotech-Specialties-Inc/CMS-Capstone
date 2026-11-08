@@ -18,6 +18,18 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/admin/Dashboard/index.vue'),
       },
       {
+        path: 'contract-requests',
+        name: 'admin-contract-requests',
+        component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
+      },
+      {
+        path: 'contract-requests/:id',
+        name: 'admin-contract-requests-detail',
+        component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
+      },
+      {
         path: 'contracts',
         name: 'admin-contracts',
         component: () => import('@/views/admin/Contracts/index.vue'),
@@ -39,6 +51,12 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contracts/:id',
         name: 'admin-contracts-detail',
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.view' },
+      },
+      {
+        path: 'contracts/:id/sign',
+        name: 'admin-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
         meta: { requiresPermission: 'cms.contracts.view' },
       },
       {
@@ -188,6 +206,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
       },
       {
+        path: 'contracts/:id/sign',
+        name: 'manager-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
+      },
+      {
         path: 'contracts/:id/amend',
         name: 'manager-contracts-amend',
         component: () => import('@/views/sales/ContractAmendments/CreateAmendment.vue'),
@@ -207,11 +230,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contract-requests',
         name: 'manager-contract-requests',
         component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'contract-requests/:id',
         name: 'manager-contract-requests-detail',
         component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'amendment-requests',
@@ -304,6 +329,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
       },
       {
+        path: 'contracts/:id/sign',
+        name: 'sales-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
+      },
+      {
         path: 'contracts/:id/documents/:docId',
         name: 'sales-contracts-document-view',
         component: () => import('@/views/sales/Contracts/DocumentViewer.vue'),
@@ -322,6 +352,18 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contract-requests/:id',
         name: 'sales-contract-requests-detail',
         component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+      },
+      {
+        path: 'contract-requests-review',
+        name: 'sales-contract-requests-review',
+        component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
+      },
+      {
+        path: 'contract-requests-review/:id',
+        name: 'sales-contract-requests-review-detail',
+        component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'contracts/:id/amend',

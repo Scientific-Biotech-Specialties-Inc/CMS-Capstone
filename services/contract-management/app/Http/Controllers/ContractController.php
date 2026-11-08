@@ -73,6 +73,8 @@ class ContractController extends Controller
                 'replaces_document_id' => $d->replaces_document_id,
                 'is_current_draft' => !$contract->signed_document_id && (string) $d->getKey() === $contract->execution_draft_id,
                 'is_primary' => (string) $d->getKey() === $contract->signed_document_id,
+                'signer_name' => (string) $d->getKey() === $contract->signed_document_id
+                    ? ($d->signature_evidence['signer_name'] ?? null) : null,
             ])->values(),
         ];
     }
@@ -816,7 +818,10 @@ class ContractController extends Controller
         ])->withExists('pendingApprovalInstances as has_pending_approval_workflow');
 
         $role = $request->get('auth_role');
-        if (in_array($role, ['Sales', 'Employee'])) {
+        if (in_array($role, ['Sales', 'Employee'], true) || (
+            !in_array($role, ['Admin', 'Super Admin'], true)
+            && !in_array('cms.contracts.approve', $request->get('auth_permissions', []), true)
+        )) {
             $query->where('created_by', $request->get('auth_id'));
         } elseif ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);

@@ -25,9 +25,11 @@ class ContractLookupSeeder extends Seeder
         }
 
         $statuses = [
-            ['status_name' => 'Notarized PDF', 'color_code' => '#6B7280'],
-            ['status_name' => 'Client Review',  'color_code' => '#10B981'],
             ['status_name' => 'SBSI Review',    'color_code' => '#EF4444'],
+            ['status_name' => 'Client Review',  'color_code' => '#10B981'],
+            ['status_name' => 'For Signing',    'color_code' => '#F59E0B'],
+            ['status_name' => 'Signed',         'color_code' => '#10B981'],
+            ['status_name' => 'Notarized PDF',  'color_code' => '#6B7280'],
         ];
 
         foreach ($statuses as $status) {

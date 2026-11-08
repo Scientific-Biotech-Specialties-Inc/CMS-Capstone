@@ -2,8 +2,12 @@ export interface SignaturePlacement {
   page: number
   x: number
   y: number
+  width?: number
 }
 
+export const SIGNATURE_MIN_WIDTH = 0.08
+export const SIGNATURE_DEFAULT_WIDTH = 0.20
+export const SIGNATURE_MAX_WIDTH = 0.35
 export const SIGNATURE_PAGE_WIDTH = 0.25
 
 export async function signDraftPdf(draft: ArrayBuffer, signatureImage: string, placement: SignaturePlacement): Promise<File> {
@@ -16,7 +20,7 @@ export async function signDraftPdf(draft: ArrayBuffer, signatureImage: string, p
   const viewWidth = sideways ? box.height : box.width
   const viewHeight = sideways ? box.width : box.height
   const signature = await pdf.embedPng(signatureImage)
-  const width = viewWidth * SIGNATURE_PAGE_WIDTH
+  const width = viewWidth * (placement.width ?? SIGNATURE_PAGE_WIDTH)
   const height = width * signature.height / signature.width
   if (height > viewHeight) throw new Error('This signature image is too tall for the selected page.')
 

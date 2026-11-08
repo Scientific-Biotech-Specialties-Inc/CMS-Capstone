@@ -12,6 +12,8 @@ export interface ExecutionEvent {
   document_id: string | null
   draft_document_id: string | null
   created_at: string
+  submitted_by_name?: string | null
+  reviewer_roles?: string[]
   reason: string | null
 }
 

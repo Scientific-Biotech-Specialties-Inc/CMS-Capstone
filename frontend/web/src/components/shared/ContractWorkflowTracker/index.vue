@@ -21,7 +21,8 @@ const props = withDefaults(defineProps<{
   // container, e.g. WorkflowTrackerModal's drawer panel.
   bare?: boolean
   orientation?: 'horizontal' | 'vertical'
-}>(), { orientation: 'vertical' })
+  tab?: 'approval' | 'execution'
+}>(), { orientation: 'vertical', tab: 'approval' })
 
 const latestRun = computed(() => {
   if (!props.workflow || !props.workflow.runs.length) return null
@@ -47,6 +48,15 @@ const activeNodeId = computed<string | null>(() => {
   return null
 })
 
+const activeExecutionNodeId = computed<string | null>(() => {
+  if (!props.workflow?.executionGroups?.length) return null
+  for (const group of props.workflow.executionGroups) {
+    const active = group.nodes.find(n => n.status === 'active' || n.status === 'on_hold')
+    if (active) return active.id
+  }
+  return null
+})
+
 function nextGroupStatus(groups: WorkflowGroupType[], index: number) {
   const next = groups[index + 1]
   return next ? groupStatus(next) : null
@@ -55,7 +65,9 @@ function nextGroupStatus(groups: WorkflowGroupType[], index: number) {
 
 <template>
   <div :class="bare ? 'space-y-4' : 'bg-white rounded-xl border border-black/[0.08] shadow-sm p-6 space-y-4'">
-    <h2 v-if="!bare" class="text-xs font-semibold text-black/40 uppercase tracking-widest">Approval Progress</h2>
+    <h2 v-if="!bare" class="text-xs font-semibold text-black/40 uppercase tracking-widest">
+      {{ tab === 'execution' ? 'Execution Pipeline' : 'Approval Progress' }}
+    </h2>
 
     <!-- Loading skeleton -->
     <div v-if="status === 'loading'" class="space-y-4">
@@ -68,20 +80,39 @@ function nextGroupStatus(groups: WorkflowGroupType[], index: number) {
       </div>
     </div>
 
-    <!-- Empty state -->
-    <div v-else-if="status === 'empty'" class="flex flex-col items-center gap-2 py-10 text-black/35">
-      <Inbox class="w-8 h-8" />
-      <p class="text-sm">No approval workflow is set for this contract.</p>
-    </div>
-
     <!-- Error state -->
     <div v-else-if="status === 'error'" class="flex flex-col items-center gap-3 py-10">
       <AlertCircle class="w-8 h-8 text-red-400" />
-      <p class="text-sm text-black/50">Couldn't load approval progress</p>
+      <p class="text-sm text-black/50">Couldn't load workflow progress</p>
       <button v-if="onRetry" @click="onRetry"
         class="text-xs font-semibold text-brand-blue hover:text-brand-navy underline">
         Retry
       </button>
+    </div>
+
+    <!-- Execution tab view -->
+    <template v-else-if="tab === 'execution'">
+      <div v-if="!workflow?.executionGroups?.length" class="flex flex-col items-center gap-2 py-10 text-black/35">
+        <Inbox class="w-8 h-8" />
+        <p class="text-sm">Execution workflow begins after final internal approval.</p>
+      </div>
+      <ol v-else class="wf-timeline relative mx-auto w-full max-w-[360px] list-none space-y-6 pl-8">
+        <WorkflowGroup
+          v-for="group in workflow.executionGroups"
+          :key="group.id"
+          :group="group"
+          :active-node-id="activeExecutionNodeId"
+          orientation="vertical"
+        />
+        <div class="absolute bottom-3 left-[6px] top-3 w-0.5 bg-black/[0.08]" aria-hidden="true" />
+        <div class="wf-spine-fill absolute bottom-3 left-[6px] top-3 w-0.5 origin-top bg-brand-blue" aria-hidden="true" />
+      </ol>
+    </template>
+
+    <!-- Approval tab empty state -->
+    <div v-else-if="status === 'empty' || !latestRun" class="flex flex-col items-center gap-2 py-10 text-black/35">
+      <Inbox class="w-8 h-8" />
+      <p class="text-sm">No approval workflow is set for this contract.</p>
     </div>
 
     <!-- Ready state: vertical mode is one continuous spine (same

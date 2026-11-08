@@ -14,6 +14,7 @@ export interface UploadedDoc {
   category?: 'draft' | 'signed' | 'notarized'
   isCurrentDraft?: boolean
   isPrimary?: boolean
+  signerName?: string | null
 }
 export type ContractRegion = 'Luzon' | 'Visayas' | 'Mindanao'
 export type FilterTab = 'all' | ContractLifecycleStatus
