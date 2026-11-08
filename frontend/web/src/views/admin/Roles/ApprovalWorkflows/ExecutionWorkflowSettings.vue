@@ -30,9 +30,9 @@ function removeRole(stage: ExecutionReviewStage, roleId: number) {
 </script>
 
 <template>
-  <section class="space-y-4 border-t border-slate-200 pt-6" aria-labelledby="execution-settings-title">
+  <section class="min-w-0 space-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:p-6" aria-labelledby="execution-settings-title">
     <div>
-      <h3 id="execution-settings-title" class="font-semibold text-slate-800">Execution Workflow</h3>
+      <h2 id="execution-settings-title" class="font-semibold text-slate-900">Execution Reviewers</h2>
       <p class="mt-2 text-sm text-slate-600">The owner submits each stage. One eligible reviewer confirms it. The bypass permission can confirm a submission in the same action.</p>
     </div>
     <ol class="divide-y divide-slate-200 rounded-xl border border-slate-200">
