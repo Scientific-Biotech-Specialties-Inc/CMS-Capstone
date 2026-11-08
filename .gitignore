@@ -36,3 +36,10 @@ Thumbs.db
 docker/mysql_data/
 docker/mongo_data/
 docker/es_data/
+CRMS-capstone.code-workspace
+.kiro/specs/analytics-ai-services/.config.kiro
+.kiro/specs/analytics-ai-services/tasks.md
+.kiro/specs/analytics-ai-services/requirements.md
+.kiro/specs/analytics-ai-services/design.md
+services/analytics-service/database/database.sqlite
+services/ai-service/database/database.sqlite
