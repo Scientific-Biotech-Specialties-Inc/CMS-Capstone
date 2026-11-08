@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,7 @@ class ApprovalInstance extends Model
         'run_number',
         'current_step_id',
         'status',
+        'draft_document_id',
     ];
 
     public function contract(): BelongsTo
@@ -49,5 +51,10 @@ class ApprovalInstance extends Model
     public function isInProgress(): bool
     {
         return $this->status === 'in_progress';
+    }
+
+    public function scopeAwaitingOutcome(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['in_progress', 'revisions_required']);
     }
 }

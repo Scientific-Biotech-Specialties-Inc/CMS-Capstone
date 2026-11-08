@@ -55,7 +55,7 @@ final class DownloadController extends Controller
 
         $disk = config('filesystems.default', 'local');
 
-        if (!Storage::disk($disk)->exists($document->file_path)) {
+        if (!$document->file_path || !Storage::disk($disk)->exists($document->file_path)) {
             return response()->json(['message' => 'File not found on storage disk.'], 404);
         }
 
@@ -75,7 +75,7 @@ final class DownloadController extends Controller
 
         $disk = config('filesystems.default', 'local');
 
-        if (!Storage::disk($disk)->exists($document->file_path)) {
+        if (!$document->file_path || !Storage::disk($disk)->exists($document->file_path)) {
             return response()->json(['message' => 'File not found on storage disk.'], 404);
         }
 

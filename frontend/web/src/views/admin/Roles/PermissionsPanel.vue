@@ -72,6 +72,7 @@ function isCategoryAllChecked(cat: Category): boolean {
               :key="perm.key"
               @click="emit('toggle-permission', cat.key, perm.key)"
               :disabled="isLocked"
+              :aria-pressed="activePermissions.includes(perm.key)"
               class="flex items-center justify-between gap-2 px-5 py-2.5 rounded-full border text-left transition-all duration-200 shrink-0"
               :class="activePermissions.includes(perm.key)
                 ? 'bg-brand-navy/6 border-brand-navy/25 text-brand-navy shadow-sm'
@@ -100,6 +101,7 @@ function isCategoryAllChecked(cat: Category): boolean {
               </svg>
             </button>
           </div>
+          <p v-if="cat.key === 'contracts'" class="mt-2 text-xs text-slate-600">Bypass Submission Confirmation applies after internal approval. Signing still requires a signed PDF and Manager or CEO signing authority.</p>
 
         </div>
       </div>

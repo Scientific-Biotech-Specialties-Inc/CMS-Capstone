@@ -96,12 +96,21 @@ class ApprovalEngineController extends Controller
             }
         }
 
+        $latest = $instances->last();
+        $actor = (int) $request->get('auth_id');
+        $mayAct = $latest->isInProgress() && (!config('services.features.enforce_sod') || (int) $contract->created_by !== $actor);
+        $myTasks = $mayAct ? $latest->tasks
+            ->filter(fn (ApprovalTask $task) => (int) $task->step_id === (int) $latest->current_step_id && $this->engine->canActOn($task, $actor))
+            ->map(fn (ApprovalTask $task) => ['id' => $task->id, 'role_name' => $roleMeta[$task->auth_role_id]['current_name'] ?? $task->auth_role_id])
+            ->values() : [];
+
         return response()->json([
             'data' => [
                 'engine' => true,
                 'contract_id' => $contract->contract_code ?? (string) $contract->contract_id,
                 'contract_created_at' => $contract->created_at?->toIso8601String(),
                 'contract_created_by' => $creatorName,
+                'my_tasks' => $myTasks,
                 // Phase 7: the roles owning the latest run's current step,
                 // so the frontend can label the nudge button without
                 // deriving it from tracker nodes. [] when no run is active.
@@ -189,6 +198,7 @@ class ApprovalEngineController extends Controller
             'run_number' => $instance->run_number,
             'status'     => $instance->status,
             'current_step_id' => $instance->current_step_id,
+            'draft_document_id' => $instance->draft_document_id,
             'groups'     => $steps->map(function ($step) use ($tasksByStep, $instance, $roleMeta, $userNames) {
                 $tasks = $tasksByStep->get($step->id, collect());
                 return [

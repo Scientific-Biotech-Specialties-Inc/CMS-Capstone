@@ -116,7 +116,7 @@ function daysDisplay(days: number) {
         <!-- Primary row: the approve/reject decision -->
         <div class="flex flex-wrap items-center justify-end gap-3">
           <!-- Manager: Approve / Reject -->
-          <template v-if="isManager && contract.approvalStatus === 'Pending' && !isSnapshot">
+          <template v-if="isManager && contract.hasPendingApprovalWorkflow === false && !isEngineRouted && contract.approvalStatus === 'Pending' && !isSnapshot">
             <template v-if="!showRejectInput">
               <Button @click="$emit('toggleReject')" :disabled="actionInProgress" variant="outline"
                 class="h-11 px-6 border-black/15 text-black/65 hover:text-red-600 hover:border-red-200 hover:bg-red-50 font-semibold">

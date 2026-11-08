@@ -304,6 +304,7 @@ async function saveEdit() {
       id:              `REQ-${String(data.data.contract_id).padStart(3, '0')}`,
       contractId:      rawContractId ? String(rawContractId) : undefined,
       contractDbId,
+      hasPendingApprovalWorkflow: data.data.has_pending_approval_workflow,
       businessPartner: data.data.bp_name        ?? '',
       category:        data.data.category       ?? '',
       description:     data.data.description    ?? '',

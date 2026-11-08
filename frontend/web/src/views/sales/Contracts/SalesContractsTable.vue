@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import TablePagination from '@/components/shared/TablePagination.vue'
-import { approvalStatusBadge, workflowStatusBadge, fmtDate, deriveLifecycleStatus, formatRemainingTime } from '@/types/contract'
+import { approvalStatusBadge, workflowStatusBadge, fmtDate, contractLifecycle, formatRemainingTime } from '@/types/contract'
 import ContractLifecycleBadge from '@/components/shared/ContractLifecycleBadge.vue'
 import type { ContractWithDays, StatusFilter, FilterTab } from '@/types/contract'
 import { contractGroup, CONTRACT_GROUPS, groupCounts } from '@/utils/contractSort'
@@ -170,6 +170,7 @@ const filterTabs: { label: string; value: FilterTab }[] = [
   { label: 'All',           value: 'all'      },
   { label: 'Active',        value: 'active'   },
   { label: 'Inactive',      value: 'inactive' },
+  { label: 'Pending Execution', value: 'pending_execution' },
   { label: 'Expiring Soon', value: 'expiring' },
   { label: 'Expired',       value: 'expired'  },
 ]
@@ -178,7 +179,9 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Pending',       value: 'Pending'      },
   { label: 'Approved',      value: 'Approved'     },
   { label: 'Rejected',      value: 'Rejected'     },
-  { label: 'Notarized Pdf', value: 'Notarized PDF'},
+  { label: 'For Signing', value: 'For Signing' },
+  { label: 'Signed', value: 'Signed' },
+  { label: 'Notarized PDF', value: 'Notarized PDF' },
   { label: 'SBSI Review',   value: 'SBSI Review'  },
   { label: 'Client Review', value: 'Client Review'},
 ]
@@ -433,7 +436,7 @@ const categories = [
 
             <!-- Contract State -->
             <TableCell class="py-4">
-              <ContractLifecycleBadge :status="deriveLifecycleStatus(c.days, c.approvalStatus)" />
+              <ContractLifecycleBadge :status="contractLifecycle(c)" />
             </TableCell>
 
             <!-- Status -->
@@ -464,14 +467,14 @@ const categories = [
                   <DropdownMenuLabel class="text-xs font-semibold text-black/38 pb-1">Actions</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem @click="emit('openDetail', c)" class="gap-2.5 text-sm cursor-pointer">
-                    <Eye class="w-3.5 h-3.5 text-black/40" /> View details
+                    <Eye class="w-3.5 h-3.5 text-black/40" /> {{ c.hasPendingApprovalWorkflow && c.approvalStatus === 'Pending' ? 'Review Approval' : 'View details' }}
                   </DropdownMenuItem>
                   <DropdownMenuItem v-if="hasPermission('cms.contracts.edit') && c.approvalStatus === 'Approved'" @click="router.push(`/sales/contracts/${c.id}/amend`)" class="gap-2.5 text-sm cursor-pointer">
                     <Pencil class="w-3.5 h-3.5 text-black/40" /> Create amendment
                   </DropdownMenuItem>
                   <template v-if="hasPermission('cms.contracts.approve') || hasPermission('cms.contracts.delete')">
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem v-if="hasPermission('cms.contracts.approve') && c.approvalStatus === 'Pending'" @click="emit('approve', c.id)"
+                    <DropdownMenuItem v-if="hasPermission('cms.contracts.approve') && c.approvalStatus === 'Pending' && c.hasPendingApprovalWorkflow === false" @click="emit('approve', c.id)"
                       class="gap-2.5 text-sm cursor-pointer text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50">
                       <CheckCircle class="w-3.5 h-3.5" /> Approve
                     </DropdownMenuItem>

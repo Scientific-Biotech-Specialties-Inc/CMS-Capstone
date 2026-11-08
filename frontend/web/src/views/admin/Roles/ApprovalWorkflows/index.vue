@@ -51,9 +51,13 @@ function closeEditor() {
   editingContractType.value = null
 }
 
-async function handleSaved() {
+async function handleSaved(status: 'draft' | 'active') {
   closeEditor()
-  success('Workflow saved', 'The approval workflow has been saved.')
+  if (status === 'active') {
+    success('Workflow activated', 'New contracts of this type will use this version.')
+  } else {
+    success('Workflow draft saved')
+  }
   await refresh()
 }
 

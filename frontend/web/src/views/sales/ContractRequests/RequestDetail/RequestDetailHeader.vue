@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Clock, ArrowLeft, ClipboardList, FilePenLine, Loader2, CheckCircle, XCircle, Bell } from 'lucide-vue-next'
+import { AlertTriangle, Clock, ArrowLeft, ClipboardList, FilePenLine, Loader2, CheckCircle, XCircle, Bell, Eye } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { requestStatusBadge } from '@/types/contractRequest'
 import type { ContractRequest } from '@/types/contractRequest'
@@ -100,7 +100,12 @@ function daysDisplay(days: number) {
         </template>
 
         <!-- Manager: Approve / Reject -->
-        <template v-if="isManager && (request.status === 'Pending' || request.status === 'Under Review')">
+        <Button v-if="isManager && request.hasPendingApprovalWorkflow && (request.status === 'Pending' || request.status === 'Under Review')" as-child variant="outline">
+          <RouterLink :to="{ name: 'manager-contracts-detail', params: { id: request.contractId ?? request.contractDbId ?? request.id.replace(/^REQ-/, '') } }">
+            <Eye class="size-4" /> Review Approval
+          </RouterLink>
+        </Button>
+        <template v-else-if="isManager && request.hasPendingApprovalWorkflow === false && (request.status === 'Pending' || request.status === 'Under Review')">
           <Button @click="$emit('approve')" :disabled="actionInProgress"
             class="h-9 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
             <Loader2 v-if="actionInProgress" class="w-3.5 h-3.5 animate-spin" />

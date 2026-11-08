@@ -16,6 +16,8 @@ import type { StoredContract } from '@/composables/useContractStore'
 import ContractDetailHeader     from './ContractDetailHeader.vue'
 import ContractInfoSection      from './ContractInfoSection.vue'
 import ContractDocumentsSection from './ContractDocumentsSection.vue'
+import ContractExecutionSection from './ContractExecutionSection.vue'
+import InternalApprovalActions from './InternalApprovalActions.vue'
 import VersionHistoryDrawer     from './VersionHistoryDrawer.vue'
 import ConfirmationDialog       from '@/components/shared/ConfirmationDialog.vue'
 import RejectionReasonModal     from './RejectionReasonModal.vue'
@@ -32,7 +34,7 @@ const { state: authState, role } = useAuth()
 const isManager = computed(() => role.value === 'Manager' || role.value === 'Admin')
 const isOwner   = computed(() => !!contract.value && !contract.value.createdBy.startsWith('User #'))
 const { success, error } = useToast()
-const { state: cacheState, fetchContracts, updateContractInCache } = useApiCache()
+const { state: cacheState, fetchContracts, updateContractInCache, invalidateRequests } = useApiCache()
 
 const id = route.params.id as string
 
@@ -46,7 +48,7 @@ const savingEdit      = ref(false)
 // `?workflowMock=A..E` scenarios below are a dev-only override for
 // exercising every visual state without seeded engine data — they apply
 // only when the query param is explicitly present.
-const { workflow: liveWorkflow, status: liveTrackerStatus, currentStepRoles, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
+const { workflow: liveWorkflow, status: liveTrackerStatus, currentStepRoles, myTasks, decide, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
 const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // Scenario A: normal progress — some completed, one active, rest pending.
   A: {
@@ -145,7 +147,7 @@ function handleWorkflowRetry() {
 // to the historic manager-targeted endpoint. The button label derives
 // from the progress response, not the tracker nodes.
 const nudgeLabel = computed(() => nudgeLabelFor(currentStepRoles.value))
-const isEngineRouted = computed(() => currentStepRoles.value.length > 0)
+const isEngineRouted = computed(() => contract.value?.hasPendingApprovalWorkflow === true || currentStepRoles.value.length > 0)
 const showWorkflowTracker = ref(false)
 
 const amendmentStore = useAmendmentStore()
@@ -229,6 +231,9 @@ function mapApiToContract(data: any): StoredContract {
     endDate:         data.end_date ?? '',
     approvalStatus:  (data.approval_status ?? 'Pending') as ContractApprovalStatus,
     workflowStatus:  (data.workflow_status ?? null) as ContractWorkflowStatus | null,
+    lifecycleStatus: data.lifecycle_status,
+    executionRequired: data.execution_required,
+    hasPendingApprovalWorkflow: data.has_pending_approval_workflow,
     rejectionReason: data.rejection_reason ?? undefined,
     contractLink:    '',
     createdBy,
@@ -239,6 +244,9 @@ function mapApiToContract(data: any): StoredContract {
       size: d.file_size ?? 0,
       previewUrl: normalizeDocumentUrl(d.document_url),
       uploadStatus: 'success',
+      category: d.doc_category,
+      isCurrentDraft: d.is_current_draft,
+      isPrimary: d.is_primary,
     })),
   }
 }
@@ -254,7 +262,7 @@ function loadLocalContract() {
   }
 }
 
-async function loadContract() {
+async function loadContract(force = false) {
   loadLocalContract()
   if (contract.value) {
     loadingContract.value = false
@@ -270,7 +278,7 @@ async function loadContract() {
     loadLocalContract()
 
     // If contract not found or docs are empty, fetch from direct backend endpoint with documents relation
-    if (!contract.value || (contract.value.docs && contract.value.docs.length === 0)) {
+    if (force || !contract.value || (contract.value.docs && contract.value.docs.length === 0)) {
       const res = await fetch(`${apiBase}/contracts/${id}`, {
         headers: {
           'Accept': 'application/json',
@@ -281,6 +289,7 @@ async function loadContract() {
         const json = await res.json()
         if (json.data) {
           contract.value = mapApiToContract(json.data)
+          if (force) updateContractInCache(contract.value.id, contract.value)
         }
       }
     }
@@ -291,6 +300,11 @@ async function loadContract() {
   } finally {
     loadingContract.value = false
   }
+}
+
+async function refreshExecution() {
+  invalidateRequests()
+  await Promise.all([loadContract(true), fetchWorkflowProgress(id)])
 }
 
 const showRejectionModal = ref(false)
@@ -422,7 +436,7 @@ async function handleApprove() {
       return
     }
 
-    updateContractInCache(id, { approvalStatus: 'Approved', workflowStatus: 'SBSI Review' })
+    updateContractInCache(id, mapApiToContract(data.data))
     success('Contract approved', `${contract.value.businessPartner}'s contract has been approved.`)
     loadLocalContract()
   } catch {
@@ -454,7 +468,7 @@ async function confirmReject() {
     const data = await res.json()
     if (!res.ok) { error('Failed to reject', data.message ?? 'Something went wrong.'); return }
 
-    updateContractInCache(id, { approvalStatus: 'Rejected', workflowStatus: null, rejectionReason: rejectReason.value.trim() })
+    updateContractInCache(id, mapApiToContract(data.data))
     success('Contract rejected', `${contract.value.businessPartner}'s contract has been rejected.`)
     showRejectInput.value = false
     rejectReason.value = ''
@@ -567,7 +581,7 @@ async function confirmSaveEdit() {
       end_date:      editForm.endDate,
       document_ids:  contractDocs.value.filter(d => d.id).map(d => d.id),
     }
-    if (isManager.value || isOwner.value) {
+    if (!contract.value?.executionRequired && (isManager.value || isOwner.value)) {
       payload.workflow_status = editForm.workflowStatus || null
     }
 
@@ -894,6 +908,9 @@ const activeSnapForDiff = computed(() => {
         </Button>
       </div>
 
+      <InternalApprovalActions v-if="!viewingSnapshotVersion && !isEditing && myTasks.length" :tasks="myTasks"
+        :save="(task, outcome, reason) => decide(id, task, outcome, reason)" @changed="refreshExecution" />
+
       <ContractInfoSection
         v-if="displayedContract"
         :contract="displayedContract"
@@ -912,6 +929,8 @@ const activeSnapForDiff = computed(() => {
         :snapshot-version="viewingSnapshotVersion"
         @update:docs="contractDocs = $event"
       />
+      <ContractExecutionSection v-if="!viewingSnapshotVersion && !isEditing" :key="`${id}-${contract.approvalStatus}`"
+        :contract-id="id" @changed="refreshExecution" />
     </template>
 
     <ConfirmationDialog

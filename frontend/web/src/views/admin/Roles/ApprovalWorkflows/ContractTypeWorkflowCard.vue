@@ -46,9 +46,9 @@ const emit = defineEmits<{
     <!-- Active workflow summary -->
     <div v-if="contractType.active_workflow" class="bg-black/[0.02] rounded-lg border border-black/6 p-3">
       <p class="text-sm font-medium text-black">{{ contractType.active_workflow.name }}</p>
-      <p class="text-xs text-black/40 mt-0.5">{{ contractType.active_workflow.step_count }} step(s)</p>
+      <p class="mt-2 text-sm text-slate-600">{{ contractType.active_workflow.step_count }} internal approval step(s) · Option 1B execution</p>
       <div class="flex items-center gap-2 mt-2">
-        <Button variant="outline" size="sm" @click="emit('edit', contractType.active_workflow!.id)"
+        <Button v-if="!contractType.draft_workflow" variant="outline" size="sm" @click="emit('edit', contractType.active_workflow!.id)"
           class="h-7 px-2.5 text-xs border-black/15 text-black/60 hover:text-black">
           <Pencil class="w-3 h-3" /> Edit
         </Button>
@@ -63,10 +63,10 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <!-- Draft-only summary -->
-    <div v-else-if="contractType.draft_workflow" class="bg-black/[0.02] rounded-lg border border-black/6 p-3">
+    <!-- A replacement draft can be edited while the active workflow serves new contracts. -->
+    <div v-if="contractType.draft_workflow" class="bg-black/[0.02] rounded-lg border border-black/6 p-3">
       <p class="text-sm font-medium text-black">{{ contractType.draft_workflow.name }}</p>
-      <p class="text-xs text-black/40 mt-0.5">{{ contractType.draft_workflow.step_count }} step(s) — not yet active</p>
+      <p class="mt-2 text-sm text-slate-600">Draft · {{ contractType.draft_workflow.step_count }} internal approval step(s)</p>
       <div class="flex items-center gap-2 mt-2">
         <Button variant="outline" size="sm" @click="emit('edit', contractType.draft_workflow!.id)"
           class="h-7 px-2.5 text-xs border-black/15 text-black/60 hover:text-black">
@@ -80,7 +80,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- No workflow at all -->
-    <div v-else class="bg-black/[0.02] rounded-lg border border-black/6 p-3">
+    <div v-if="!contractType.active_workflow && !contractType.draft_workflow" class="bg-black/[0.02] rounded-lg border border-black/6 p-3">
       <p class="text-xs text-black/45">Contracts of this type use the default manager approval flow.</p>
     </div>
 

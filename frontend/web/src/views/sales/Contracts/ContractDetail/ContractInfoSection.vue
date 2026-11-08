@@ -168,7 +168,7 @@ onClickOutside(suggestionsContainer, () => {
         </div>
 
         <!-- Workflow Status (manager or contract owner) - Only shows in Edit Mode and if Approved -->
-        <div v-if="isEditing && (isManager || isOwner) && isApproved" class="flex flex-col gap-1.5 mt-2 md:col-span-3">
+        <div v-if="!contract.executionRequired && isEditing && (isManager || isOwner) && isApproved" class="flex flex-col gap-1.5 mt-2 md:col-span-3">
           <label class="text-xs font-semibold text-black/50">Workflow Status</label>
           <select
             v-model="editForm.workflowStatus"

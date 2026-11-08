@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 
 const props = defineProps<{
@@ -9,8 +10,8 @@ const props = defineProps<{
 
 const statCards = computed(() => {
   const total = props.contracts.length
-  const expiring = props.contracts.filter(c => c.days >= 0 && c.days <= 30).length
-  const expired = props.contracts.filter(c => c.days < 0).length
+  const expiring = props.contracts.filter(c => contractLifecycle(c) === 'expiring').length
+  const expired = props.contracts.filter(c => contractLifecycle(c) === 'expired').length
   const totalEmployees = props.employeesCount
 
   return [

@@ -29,6 +29,9 @@ final class DocumentResource extends JsonResource
             'document_url' => $this->resource->document_url,
             'uploaded_by' => $this->resource->uploaded_by,
             'uploaded_at' => $this->resource->uploaded_at?->toISOString(),
+            'doc_category' => $this->resource->doc_category,
+            'signature_method' => $this->resource->signature_method,
+            'replaces_document_id' => $this->resource->replaces_document_id,
         ];
     }
 }

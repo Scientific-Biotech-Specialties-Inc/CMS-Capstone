@@ -298,6 +298,7 @@ class ContractAmendmentController extends Controller
             //    - Unlink any that were removed in this amendment
             //    - Link any kept or newly added documents
             $existingDocIds = $contract->documents
+                ->reject(fn ($d) => $contract->execution_required && ($d->doc_category || (string) $d->getKey() === $contract->execution_draft_id))
                 ->map(fn ($d) => (string)($d->document_id ?? $d->_id))
                 ->toArray();
             $amendmentDocIds = array_map('strval', $amd->document_ids ?? []);
@@ -520,6 +521,7 @@ class ContractAmendmentController extends Controller
             //    - Unlink any that were removed in this amendment
             //    - Link any kept or newly added documents
             $existingDocIds = $contract->documents
+                ->reject(fn ($d) => $contract->execution_required && ($d->doc_category || (string) $d->getKey() === $contract->execution_draft_id))
                 ->map(fn ($d) => (string)($d->document_id ?? $d->_id))
                 ->toArray();
             $amendmentDocIds = array_map('strval', $amd->document_ids ?? []);
