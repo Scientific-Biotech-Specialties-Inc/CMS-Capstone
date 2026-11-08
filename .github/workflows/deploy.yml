@@ -1,0 +1,186 @@
+name: Deploy CMS production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: "Build and publish images without updating Azure"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "cms-production-${{ github.ref }}"
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/scientific-biotech-specialties-inc
+  AZURE_RESOURCE_GROUP: rg-capstone
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+      - name: Test frontend
+        working-directory: frontend/web
+        run: |
+          npm ci
+          npm run test:unit
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: bcmath, gd, intl, mongodb, pdo_sqlite, zip
+          coverage: none
+          tools: composer:v2
+      - name: Test backends
+        run: |
+          export APP_KEY="base64:$(openssl rand -base64 32)"
+          export INTERNAL_SERVICE_SECRET="$(openssl rand -hex 32)"
+          for service in services/*/phpunit.xml; do
+            (
+              cd "$(dirname "$service")"
+              composer install --no-interaction --no-progress --prefer-dist
+              vendor/bin/phpunit
+            )
+          done
+      - name: Verify main before publishing tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Publishing skipped because main has advanced to $main_sha."
+            exit 1
+          fi
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: vendor-management
+            context: services/vendor-management
+            dockerfile: Dockerfile
+          - app: contract-management
+            context: services/contract-management
+            dockerfile: Dockerfile
+          - app: search
+            context: services/search
+            dockerfile: Dockerfile
+          - app: notification
+            context: services/notification
+            dockerfile: Dockerfile
+          - app: ai-service
+            context: services/ai-service
+            dockerfile: Dockerfile
+          - app: analytics-service
+            context: services/analytics-service
+            dockerfile: Dockerfile
+          - app: web
+            context: frontend/web
+            dockerfile: Dockerfile.prod
+            build_args: CMS_WEB_PORT=5001
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: "${{ matrix.context }}/${{ matrix.dockerfile }}"
+          build-args: ${{ matrix.build_args }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/cms-${{ matrix.app }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/cms-${{ matrix.app }}:latest
+          labels: "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+          cache-from: "type=gha,scope=cms-${{ matrix.app }}"
+          cache-to: "type=gha,mode=max,scope=cms-${{ matrix.app }}"
+
+  deploy:
+    needs: publish
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.CMS_PRODUCTION_ENABLED == 'true' &&
+      (github.event_name == 'push' || !inputs.publish_only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Verify main is still at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Deployment skipped because main has advanced to $main_sha."
+            exit 1
+          fi
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Update CMS apps and wait for readiness
+        run: |
+          apps=(vendor-management contract-management search notification ai-service analytics-service cms-web)
+          for app in "${apps[@]}"; do
+            az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$app" --output none
+          done
+
+          suffix="cms-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          for app in "${apps[@]}"; do
+            image="cms-$app"
+            if [ "$app" = "cms-web" ]; then
+              image="cms-web"
+            fi
+            az containerapp update \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$app" \
+              --image "$REGISTRY/$image:$GITHUB_SHA" \
+              --revision-suffix "$suffix" \
+              --output none
+
+            ready_revision=
+            for attempt in $(seq 1 30); do
+              ready_revision=$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" \
+                --name "$app" --query properties.latestReadyRevisionName --output tsv)
+              if [[ "$ready_revision" == "$app"-*"$suffix" ]]; then
+                break
+              fi
+              sleep 10
+            done
+            if [[ "$ready_revision" != "$app"-*"$suffix" ]]; then
+              echo "::error::$app failed to report a ready revision for $GITHUB_SHA."
+              exit 1
+            fi
+            echo "$app is ready on $ready_revision."
+          done
+

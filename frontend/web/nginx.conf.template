@@ -1,0 +1,114 @@
+server {
+    listen ${CMS_WEB_PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+
+    client_max_body_size 25m;
+    resolver ${RESOLVER} valid=10s ipv6=off;
+
+    # Static Vue 3 SPA assets
+    location /cms/ {
+        alias /usr/share/nginx/html/;
+        try_files $uri $uri/ /cms/index.html;
+    }
+
+    location = / {
+        return 302 /cms/;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Microservice reverse proxies (rewrites /api/<service>/* -> /api/* on backend)
+    location = /api/vendor { return 302 /api/vendor/; }
+    location /api/vendor/ {
+        set $upstream_vendor "vendor-management";
+        rewrite ^/api/vendor/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_vendor:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+
+    location = /api/contract { return 302 /api/contract/; }
+    location /api/contract/ {
+        set $upstream_contract "contract-management";
+        rewrite ^/api/contract/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_contract:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+
+    location = /api/search { return 302 /api/search/; }
+    location /api/search/ {
+        set $upstream_search "search";
+        rewrite ^/api/search/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_search:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+
+    location = /api/notification { return 302 /api/notification/; }
+    location /api/notification/ {
+        set $upstream_notification "notification";
+        rewrite ^/api/notification/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_notification:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+
+    location = /api/ai { return 302 /api/ai/; }
+    location /api/ai/ {
+        set $upstream_ai "ai-service";
+        rewrite ^/api/ai/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_ai:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+
+    location = /api/analytics { return 302 /api/analytics/; }
+    location /api/analytics/ {
+        set $upstream_analytics "analytics-service";
+        rewrite ^/api/analytics/(.*)$ /api/$1 break;
+        proxy_pass http://$upstream_analytics:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Cookie;
+        proxy_read_timeout 180s;
+    }
+}
+

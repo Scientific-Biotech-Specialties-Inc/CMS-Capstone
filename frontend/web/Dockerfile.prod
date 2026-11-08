@@ -1,33 +1,29 @@
-# Stage 1: Build the Vue application
-FROM node:22-alpine as build-stage
+# syntax=docker/dockerfile:1
 
+FROM node:22-alpine AS build
 WORKDIR /app
 
-# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# Copy source code and build
 COPY . .
-# We can inject production environment variables here if needed
+COPY .env.example .env.production
 RUN npm run build
 
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine as production-stage
+FROM nginx:1.27-alpine
+ARG CMS_WEB_PORT=5001
+ENV CMS_WEB_PORT=${CMS_WEB_PORT}
 
-# Copy the built assets from the previous stage
-# Note: Vite builds to dist/ by default
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Create a custom nginx configuration to handle Vue Router history mode
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html index.htm; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+RUN mkdir -p /docker-entrypoint.d /etc/nginx/templates
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'NS=$(awk '\''/^nameserver/{print $2; exit}'\'' /etc/resolv.conf 2>/dev/null)' \
+    'export RESOLVER="${NS:-127.0.0.11}"' \
+    > /docker-entrypoint.d/15-local-resolver.envsh && chmod +x /docker-entrypoint.d/15-local-resolver.envsh
 
-EXPOSE 80
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+EXPOSE ${CMS_WEB_PORT}
 CMD ["nginx", "-g", "daemon off;"]
