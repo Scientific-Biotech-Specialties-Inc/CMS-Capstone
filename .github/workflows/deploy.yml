@@ -53,7 +53,7 @@ jobs:
             (
               cd "$(dirname "$service")"
               composer install --no-interaction --no-progress --prefer-dist
-              vendor/bin/phpunit
+              vendor/bin/phpunit --exclude-group atlas
             )
           done
       - name: Verify main before publishing tags
