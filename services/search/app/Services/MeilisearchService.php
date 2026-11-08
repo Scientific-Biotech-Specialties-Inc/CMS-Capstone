@@ -7,7 +7,7 @@ namespace App\Services;
 use Meilisearch\Client;
 use Meilisearch\Endpoints\Indexes;
 
-final class MeilisearchService
+class MeilisearchService
 {
     private Client $client;
 
