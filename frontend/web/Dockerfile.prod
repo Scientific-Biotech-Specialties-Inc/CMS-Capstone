@@ -20,7 +20,9 @@ RUN mkdir -p /docker-entrypoint.d /etc/nginx/templates
 RUN printf '%s\n' \
     '#!/bin/sh' \
     'NS=$(awk '\''/^nameserver/{print $2; exit}'\'' /etc/resolv.conf 2>/dev/null)' \
+    'SEARCH=$(awk '\''/^search/{print $2; exit}'\'' /etc/resolv.conf 2>/dev/null)' \
     'export RESOLVER="${NS:-127.0.0.11}"' \
+    'if [ -z "$INTERNAL_DOMAIN" ] && [ -n "$SEARCH" ]; then export INTERNAL_DOMAIN=".$SEARCH"; fi' \
     > /docker-entrypoint.d/15-local-resolver.envsh && chmod +x /docker-entrypoint.d/15-local-resolver.envsh
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template

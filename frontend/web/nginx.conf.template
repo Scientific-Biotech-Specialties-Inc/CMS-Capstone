@@ -23,11 +23,13 @@ server {
     # Microservice reverse proxies (rewrites /api/<service>/* -> /api/* on backend)
     location = /api/vendor { return 302 /api/vendor/; }
     location /api/vendor/ {
-        set $upstream_vendor "vendor-management";
+        set $upstream_vendor "vendor-management${INTERNAL_DOMAIN}";
+        rewrite ^/api/vendor/up$ /up break;
         rewrite ^/api/vendor/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_vendor:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_vendor;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -38,11 +40,13 @@ server {
 
     location = /api/contract { return 302 /api/contract/; }
     location /api/contract/ {
-        set $upstream_contract "contract-management";
+        set $upstream_contract "contract-management${INTERNAL_DOMAIN}";
+        rewrite ^/api/contract/up$ /up break;
         rewrite ^/api/contract/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_contract:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_contract;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -53,11 +57,13 @@ server {
 
     location = /api/search { return 302 /api/search/; }
     location /api/search/ {
-        set $upstream_search "search";
+        set $upstream_search "search${INTERNAL_DOMAIN}";
+        rewrite ^/api/search/up$ /up break;
         rewrite ^/api/search/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_search:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_search;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -68,11 +74,13 @@ server {
 
     location = /api/notification { return 302 /api/notification/; }
     location /api/notification/ {
-        set $upstream_notification "notification";
+        set $upstream_notification "notification${INTERNAL_DOMAIN}";
+        rewrite ^/api/notification/up$ /up break;
         rewrite ^/api/notification/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_notification:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_notification;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -83,11 +91,13 @@ server {
 
     location = /api/ai { return 302 /api/ai/; }
     location /api/ai/ {
-        set $upstream_ai "ai-service";
+        set $upstream_ai "ai-service${INTERNAL_DOMAIN}";
+        rewrite ^/api/ai/up$ /up break;
         rewrite ^/api/ai/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_ai:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_ai;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -98,11 +108,13 @@ server {
 
     location = /api/analytics { return 302 /api/analytics/; }
     location /api/analytics/ {
-        set $upstream_analytics "analytics-service";
+        set $upstream_analytics "analytics-service${INTERNAL_DOMAIN}";
+        rewrite ^/api/analytics/up$ /up break;
         rewrite ^/api/analytics/(.*)$ /api/$1 break;
         proxy_pass http://$upstream_analytics:80;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $upstream_analytics;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
