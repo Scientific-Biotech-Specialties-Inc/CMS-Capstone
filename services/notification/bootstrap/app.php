@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'      => \App\Http\Middleware\HasPermission::class,
             'internal.secret' => \App\Http\Middleware\ValidateInternalSecret::class,
         ]);
+
+        $middleware->encryptCookies(except: [
+            'session_id',
+            'access_token',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

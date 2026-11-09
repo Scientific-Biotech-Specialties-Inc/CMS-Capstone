@@ -20,6 +20,14 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::patch('/notifications/{id}/state', [NotificationController::class, 'updateState']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     Route::post('/notifications/batch-delete', [NotificationController::class, 'batchDestroy']);
+
+    // Direct aliases without /notifications prefix for singular proxy routing
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::patch('/read-all', [NotificationController::class, 'markAllRead']);
+    Route::patch('/{id}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/{id}/state', [NotificationController::class, 'updateState']);
+    Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    Route::post('/batch-delete', [NotificationController::class, 'batchDestroy']);
     
     // Email Preferences & Logs
     Route::get('/email-preferences', App\Http\Controllers\Api\V1\EmailPreferences\ShowController::class);
