@@ -20,7 +20,7 @@ export function useAmendmentStore() {
       const res = await fetch(`${apiBase}/contract-amendments`, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
       })
       if (!res.ok) throw new Error('Failed to fetch amendments')
@@ -41,7 +41,7 @@ export function useAmendmentStore() {
       const res = await fetch(`${apiBase}/contracts/${contractId}/versions`, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
       })
       if (!res.ok) throw new Error('Failed to fetch version history')
@@ -83,7 +83,7 @@ export function useAmendmentStore() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
         body: JSON.stringify(payload),
       })
@@ -113,7 +113,7 @@ export function useAmendmentStore() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
         body: JSON.stringify({ status: 'Approved' }),
       })
@@ -166,7 +166,7 @@ export function useAmendmentStore() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
         body: JSON.stringify({ status: 'Rejected', rejection_reason: reason }),
       })
@@ -198,7 +198,7 @@ export function useAmendmentStore() {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authState.token}`,
+          ...(authState.token ? { 'Authorization': `Bearer ${authState.token}` } : {}),
         },
       })
 

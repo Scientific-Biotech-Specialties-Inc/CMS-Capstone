@@ -38,25 +38,10 @@ Thumbs.db
 docker/mysql_data/
 docker/mongo_data/
 docker/es_data/
-
-# Root Environment File
-.env
-
-# Ai context
-context/
-.context/
-
-# Claude Code local settings (per-developer, not shared)
-.claude/settings.local.json
-
-settings.json
-
-# --- Playwright ---
-frontend/web/playwright-report/
-frontend/web/test-results/
-frontend/web/blob-report/
-frontend/web/.playwright-blob-report/
-test-results/
-
-# --- Workflow engine planning doc (local working notes, not shared) ---
-WORKFLOW_ENGINE_IMPLEMENTATION_PLAN.md
+CRMS-capstone.code-workspace
+.kiro/specs/analytics-ai-services/.config.kiro
+.kiro/specs/analytics-ai-services/tasks.md
+.kiro/specs/analytics-ai-services/requirements.md
+.kiro/specs/analytics-ai-services/design.md
+services/analytics-service/database/database.sqlite
+services/ai-service/database/database.sqlite

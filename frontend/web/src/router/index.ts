@@ -4,6 +4,11 @@ import { useToast } from '@/composables/useToast'
 import { useLoader } from '@/composables/useLoader'
 import { setBreadcrumbTitle } from '@/composables/useBreadcrumbs'
 
+function requireRolesAdmin() {
+  const { role } = useAuth()
+  if (!['Admin', 'Super Admin'].includes(role.value || '')) return { name: 'admin-dashboard' }
+}
+
 const routes: Array<RouteRecordRaw> = [
   // Admin Route Group
   {
@@ -16,6 +21,18 @@ const routes: Array<RouteRecordRaw> = [
         path: 'dashboard',
         name: 'admin-dashboard',
         component: () => import('@/views/admin/Dashboard/index.vue'),
+      },
+      {
+        path: 'contract-requests',
+        name: 'admin-contract-requests',
+        component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
+      },
+      {
+        path: 'contract-requests/:id',
+        name: 'admin-contract-requests-detail',
+        component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'contracts',
@@ -39,6 +56,12 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contracts/:id',
         name: 'admin-contracts-detail',
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.view' },
+      },
+      {
+        path: 'contracts/:id/sign',
+        name: 'admin-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
         meta: { requiresPermission: 'cms.contracts.view' },
       },
       {
@@ -70,14 +93,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'roles',
         name: 'admin-roles',
         component: () => import('@/views/admin/Roles/index.vue'),
-        beforeEnter: (_to, _from, next) => {
-          const { role } = useAuth()
-          if (['Admin', 'Super Admin'].includes(role.value || '')) {
-            next()
-          } else {
-            next('/admin/dashboard')
-          }
-        },
+        beforeEnter: requireRolesAdmin,
+      },
+      {
+        path: 'roles/workflows/:contractTypeId/:workflowId?',
+        name: 'admin-workflow-editor',
+        component: () => import('@/views/admin/Roles/ApprovalWorkflows/WorkflowEditorPage.vue'),
+        beforeEnter: requireRolesAdmin,
       },
       {
         path: 'partners',
@@ -188,6 +210,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
       },
       {
+        path: 'contracts/:id/sign',
+        name: 'manager-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
+      },
+      {
         path: 'contracts/:id/amend',
         name: 'manager-contracts-amend',
         component: () => import('@/views/sales/ContractAmendments/CreateAmendment.vue'),
@@ -207,11 +234,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contract-requests',
         name: 'manager-contract-requests',
         component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'contract-requests/:id',
         name: 'manager-contract-requests-detail',
         component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'amendment-requests',
@@ -304,6 +333,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/sales/Contracts/ContractDetail/index.vue'),
       },
       {
+        path: 'contracts/:id/sign',
+        name: 'sales-contracts-sign',
+        component: () => import('@/views/sales/Contracts/SignContract/index.vue'),
+      },
+      {
         path: 'contracts/:id/documents/:docId',
         name: 'sales-contracts-document-view',
         component: () => import('@/views/sales/Contracts/DocumentViewer.vue'),
@@ -322,6 +356,18 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contract-requests/:id',
         name: 'sales-contract-requests-detail',
         component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+      },
+      {
+        path: 'contract-requests-review',
+        name: 'sales-contract-requests-review',
+        component: () => import('@/views/manager/ContractRequests/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
+      },
+      {
+        path: 'contract-requests-review/:id',
+        name: 'sales-contract-requests-review-detail',
+        component: () => import('@/views/sales/ContractRequests/RequestDetail/index.vue'),
+        meta: { requiresPermission: 'cms.contracts.approve' },
       },
       {
         path: 'contracts/:id/amend',
@@ -388,6 +434,14 @@ const routes: Array<RouteRecordRaw> = [
   },
 
   {
+    // This route handles the redirect from the Auth Module after login.
+    // It reads the session cookie, calls the auth API, stores the user, then navigates to the dashboard.
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: () => import('@/views/AuthCallback.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: { render: () => null }, // never actually rendered; beforeEnter always redirects or cancels
@@ -421,6 +475,11 @@ const router = createRouter({
 router.beforeEach((to: RouteLocationNormalized) => {
   const { isAuthenticated, navGroup } = useAuth()
   const { error } = useToast()
+
+  // Always allow the auth callback route through — it handles its own auth handshake
+  if (to.name === 'auth-callback' || to.path.includes('auth/callback')) {
+    return true
+  }
 
   const requiresAuth = to.path.startsWith('/admin') ||
     to.path.startsWith('/manager') ||

@@ -5,6 +5,9 @@ export type RequestFilterTab = 'all' | 'pending' | 'reviewing' | 'approved' | 'r
 
 export interface ContractRequest {
   id:               string
+  contractId?:      string
+  contractDbId?:    number
+  hasPendingApprovalWorkflow?: boolean
   businessPartner:  string
   category:         string
   description:      string

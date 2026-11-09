@@ -18,9 +18,19 @@ WORKDIR /var/www/html
 
 COPY . .
 
-RUN composer install --no-scripts --prefer-dist
+RUN composer install --no-scripts --prefer-dist \
+    && mkdir -p bootstrap/cache \
+       storage/app/public \
+       storage/framework/cache/data \
+       storage/framework/sessions \
+       storage/framework/views \
+       storage/logs \
+    && ln -sf ../storage/app/public public/storage \
+    && chmod -R 775 bootstrap/cache storage
 
-RUN mkdir -p storage/app/public && ln -s ../storage/app/public public/storage
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8000
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

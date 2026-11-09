@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import TablePagination from '@/components/shared/TablePagination.vue'
-import { approvalStatusBadge, workflowStatusBadge, fmtDate, deriveLifecycleStatus, formatRemainingTime } from '@/types/contract'
+import { approvalStatusBadge, workflowStatusBadge, fmtDate, contractLifecycle, formatRemainingTime } from '@/types/contract'
 import type { ContractWithDays, FilterTab, StatusFilter } from '@/types/contract'
 import { contractGroup, CONTRACT_GROUPS, groupCounts } from '@/utils/contractSort'
 import type { ContractGroupKey } from '@/utils/contractSort'
@@ -173,6 +173,7 @@ const filterTabs: { label: string; value: FilterTab }[] = [
   { label: 'All',           value: 'all'      },
   { label: 'Active',        value: 'active'   },
   { label: 'Inactive',      value: 'inactive' },
+  { label: 'Pending Execution', value: 'pending_execution' },
   { label: 'Expiring Soon', value: 'expiring' },
   { label: 'Expired',       value: 'expired'  },
 ]
@@ -189,7 +190,9 @@ const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Pending',       value: 'Pending'      },
   { label: 'Approved',      value: 'Approved'     },
   { label: 'Rejected',      value: 'Rejected'     },
-  { label: 'Notarized Pdf', value: 'Notarized PDF'},
+  { label: 'For Signing', value: 'For Signing' },
+  { label: 'Signed', value: 'Signed' },
+  { label: 'Notarized PDF', value: 'Notarized PDF' },
   { label: 'SBSI Review',   value: 'SBSI Review'  },
   { label: 'Client Review', value: 'Client Review'},
 ]
@@ -466,7 +469,7 @@ function avatarColor(name: string) {
 
             <!-- Contract State -->
             <TableCell class="py-4">
-              <ContractLifecycleBadge :status="deriveLifecycleStatus(c.days, c.approvalStatus)" />
+              <ContractLifecycleBadge :status="contractLifecycle(c)" />
             </TableCell>
 
             <!-- Status -->

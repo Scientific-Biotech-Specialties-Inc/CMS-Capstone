@@ -7,7 +7,7 @@ namespace App\Services;
 use Meilisearch\Client;
 use Meilisearch\Endpoints\Indexes;
 
-final class MeilisearchService
+class MeilisearchService
 {
     private Client $client;
 
@@ -31,7 +31,14 @@ final class MeilisearchService
 
     public function search(string $query, array $options = []): array
     {
-        return $this->getIndex()->search($query, $options)->toArray();
+        try {
+            return $this->getIndex()->search($query, $options)->toArray();
+        } catch (\Meilisearch\Exceptions\ApiException $e) {
+            if ($e->errorCode === 'index_not_found') {
+                return ['hits' => [], 'estimatedTotalHits' => 0];
+            }
+            throw $e;
+        }
     }
 
     public function indexDocuments(array $documents): void

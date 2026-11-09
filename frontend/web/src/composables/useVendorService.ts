@@ -8,7 +8,7 @@ function makeHeaders(): HeadersInit {
   return {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${state.token}`,
+    ...(state.token ? { 'Authorization': `Bearer ${state.token}` } : {}),
   }
 }
 

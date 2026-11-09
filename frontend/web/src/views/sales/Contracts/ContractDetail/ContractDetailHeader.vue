@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ArrowLeft, FileText, FilePenLine, Clock, AlertTriangle, Loader2, CheckCircle, XCircle, Workflow } from 'lucide-vue-next'
+import { ArrowLeft, FileText, FilePenLine, Clock, AlertTriangle, Loader2, CheckCircle, CheckCircle2, XCircle, Workflow } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { approvalStatusBadge, workflowStatusBadge } from '@/types/contract'
 import type { StoredContract } from '@/composables/useContractStore'
 import type { RiskLevel } from '@/types/riskAssessment'
+import type { ExecutionAction, ExecutionState } from '@/composables/useContractExecution'
 import RiskFlagBadge from '@/components/shared/RiskFlagBadge.vue'
 import LockedStatusBadge from '@/components/shared/LockedStatusBadge.vue'
 
@@ -27,11 +28,14 @@ const props = defineProps<{
   // contract is engine-routed (relaxes the Pending-only visibility).
   nudgeLabel?: string
   isEngineRouted?: boolean
+  executionState?: ExecutionState | null
+  executionSubmitLabel?: string
 }>()
 
 defineEmits<{ 
   back: []; edit: []; save: []; cancel: []; notifyStep: [];
-  approve: []; toggleReject: []; confirmReject: []; openHistory: []; openRiskAssessment: []; openWorkflowTracker: []
+  approve: []; toggleReject: []; confirmReject: []; openHistory: []; openRiskAssessment: []; openWorkflowTracker: [];
+  executionAction: [action: ExecutionAction]
 }>()
 
 function daysDisplay(days: number) {
@@ -116,7 +120,7 @@ function daysDisplay(days: number) {
         <!-- Primary row: the approve/reject decision -->
         <div class="flex flex-wrap items-center justify-end gap-3">
           <!-- Manager: Approve / Reject -->
-          <template v-if="isManager && contract.approvalStatus === 'Pending' && !isSnapshot">
+          <template v-if="isManager && contract.hasPendingApprovalWorkflow === false && !isEngineRouted && contract.approvalStatus === 'Pending' && !isSnapshot">
             <template v-if="!showRejectInput">
               <Button @click="$emit('toggleReject')" :disabled="actionInProgress" variant="outline"
                 class="h-11 px-6 border-black/15 text-black/65 hover:text-red-600 hover:border-red-200 hover:bg-red-50 font-semibold">
@@ -146,12 +150,54 @@ function daysDisplay(days: number) {
             {{ nudgeLabel ?? 'Notify Manager' }}
           </button>
 
-          <!-- Create Amendment Button — only for Approved contracts -->
-          <button v-if="!showRejectInput && !isSnapshot && contract.approvalStatus === 'Approved'" @click="$emit('edit')"
-            class="px-6 py-2.5 bg-brand-navy text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm">
-            <FilePenLine class="w-4 h-4" />
-            Create Amendment
-          </button>
+          <!-- Approved Contract Actions: Execution Status Update & Create Amendment -->
+          <template v-if="!showRejectInput && !isSnapshot && contract.approvalStatus === 'Approved'">
+            <!-- Confirm Pending Submission -->
+            <template v-if="executionState?.allowed?.confirm">
+              <Button @click="$emit('executionAction', 'confirm')" :disabled="actionInProgress"
+                class="h-10 px-5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center gap-1.5">
+                <CheckCircle class="w-4 h-4" /> Confirm Submission
+              </Button>
+              <Button @click="$emit('executionAction', 'return')" :disabled="actionInProgress" variant="outline"
+                class="h-10 px-4 text-sm border-black/15 text-black/65 hover:text-red-600 hover:border-red-200 hover:bg-red-50 font-semibold">
+                Return Submission
+              </Button>
+            </template>
+
+            <!-- Submit the current stage -->
+            <template v-else-if="executionState?.allowed?.submit">
+              <Button @click="$emit('executionAction', 'submit')" :disabled="actionInProgress"
+                class="h-10 px-5 text-sm bg-brand-navy hover:bg-brand-dark text-white font-semibold shadow-sm flex items-center gap-1.5">
+                <CheckCircle2 class="w-4 h-4 text-emerald-400" /> {{ executionSubmitLabel ?? 'Update Execution Status' }}
+              </Button>
+            </template>
+
+            <!-- Resume / Revise when paused -->
+            <template v-else-if="executionState?.allowed?.resume">
+              <Button @click="$emit('executionAction', 'resume')" :disabled="actionInProgress" variant="outline"
+                class="h-10 px-4 text-sm border-brand-navy text-brand-navy font-semibold">
+                Resume Workflow
+              </Button>
+            </template>
+            <template v-else-if="executionState?.allowed?.revise">
+              <Button @click="$emit('executionAction', 'revise')" :disabled="actionInProgress"
+                class="h-10 px-5 text-sm bg-brand-navy hover:bg-brand-dark text-white font-semibold shadow-sm">
+                Resubmit for Approval
+              </Button>
+            </template>
+
+            <span v-else-if="executionState?.awaiting_confirmation" role="status"
+              class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">
+              Awaiting Confirmation
+            </span>
+
+            <!-- Create Amendment Button -->
+            <button @click="$emit('edit')"
+              class="px-5 py-2 bg-white border border-black/15 text-black/70 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-black hover:bg-black/5 transition-colors shadow-sm">
+              <FilePenLine class="w-4 h-4 text-brand-blue" />
+              Create Amendment
+            </button>
+          </template>
         </div>
 
         <!-- Secondary row: quieter timeline tools -->

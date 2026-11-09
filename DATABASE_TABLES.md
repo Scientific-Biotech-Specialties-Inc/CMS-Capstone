@@ -78,11 +78,22 @@ PK status_id bigint
 status_name string
 color_code string (nullable)
 
+### Table: contract_regions
+PK region_id bigint
+region_name string
+
+### Table: contract_approval_statuses
+PK approval_status_id bigint
+status_name string
+
 ### Table: contracts
 PK contract_id bigint
 category_id bigint (nullable, indexed, foreign key to contract_categories.category_id)
 supplier_id bigint (nullable, indexed, foreign key to suppliers.supplier_id)
-status_id bigint (nullable, indexed, foreign key to contract_statuses.status_id)
+workflow_status_id bigint (nullable, indexed, foreign key to contract_statuses.status_id)
+approval_status_id bigint (nullable, foreign key to contract_approval_statuses.approval_status_id)
+region_id bigint (nullable, foreign key to contract_regions.region_id)
+prs_activity_id bigint (nullable)
 bp_name string (nullable)
 sbu_number string (nullable)
 item_code string (nullable)
@@ -90,22 +101,58 @@ description text (nullable)
 serial_number string (nullable)
 start_date date (nullable)
 end_date date (nullable)
+notify_manager_count integer (default: 0)
+rejection_reason text (nullable)
 created_by bigint (nullable)
 created_at timestamp
 updated_at timestamp
 
-### Table: documents
-PK document_id bigint
-contract_id bigint (nullable, indexed, foreign key to contracts.contract_id onDelete cascade)
-uuid string (nullable)
-file_name string
-file_path string
-file_type string (nullable)
-file_size integer (nullable)
-uploaded_by bigint (nullable)
-uploaded_at timestamp
-scan_status string (nullable)
-scan_result string (nullable)
+### Table: contract_amendments
+PK amendment_id bigint
+contract_id bigint (indexed, foreign key to contracts.contract_id onDelete cascade)
+version integer
+bp_name text
+category string
+item_code string
+description text
+serial_number string
+sbu_number string
+region string
+start_date date
+end_date date
+reason text
+status string (default: 'Pending')
+request_date date
+created_by bigint (unsigned)
+approved_by string (nullable)
+rejection_reason text (nullable)
+document_ids json (nullable, MongoDB Document IDs)
+created_at timestamp
+updated_at timestamp
+
+### Table: contract_version_snapshots
+PK id bigint
+contract_id bigint (indexed, foreign key to contracts.contract_id onDelete cascade)
+version integer
+bp_name text
+category string
+item_code string
+description text
+serial_number string
+sbu_number string
+region string
+start_date date
+end_date date
+reason text (nullable)
+amended_by string (nullable)
+approved_by string (nullable)
+approved_date date (nullable)
+docs json (nullable)
+created_at timestamp
+updated_at timestamp
+
+### Table: documents (Deprecated/Migrated)
+*Note: The MySQL `documents` table was dropped. Document metadata is now stored in MongoDB. Associated documents for amendments are referenced via the `document_ids` JSON column.*
 
 ### Table: audit_logs (Contract Management)
 PK audit_id bigint
@@ -156,11 +203,24 @@ error_message text (nullable)
 sent_at timestamp (nullable)
 created_at timestamp (indexed)
 
+### Table: system_configurations
+PK id bigint
+email_notifs_enabled boolean (default: true)
+in_app_notifs_enabled boolean (default: true)
+contract_expiry_alerts boolean (default: true)
+approval_alerts boolean (default: true)
+renewal_reminders boolean (default: true)
+created_at timestamp
+updated_at timestamp
+
 ### Table: email_preferences
 PK id bigint
 user_id bigint (unique, indexed)
 email_notifications_enabled boolean (default: true)
 contract_expiry_alerts boolean (default: true)
+system_alerts_enabled boolean (default: true)
+sms_notifications_enabled boolean (default: false)
+login_alerts_enabled boolean (default: true)
 newsletter_enabled boolean (default: true)
 promotional_emails_enabled boolean (default: false)
 created_at timestamp
@@ -359,14 +419,17 @@ user_department string (nullable, indexed)
 ### Foreign Keys
 - **contracts.category_id** → contract_categories.category_id
 - **contracts.supplier_id** → suppliers.supplier_id
-- **contracts.status_id** → contract_statuses.status_id
-- **documents.contract_id** → contracts.contract_id (onDelete: cascade)
+- **contracts.workflow_status_id** → contract_statuses.status_id
+- **contracts.approval_status_id** → contract_approval_statuses.approval_status_id
+- **contracts.region_id** → contract_regions.region_id
+- **contract_amendments.contract_id** → contracts.contract_id (onDelete: cascade)
+- **contract_version_snapshots.contract_id** → contracts.contract_id (onDelete: cascade)
 - **vendor_contract_associations.contract_id** → contracts.contract_id (onDelete: cascade)
 - **sessions.user_id** → users.id
 
 ### Cross-Service References (Soft/Logical)
 - **contracts.created_by** → users.id (auth-service)
-- **documents.uploaded_by** → users.id (auth-service)
+- **contract_amendments.created_by** → users.id (auth-service)
 - **notifications.user_id** → users.id (auth-service)
 - **email_send_logs.user_id** → users.id (auth-service)
 - **email_preferences.user_id** → users.id (auth-service)

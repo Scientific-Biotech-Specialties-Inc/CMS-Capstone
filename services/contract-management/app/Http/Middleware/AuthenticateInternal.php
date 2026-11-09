@@ -18,7 +18,7 @@ class AuthenticateInternal
 
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->bearerToken();
+        $token = $request->bearerToken() ?: $request->cookie('access_token');
 
         if (!$token) {
             return response()->json(['message' => 'Unauthenticated.'], 401);

@@ -1,0 +1,236 @@
+name: Deploy CMS production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: "Build and publish images without updating Azure"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "cms-production-${{ github.ref }}"
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/scientific-biotech-specialties-inc
+  AZURE_RESOURCE_GROUP: rg-capstone
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/cms-checks.yml
+
+  release-preflight:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify main before publishing tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Publishing skipped because main has advanced to $main_sha."
+            exit 1
+          fi
+
+  publish:
+    needs: release-preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: vendor-management
+            context: services/vendor-management
+            dockerfile: Dockerfile
+          - app: contract-management
+            context: services/contract-management
+            dockerfile: Dockerfile
+          - app: search
+            context: services/search
+            dockerfile: Dockerfile
+          - app: notification
+            context: services/notification
+            dockerfile: Dockerfile
+          - app: ai-service
+            context: services/ai-service
+            dockerfile: Dockerfile
+          - app: analytics-service
+            context: services/analytics-service
+            dockerfile: Dockerfile
+          - app: web
+            context: frontend/web
+            dockerfile: Dockerfile.prod
+            build_args: CMS_WEB_PORT=5001
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: image
+        with:
+          context: ${{ matrix.context }}
+          file: "${{ matrix.context }}/${{ matrix.dockerfile }}"
+          build-args: ${{ matrix.build_args }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/cms-${{ matrix.app }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/cms-${{ matrix.app }}:latest
+          labels: "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+          cache-from: "type=gha,scope=cms-${{ matrix.app }}"
+          cache-to: "type=gha,mode=max,scope=cms-${{ matrix.app }}"
+      - name: Record image digest
+        env:
+          APP: ${{ matrix.app }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -n --arg app "$APP" --arg image "$REGISTRY/cms-$APP@$DIGEST" \
+            '{app: $app, image: $image}' > "$APP.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "cms-image-${{ matrix.app }}"
+          path: "${{ matrix.app }}.json"
+          if-no-files-found: error
+          overwrite: true
+
+  release:
+    name: Record CMS release
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cms-image-*
+          path: image-digests
+          merge-multiple: true
+      - name: Assemble release manifest
+        run: |
+          jq -s --arg commit "$GITHUB_SHA" \
+            '{commit: $commit, images: (map({key: .app, value: .image}) | from_entries)}' \
+            image-digests/*.json > cms-release.json
+          jq -e '.images | keys == ["ai-service", "analytics-service", "contract-management", "notification", "search", "vendor-management", "web"]' \
+            cms-release.json > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "cms-release-${{ github.sha }}"
+          path: cms-release.json
+          if-no-files-found: error
+          overwrite: true
+
+  deploy:
+    name: Deploy to Azure production
+    needs: release
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.CMS_PRODUCTION_ENABLED == 'true' &&
+      (github.event_name == 'push' || !inputs.publish_only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Verify main is still at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Deployment skipped because main has advanced to $main_sha."
+            exit 1
+          fi
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: "cms-release-${{ github.sha }}"
+      - name: Record the currently deployed images
+        run: |
+          apps=(vendor-management contract-management search notification ai-service analytics-service cms-web)
+          for app in "${apps[@]}"; do
+            image=$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$app" \
+              --query 'properties.template.containers[0].image' --output tsv)
+            [[ -n "$image" ]]
+            jq -cn --arg app "$app" --arg image "$image" '{key: $app, value: $image}'
+          done > previous-images.jsonl
+          jq -s 'from_entries' previous-images.jsonl > previous-images.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "cms-previous-images-${{ github.run_attempt }}"
+          path: previous-images.json
+          if-no-files-found: error
+      - name: Update CMS apps and wait for readiness
+        run: |
+          apps=(vendor-management contract-management search notification ai-service analytics-service cms-web)
+          jq -e --arg commit "$GITHUB_SHA" '.commit == $commit' cms-release.json > /dev/null
+          suffix="cms-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          for app in "${apps[@]}"; do
+            image_key="$app"
+            if [ "$app" = "cms-web" ]; then
+              image_key="web"
+            fi
+            image=$(jq -er --arg app "$image_key" '.images[$app] | select(test("@sha256:[0-9a-f]{64}$"))' cms-release.json)
+            az containerapp update \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$app" \
+              --image "$image" \
+              --revision-suffix "$suffix" \
+              --output none
+
+            ready_revision=
+            for attempt in $(seq 1 30); do
+              ready_revision=$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" \
+                --name "$app" --query properties.latestReadyRevisionName --output tsv)
+              if [[ "$ready_revision" == "$app"-*"$suffix" ]]; then
+                break
+              fi
+              sleep 10
+            done
+            if [[ "$ready_revision" != "$app"-*"$suffix" ]]; then
+              echo "::error::$app failed to report a ready revision for $GITHUB_SHA."
+              exit 1
+            fi
+            echo "$app is ready on $ready_revision."
+          done
+      - name: Smoke-test CMS and backend health through the gateway
+        env:
+          CMS_PRODUCTION_URL: ${{ vars.CMS_PRODUCTION_URL }}
+        run: |
+          base_url="$CMS_PRODUCTION_URL"
+          if [[ -z "$base_url" ]]; then
+            fqdn=$(az containerapp show --resource-group "$AZURE_RESOURCE_GROUP" --name cms-web \
+              --query properties.configuration.ingress.fqdn --output tsv)
+            [[ -n "$fqdn" ]]
+            base_url="https://$fqdn"
+          fi
+          for route in /cms/ /api/vendor/up /api/contract/up /api/search/up /api/notification/up /api/ai/up /api/analytics/up; do
+            status=$(curl --silent --show-error --retry 3 --max-time 15 \
+              --output /dev/null --write-out '%{http_code}' "${base_url%/}$route")
+            if [[ "$status" != 200 ]]; then
+              echo "::error::CMS smoke check failed for $route (HTTP $status)."
+              exit 1
+            fi
+          done

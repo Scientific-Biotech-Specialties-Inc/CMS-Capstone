@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { Loader2, XCircle } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import RequestsTable      from './RequestsTable.vue'
@@ -12,6 +13,7 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const { success, error } = useToast()
 const router = useRouter()
+const route = useRoute()
 const { state: authState } = useAuth()
 
 const {
@@ -29,6 +31,7 @@ const apiBase = import.meta.env.VITE_CONTRACT_API_URL as string
 const showApproveConfirm = ref(false)
 const showRejectConfirm = ref(false)
 const pendingRequestId = ref<string | null>(null)
+const pendingPartnerName = ref('')
 const rejectReason = ref('')
 
 function triggerApprove(id: string) {
@@ -38,6 +41,8 @@ function triggerApprove(id: string) {
 
 function triggerReject(id: string) {
   pendingRequestId.value = id
+  const r = requests.value.find(x => x.id === id)
+  pendingPartnerName.value = r?.businessPartner || ''
   rejectReason.value = ''
   showRejectConfirm.value = true
 }
@@ -96,7 +101,7 @@ const paginated = computed(() =>
 )
 
 function openDetail(r: ContractRequest) {
-  router.push(`/manager/contract-requests/${r.id}`)
+  router.push({ name: `${String(route.name)}-detail`, params: { id: r.id } })
 }
 
 async function confirmApprove() {
@@ -108,12 +113,12 @@ async function confirmApprove() {
   const r = requests.value.find(x => x.id === id)
   if (!r || actionInProgress.value) return
 
-  const numericId = parseInt(id.replace('REQ-', ''), 10)
-  const contractId = String(numericId)
+  const targetId = r.contractDbId ?? r.contractId ?? id.replace(/^REQ-/, '')
+  const contractId = String(r.contractId ?? targetId)
 
   actionInProgress.value = true
   try {
-    const res = await fetch(`${apiBase}/contracts/${numericId}/status`, {
+    const res = await fetch(`${apiBase}/contracts/${targetId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -150,12 +155,12 @@ async function confirmRejectAction() {
   const r = requests.value.find(x => x.id === id)
   if (!r || actionInProgress.value) return
 
-  const numericId = parseInt(id.replace('REQ-', ''), 10)
-  const contractId = String(numericId)
+  const targetId = r.contractDbId ?? r.contractId ?? id.replace(/^REQ-/, '')
+  const contractId = String(r.contractId ?? targetId)
 
   actionInProgress.value = true
   try {
-    const res = await fetch(`${apiBase}/contracts/${numericId}/status`, {
+    const res = await fetch(`${apiBase}/contracts/${targetId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -256,38 +261,57 @@ function closeRejectConfirm() {
   />
 
   <!-- Reject Confirmation Dialog -->
-  <Dialog v-model:open="showRejectConfirm" @update:open="val => { if (!val) closeRejectConfirm() }">
-    <DialogContent class="max-w-md p-6 gap-4" @pointer-down-outside="closeRejectConfirm">
-      <DialogHeader class="space-y-3">
-        <DialogTitle class="text-sm font-bold text-black">Reject Request</DialogTitle>
-        <DialogDescription class="text-xs text-black/55 leading-relaxed">
-          Are you sure you want to reject this contract request? Please provide a reason for the rejection below.
+  <Dialog :open="showRejectConfirm" @update:open="val => { if (!val) closeRejectConfirm() }">
+    <DialogContent class="max-w-md p-6 gap-4 font-sans" @pointer-down-outside="closeRejectConfirm">
+      <DialogHeader class="space-y-2">
+        <div class="flex items-center gap-2.5 text-red-600">
+          <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <XCircle class="w-5 h-5 text-red-600" />
+          </div>
+          <DialogTitle class="text-base font-bold text-black font-poppins">Reject Contract Request</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-black/60 leading-relaxed font-montserrat pt-1">
+          Are you sure you want to reject this contract request<span v-if="pendingPartnerName"> from <strong class="text-black font-semibold">{{ pendingPartnerName }}</strong></span>?
+          Please provide a reason below. The requester will be notified.
         </DialogDescription>
       </DialogHeader>
 
       <div class="space-y-1.5 mt-2">
-        <label class="text-xs font-semibold text-red-600/80 block">
-          Reason <span class="text-red-500">*</span>
-        </label>
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold text-black/70 font-poppins">
+            Rejection Reason <span class="text-red-500">*</span>
+          </label>
+          <span class="text-[11px] text-black/40 font-montserrat">{{ rejectReason.trim().length }}/500</span>
+        </div>
         <textarea
           v-model="rejectReason"
           rows="3"
-          placeholder="Provide a reason for rejection..."
-          class="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm placeholder:text-black/25 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200/15 transition resize-none"
+          maxlength="500"
+          placeholder="State why this contract request cannot be approved..."
+          :disabled="actionInProgress"
+          class="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm font-montserrat placeholder:text-black/30 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200/50 transition resize-none disabled:opacity-50"
         />
       </div>
 
-      <DialogFooter class="flex items-center justify-end gap-3 mt-2">
-        <Button variant="outline" @click="closeRejectConfirm" :disabled="actionInProgress"
-          class="h-9 px-4 text-sm border-black/15 text-black/65 hover:text-black hover:bg-black/4">
+      <DialogFooter class="flex items-center justify-end gap-3 mt-3">
+        <Button
+          type="button"
+          variant="outline"
+          @click="closeRejectConfirm"
+          :disabled="actionInProgress"
+          class="h-9 px-4 text-xs font-medium border-black/15 text-black/70 hover:text-black hover:bg-black/5"
+        >
           Cancel
         </Button>
         <Button
+          type="button"
           @click="confirmRejectAction"
           :disabled="!rejectReason.trim() || actionInProgress"
-          class="h-9 px-4 text-sm bg-red-600 hover:bg-red-700 text-white shadow-sm font-semibold disabled:opacity-40"
+          class="h-9 px-4 text-xs bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm gap-1.5 disabled:opacity-40"
         >
-          {{ actionInProgress ? 'Rejecting...' : 'Reject' }}
+          <Loader2 v-if="actionInProgress" class="w-3.5 h-3.5 animate-spin" />
+          <XCircle v-else class="w-3.5 h-3.5" />
+          <span>{{ actionInProgress ? 'Rejecting...' : 'Reject Request' }}</span>
         </Button>
       </DialogFooter>
     </DialogContent>

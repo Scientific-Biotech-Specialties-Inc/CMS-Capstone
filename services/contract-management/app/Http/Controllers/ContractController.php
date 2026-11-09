@@ -34,7 +34,7 @@ class ContractController extends Controller
         $this->approvalEngine = $approvalEngine;
     }
 
-    private function formatContract(Contract $contract): array
+    public static function formatContract(Contract $contract): array
     {
         return [
             'contract_id'     => $contract->contract_code ?? (string) $contract->contract_id,
@@ -43,6 +43,7 @@ class ContractController extends Controller
             'bp_name'         => $contract->bp_name,
             'category'        => $contract->category?->category_name,
             'approval_status' => $contract->approvalStatus?->status_name,
+            'has_pending_approval_workflow' => $contract->has_pending_approval_workflow ?? $contract->pendingApprovalInstances()->exists(),
             'workflow_status' => $contract->workflowStatus?->status_name,
             'item_code'       => $contract->item_code,
             'description'     => $contract->description,
@@ -53,16 +54,27 @@ class ContractController extends Controller
             'start_date'       => $contract->start_date?->toDateString(),
             'end_date'         => $contract->end_date?->toDateString(),
             'lifecycle_status' => $contract->lifecycle_status,
+            'execution_required' => $contract->execution_required,
             'created_by'       => $contract->created_by,
             'creator_name'     => $contract->creator_name ?? null,
             'prs_activity_id'  => $contract->prs_activity_id,
             'created_at'       => $contract->created_at?->toISOString(),
-            'documents'        => $contract->documents->map(fn ($d) => [
+            'documents'        => ($contract->relationLoaded('documents') ? $contract->documents : collect())
+                ->reject(fn ($d) => ($d->doc_category === 'signed' && (string) $d->getKey() !== $contract->signed_document_id)
+                    || ($d->doc_category === 'notarized' && (string) $d->getKey() !== $contract->notarized_document_id))
+                ->sortByDesc(fn ($d) => (string) $d->getKey() === $contract->signed_document_id)
+                ->map(fn ($d) => [
                 'document_id'  => (string) ($d->document_id ?? $d->_id),
                 'file_name'    => $d->file_name,
                 'file_type'    => $d->file_type,
                 'file_size'    => $d->file_size,
                 'document_url' => $d->document_url,
+                'doc_category' => $d->doc_category,
+                'replaces_document_id' => $d->replaces_document_id,
+                'is_current_draft' => !$contract->signed_document_id && (string) $d->getKey() === $contract->execution_draft_id,
+                'is_primary' => (string) $d->getKey() === $contract->signed_document_id,
+                'signer_name' => (string) $d->getKey() === $contract->signed_document_id
+                    ? ($d->signature_evidence['signer_name'] ?? null) : null,
             ])->values(),
         ];
     }
@@ -75,10 +87,11 @@ class ContractController extends Controller
             'approvalStatus',
             'workflowStatus',
             'region',
-        ]);
+        ])->withExists('pendingApprovalInstances as has_pending_approval_workflow');
 
         if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
+            // Bound the term length: unbounded LIKE patterns are a cheap DoS vector.
+            $search = mb_substr((string) $request->search, 0, 255);
             $query->where(function($q) use ($search) {
                 $q->where('bp_name', 'like', $search . '%')
                   ->orWhere('item_code', 'like', $search . '%')
@@ -117,7 +130,7 @@ class ContractController extends Controller
             $today = now()->toDateString();
             $thirtyDaysFromNow = now()->addDays(30)->toDateString();
             if ($lifecycle === 'active') {
-                $query->where('approval_status_id', 2)
+                $query->dateMonitored()
                       ->where(function($q) use ($thirtyDaysFromNow) {
                           $q->whereNull('end_date')
                             ->orWhere('end_date', '>', $thirtyDaysFromNow);
@@ -127,11 +140,13 @@ class ContractController extends Controller
                     $q->whereNull('approval_status_id')
                       ->orWhere('approval_status_id', '!=', 2);
                 });
+            } elseif ($lifecycle === 'pending_execution') {
+                $query->pendingExecution();
             } elseif ($lifecycle === 'expiring') {
-                $query->where('approval_status_id', 2)
+                $query->dateMonitored()
                       ->whereBetween('end_date', [$today, $thirtyDaysFromNow]);
             } elseif ($lifecycle === 'expired') {
-                $query->where('approval_status_id', 2)
+                $query->dateMonitored()
                       ->where('end_date', '<', $today);
             }
         }
@@ -147,7 +162,9 @@ class ContractController extends Controller
               ->orderBy('contract_id', 'desc');
 
         if ($request->has('paginate') && $request->paginate === 'true') {
-            $perPage = (int) $request->get('per_page', 10);
+            // Cap page size: existing clients send up to 100, so this is the
+            // highest value that does not change current behaviour.
+            $perPage = max(1, min((int) $request->get('per_page', 10), 100));
             $paginated = $query->paginate($perPage);
 
             // Calculate stats based on role permissions
@@ -161,14 +178,15 @@ class ContractController extends Controller
 
             $stats = [
                 'total'    => (int) (clone $statsQuery)->count(),
-                'active'   => (int) (clone $statsQuery)->where('approval_status_id', 2)->where(function($q) use ($thirtyDays) {
+                'active'   => (int) (clone $statsQuery)->dateMonitored()->where(function($q) use ($thirtyDays) {
                     $q->whereNull('end_date')->orWhere('end_date', '>', $thirtyDays);
                 })->count(),
                 'inactive' => (int) (clone $statsQuery)->where(function($q) {
                     $q->whereNull('approval_status_id')->orWhere('approval_status_id', '!=', 2);
                 })->count(),
-                'expiring' => (int) (clone $statsQuery)->where('approval_status_id', 2)->whereBetween('end_date', [$today, $thirtyDays])->count(),
-                'expired'  => (int) (clone $statsQuery)->where('approval_status_id', 2)->where('end_date', '<', $today)->count(),
+                'pending_execution' => (int) (clone $statsQuery)->pendingExecution()->count(),
+                'expiring' => (int) (clone $statsQuery)->dateMonitored()->whereBetween('end_date', [$today, $thirtyDays])->count(),
+                'expired'  => (int) (clone $statsQuery)->dateMonitored()->where('end_date', '<', $today)->count(),
             ];
 
             $contractsCollection = collect($paginated->items());
@@ -305,6 +323,7 @@ class ContractController extends Controller
             'start_date'      => $data['start_date'] ?? $data['startDate'] ?? null,
             'end_date'        => $data['end_date'] ?? $data['endDate'] ?? null,
             'document_ids'    => $data['document_ids'] ?? null,
+            'draft_document_id' => $data['draft_document_id'] ?? null,
             'prs_activity_id' => $data['prs_activity_id'] ?? null,
         ];
 
@@ -321,6 +340,7 @@ class ContractController extends Controller
             'end_date'        => 'required|date|after:start_date',
             'document_ids'    => 'nullable|array',
             'document_ids.*'  => 'string',
+            'draft_document_id' => 'nullable|string|max:64',
             'prs_activity_id' => 'nullable|integer',
         ]);
 
@@ -348,41 +368,26 @@ class ContractController extends Controller
 
         $userId = $request->get('auth_id');
         $role = $request->get('auth_role');
-        $isManagerRole = in_array($role, ['Manager', 'Admin']);
+        $linkable = \App\Models\Document::whereIn('_id', $incoming['document_ids'] ?? [])
+            ->whereNull('contract_id')->where('uploaded_by', (int) $userId)->get();
+        $requestedDraft = $incoming['draft_document_id'] ?? null;
+        $draft = $linkable->first(fn ($document) => $document->file_type === 'pdf' && $document->file_path
+            && ($requestedDraft === null || (string) $document->getKey() === $requestedDraft));
+        if (!$draft) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['document_ids' => 'Upload a draft PDF before submitting the contract.']);
+        }
 
-        // Dynamic Approval Workflow Engine (Phase 5): if this contract type
-        // has an active workflow, it must start out Pending regardless of
-        // who created it — the engine (not the creator's role) decides the
-        // outcome. Only applies when a chain actually exists; categories
-        // without one keep the legacy manager-auto-approve behavior.
-        // Resolved once here and reused below (store()) to avoid a second
-        // round-trip for the same lookup.
         $activeWorkflow = $this->approvalEngine->isEnabled()
             ? $this->approvalEngine->resolveActiveWorkflow((int) $cat->category_id)
             : null;
-        $routedByEngine = $activeWorkflow !== null;
-
-        // Resolve Approval Status and Workflow status
-        if ($isManagerRole && !$routedByEngine) {
-            $approvalStatusName = 'Approved';
-            $workflowStatusName = $incoming['status'] ?? 'SBSI Review';
-        } else {
-            $approvalStatusName = 'Pending';
-            $workflowStatusName = $routedByEngine ? null : ($incoming['status'] ?? null);
-        }
-
-        $approvalStatus = ContractApprovalStatus::firstOrCreate(['status_name' => $approvalStatusName]);
-        
-        $workflowStatusId = null;
-        if ($workflowStatusName) {
-            $stat = ContractStatus::firstOrCreate(['status_name' => $workflowStatusName]);
-            $workflowStatusId = $stat->status_id;
-        }
+        $approvalStatus = ContractApprovalStatus::firstOrCreate(['status_name' => 'Pending']);
 
         $contract = Contract::create([
             'category_id'        => $cat->category_id,
             'approval_status_id' => $approvalStatus->approval_status_id,
-            'workflow_status_id' => $workflowStatusId,
+            'workflow_status_id' => null,
+            'execution_required' => true,
+            'execution_draft_id' => (string) $draft->getKey(),
             'bp_name'            => $incoming['bp_name'],
             'item_code'          => $incoming['item_code'],
             'description'        => $incoming['description'],
@@ -395,22 +400,35 @@ class ContractController extends Controller
             'prs_activity_id'    => $incoming['prs_activity_id'] ?? null,
         ]);
 
-        // Link MongoDB documents
+        // Link MongoDB documents (only unlinked / orphan documents to prevent document hijacking)
         if (!empty($incoming['document_ids'])) {
-            \App\Models\Document::whereIn('_id', $incoming['document_ids'])
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = $linkable
+                ->map(fn ($doc) => (string) $doc->getKey())
+                ->all();
 
-            // Audit log each linked document
-            foreach ($incoming['document_ids'] as $docId) {
-                $this->auditLogService->log(
-                    'document_linked',
-                    'Document',
-                    $docId,
-                    $userId,
-                    [],
-                    ['contract_id' => $contract->contract_id],
-                    $request->get('auth_department')
-                );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->whereNull('contract_id')->where('uploaded_by', (int) $userId)
+                    ->update(['contract_id' => $contract->contract_id]);
+                $draft->refresh();
+                if ((int) $draft->contract_id !== (int) $contract->getKey()) {
+                    Contract::whereKey($contract->getKey())->delete();
+                    abort(409, 'The draft PDF has already been used.');
+                }
+                $draft->update(['doc_category' => 'draft']);
+
+                // Audit log each linked document
+                foreach ($linkableIds as $docId) {
+                    $this->auditLogService->log(
+                        'document_linked',
+                        'Document',
+                        $docId,
+                        $userId,
+                        [],
+                        ['contract_id' => $contract->contract_id],
+                        $request->get('auth_department')
+                    );
+                }
             }
         }
 
@@ -430,16 +448,13 @@ class ContractController extends Controller
 
         $contract->load(['documents', 'category', 'approvalStatus', 'workflowStatus', 'region']);
 
-        // Dynamic Approval Workflow Engine (Phase 5) — additive only. If
-        // disabled, or the contract's category has no ACTIVE workflow,
-        // this is a no-op and the contract keeps the legacy
-        // Approved/Pending status set above (decision #9's fallback).
+        // Contracts without an active workflow use standard manager approval.
         if ($activeWorkflow) {
             $this->approvalEngine->startInstance($contract, $activeWorkflow);
             $contract->refresh()->load(['documents', 'category', 'approvalStatus', 'workflowStatus', 'region']);
         }
 
-        SyncContractToMeilisearch::dispatch($this->formatContract($contract));
+        SyncContractToMeilisearch::dispatch((int) $contract->getKey());
 
         // Notify Manager if an Employee in Sales & Marketing department creates a contract
         if ($role === 'Employee' && $request->get('auth_department') === 'Sales & Marketing') {
@@ -476,7 +491,7 @@ class ContractController extends Controller
     public function update(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -557,7 +572,7 @@ class ContractController extends Controller
             'end_date'      => $incoming['end_date'],
         ];
 
-        if (!empty($incoming['status'])) {
+        if (!$contract->execution_required && !empty($incoming['status'])) {
             $stat = ContractStatus::firstOrCreate(['status_name' => $incoming['status']]);
             $updatePayload['workflow_status_id'] = $stat->status_id;
         }
@@ -587,6 +602,9 @@ class ContractController extends Controller
         $currentDocs = \App\Models\Document::where('contract_id', $contract->contract_id)->get();
         foreach ($currentDocs as $doc) {
             $docIdStr = (string)$doc->getKey();
+            if ($contract->execution_required && ($doc->doc_category || $docIdStr === $contract->execution_draft_id)) {
+                continue;
+            }
             if (!in_array($docIdStr, $incomingDocIds)) {
                 if ($doc->file_path) {
                     $disk = config('filesystems.default', 'local');
@@ -608,22 +626,33 @@ class ContractController extends Controller
         }
 
         if (!empty($incomingDocIds)) {
-            \App\Models\Document::whereIn('_id', $incomingDocIds)
-                ->update(['contract_id' => $contract->contract_id]);
+            $linkableIds = \App\Models\Document::whereIn('_id', $incomingDocIds)
+                ->where(function ($q) use ($contract) {
+                    $q->whereNull('contract_id')
+                      ->orWhere('contract_id', $contract->contract_id);
+                })
+                ->get()
+                ->map(fn ($doc) => (string) $doc->getKey())
+                ->all();
 
-            // Audit log only newly linked documents (not ones that were already linked)
-            $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
-            foreach ($incomingDocIds as $docId) {
-                if (!in_array($docId, $previouslyLinkedIds)) {
-                    $this->auditLogService->log(
-                        'document_linked',
-                        'Document',
-                        $docId,
-                        $userId,
-                        [],
-                        ['contract_id' => $contract->contract_id],
-                        $request->get('auth_department')
-                    );
+            if (!empty($linkableIds)) {
+                \App\Models\Document::whereIn('_id', $linkableIds)
+                    ->update(['contract_id' => $contract->contract_id]);
+
+                // Audit log only newly linked documents (not ones that were already linked)
+                $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
+                foreach ($linkableIds as $docId) {
+                    if (!in_array($docId, $previouslyLinkedIds)) {
+                        $this->auditLogService->log(
+                            'document_linked',
+                            'Document',
+                            $docId,
+                            $userId,
+                            [],
+                            ['contract_id' => $contract->contract_id],
+                            $request->get('auth_department')
+                        );
+                    }
                 }
             }
         }
@@ -649,7 +678,7 @@ class ContractController extends Controller
 
         $this->notifyPrsOfContractStatus($contract);
 
-        SyncContractToMeilisearch::dispatch($this->formatContract($contract));
+        SyncContractToMeilisearch::dispatch((int) $contract->getKey());
 
         return response()->json([
             'message' => 'Contract updated successfully.',
@@ -663,7 +692,7 @@ class ContractController extends Controller
     public function destroy(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->first();
 
         if (!$contract) {
@@ -671,6 +700,14 @@ class ContractController extends Controller
         }
 
         $userId = $request->get('auth_id');
+
+        // Row-level authorization: Sales/Employee may only delete contracts
+        // they created (mirrors show() / update()). Managers and Admins are
+        // unaffected; the route's permission middleware still applies.
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee'], true) && (int) $contract->created_by !== (int) $userId) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         // Delete all associated documents
         $associatedDocs = \App\Models\Document::where('contract_id', $contract->contract_id)->get();
@@ -759,6 +796,7 @@ class ContractController extends Controller
                     'start_date'       => $c->start_date?->toDateString(),
                     'end_date'         => $c->end_date?->toDateString(),
                     'lifecycle_status' => $c->lifecycle_status,
+                    'execution_required' => $c->execution_required,
                     'created_by'       => $c->created_by,
                     'creator_name'     => $creatorName,
                     'prs_activity_id'  => $c->prs_activity_id,
@@ -777,10 +815,13 @@ class ContractController extends Controller
             'approvalStatus',
             'workflowStatus',
             'region',
-        ]);
+        ])->withExists('pendingApprovalInstances as has_pending_approval_workflow');
 
         $role = $request->get('auth_role');
-        if (in_array($role, ['Sales', 'Employee'])) {
+        if (in_array($role, ['Sales', 'Employee'], true) || (
+            !in_array($role, ['Admin', 'Super Admin'], true)
+            && !in_array('cms.contracts.approve', $request->get('auth_permissions', []), true)
+        )) {
             $query->where('created_by', $request->get('auth_id'));
         } elseif ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);
@@ -822,8 +863,8 @@ class ContractController extends Controller
             'approvalStatus',
             'workflowStatus',
             'region',
-        ])->where('contract_code', $id)
-          ->orWhere('contract_id', $id)
+        ])->withExists('pendingApprovalInstances as has_pending_approval_workflow')->where('contract_code', $id)
+          ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
           ->firstOrFail();
 
         $role = $request->get('auth_role');
@@ -847,8 +888,25 @@ class ContractController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        // Separation of Duties: a contract creator cannot approve or reject
+        // their own contract when enforce_sod is active.
+        if (
+            config('services.features.enforce_sod')
+            && $contract->created_by !== null
+            && (int) $contract->created_by === (int) $request->get('auth_id')
+        ) {
+            return response()->json([
+                'message' => 'You cannot approve or reject a contract you created.',
+            ], 403);
+        }
 
         // Dynamic Approval Workflow Engine (Phase 5): this legacy endpoint
         // is for the single-manager-approval flow only. A contract with an
@@ -891,7 +949,11 @@ class ContractController extends Controller
         }
 
         $workflowStatusId = null;
-        if ($request->filled('workflow_status')) {
+        if ($contract->execution_required) {
+            abort_unless(in_array($role, ['Manager', 'Admin', 'Super Admin'], true), 403);
+            $workflowStatusId = $request->approval_status === 'Approved'
+                ? ContractStatus::where('status_name', 'SBSI Review')->value('status_id') : null;
+        } elseif ($request->filled('workflow_status')) {
             $workflowStatusId = DB::table('contract_statuses')
                 ->where('status_name', $request->workflow_status)
                 ->value('status_id');
@@ -905,13 +967,24 @@ class ContractController extends Controller
             'approval_status_id' => $approvalStatusId,
             'workflow_status_id' => $workflowStatusId,
         ];
+        if ($contract->execution_required) {
+            $updateData['rejection_reason'] = null;
+            $updateData['internal_approved_at'] = $request->approval_status === 'Approved' ? now() : null;
+        }
 
         if ($request->approval_status === 'Rejected') {
             $updateData['notify_manager_count'] = 0;
             $updateData['rejection_reason'] = $request->rejection_reason;
         }
 
-        $contract->update($updateData);
+        if ($contract->execution_required) {
+            $pendingId = ContractApprovalStatus::where('status_name', 'Pending')->value('approval_status_id');
+            $updated = Contract::whereKey($contract->getKey())->where('approval_status_id', $pendingId)->update($updateData);
+            abort_unless($updated === 1, 409, 'The contract is no longer awaiting internal approval.');
+            $contract->refresh();
+        } else {
+            $contract->update($updateData);
+        }
 
         if (in_array($request->approval_status, ['Approved', 'Rejected']) && $contract->created_by) {
             $message = "Your contract request for {$contract->bp_name} ({$contract->item_code}) has been {$request->approval_status}.";
@@ -932,7 +1005,7 @@ class ContractController extends Controller
 
         $this->notifyPrsOfContractStatus($contract);
 
-        SyncContractToMeilisearch::dispatch($this->formatContract($contract));
+        SyncContractToMeilisearch::dispatch((int) $contract->getKey());
 
         return response()->json([
             'message' => 'Contract status updated.',
@@ -995,8 +1068,13 @@ class ContractController extends Controller
     public function notifyResponsibleRole(Request $request, $id)
     {
         $contract = Contract::where('contract_code', $id)
-            ->orWhere('contract_id', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
             ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== null && (int) $contract->created_by !== (int) $request->get('auth_id')) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
 
         if ($contract->notify_manager_count >= 2) {
             return response()->json(['message' => 'The manager is already notified, please wait.'], 429);

@@ -191,14 +191,22 @@ function avatarColor(name: string) {
                   </DropdownMenuItem>
                   <template v-if="r.status === 'Pending' || r.status === 'Under Review'">
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem @click="emit('approve', r.id)"
-                      class="gap-2.5 text-sm cursor-pointer text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50">
-                      <CheckCircle class="w-3.5 h-3.5" /> Approve
+                    <DropdownMenuItem v-if="r.hasPendingApprovalWorkflow" as-child>
+                      <RouterLink :to="{ name: `${$route.path.split('/')[1]}-contracts-detail`, params: { id: r.contractId ?? r.contractDbId ?? r.id.replace(/^REQ-/, '') } }"
+                        class="gap-2.5 text-sm cursor-pointer">
+                        <Eye class="w-3.5 h-3.5 text-black/40" /> Review Approval
+                      </RouterLink>
                     </DropdownMenuItem>
-                    <DropdownMenuItem @click="emit('reject', r.id)"
-                      class="gap-2.5 text-sm cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
-                      <XCircle class="w-3.5 h-3.5" /> Reject
-                    </DropdownMenuItem>
+                    <template v-else-if="r.hasPendingApprovalWorkflow === false">
+                      <DropdownMenuItem @click="emit('approve', r.id)"
+                        class="gap-2.5 text-sm cursor-pointer text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50">
+                        <CheckCircle class="w-3.5 h-3.5" /> Approve
+                      </DropdownMenuItem>
+                      <DropdownMenuItem @click="emit('reject', r.id)"
+                        class="gap-2.5 text-sm cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                        <XCircle class="w-3.5 h-3.5" /> Reject
+                      </DropdownMenuItem>
+                    </template>
                   </template>
                 </DropdownMenuContent>
               </DropdownMenu>

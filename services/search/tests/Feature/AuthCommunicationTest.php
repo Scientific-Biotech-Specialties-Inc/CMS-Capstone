@@ -10,6 +10,13 @@ class AuthCommunicationTest extends TestCase
 {
     public function test_it_communicates_with_auth_service_for_search()
     {
+        $mockMeili = $this->createMock(\App\Services\MeilisearchService::class);
+        $mockMeili->method('search')->willReturn([
+            'hits' => [],
+            'estimatedTotalHits' => 0,
+        ]);
+        $this->app->instance(\App\Services\MeilisearchService::class, $mockMeili);
+
         $baseUrl = config('services.auth.url', env('AUTH_SERVICE_URL', 'http://auth-service:8000/api'));
 
         Http::fake([
@@ -19,7 +26,7 @@ class AuthCommunicationTest extends TestCase
                     'id' => 1,
                     'email' => 'user@example.com',
                     'role' => 'Sales',
-                    'permissions' => []
+                    'permissions' => ['cms.contracts.view']
                 ]
             ], 200)
         ]);

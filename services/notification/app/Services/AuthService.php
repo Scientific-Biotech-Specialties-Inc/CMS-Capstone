@@ -14,8 +14,12 @@ final class AuthService
 
     public function __construct()
     {
-        $this->baseUrl = env('AUTH_SERVICE_URL', 'http://auth-service:8000/api');
-        $this->secret  = config('app.internal_service_secret', '');
+        // Always resolve the auth service on the shared Docker network. The
+        // previous hardcoded fallback (http://139.59.125.45/api) sent bearer
+        // tokens and internal secrets to an external host whenever
+        // AUTH_SERVICE_URL was unset, and broke all local/dev authentication.
+        $this->baseUrl = config('services.auth.url', env('AUTH_SERVICE_URL', 'http://auth-service:8000/api'));
+        $this->secret  = (string) (env('INTERNAL_SERVICE_SECRET') ?: config('app.internal_service_secret', ''));
     }
 
     /**
@@ -24,10 +28,11 @@ final class AuthService
     public function verifyToken(string $token): ?array
     {
         try {
+            $secret = env('INTERNAL_SERVICE_SECRET') ?: $this->secret;
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
                 'X-Internal-Service' => 'notification',
-                'X-Internal-Secret' => $this->secret,
+                'X-Internal-Secret' => $secret,
             ])->post("{$this->baseUrl}/internal/verify-token", [
                 'token' => $token,
             ]);
@@ -35,6 +40,11 @@ final class AuthService
             if ($response->successful()) {
                 return $response->json();
             }
+
+            Log::warning('Auth verification failed in notification', [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
 
             return null;
         } catch (\Exception $e) {
@@ -49,13 +59,15 @@ final class AuthService
     public function getUserInfo(int $userId): ?array
     {
         try {
+            $secret = env('INTERNAL_SERVICE_SECRET') ?: $this->secret;
             $response = Http::withHeaders([
                 'Accept'            => 'application/json',
-                'X-Internal-Secret' => $this->secret,
+                'X-Internal-Secret' => $secret,
             ])->get("{$this->baseUrl}/internal/users/{$userId}");
 
             if ($response->successful()) {
-                return $response->json();
+                $json = $response->json();
+                return $json['data'] ?? $json;
             }
 
             Log::warning("Auth service internal user lookup failed", [
@@ -82,9 +94,10 @@ final class AuthService
     public function getUsersByRoles(array $roles): array
     {
         try {
+            $secret = env('INTERNAL_SERVICE_SECRET') ?: $this->secret;
             $response = Http::withHeaders([
                 'Accept'            => 'application/json',
-                'X-Internal-Secret' => $this->secret,
+                'X-Internal-Secret' => $secret,
             ])->get("{$this->baseUrl}/internal/users-by-roles", [
                 'roles' => implode(',', $roles),
             ]);

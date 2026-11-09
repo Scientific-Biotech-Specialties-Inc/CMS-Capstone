@@ -41,27 +41,25 @@ class InternalMetricsController extends Controller
         $today = now()->toDateString();
         $in30Days = now()->addDays(30)->toDateString();
 
-        $expiringSoon = Contract::where('approval_status_id', 2)
+        $expiringSoon = Contract::dateMonitored()
             ->whereBetween('end_date', [$today, $in30Days])
             ->count();
 
-        $expired = Contract::where('approval_status_id', 2)
+        $expired = Contract::dateMonitored()
             ->where('end_date', '<', $today)
             ->count();
 
         // Renewal pipeline: contracts expiring within the next 90 days, bucketed by month.
-        $renewalPipeline = Contract::where('approval_status_id', 2)
+        $renewalPipeline = Contract::dateMonitored()
             ->whereBetween('end_date', [$today, now()->addDays(90)->toDateString()])
             ->get(['end_date'])
             ->groupBy(fn ($c) => $c->end_date->format('Y-m'))
             ->map->count();
 
-        // Average time-to-approval: created_at -> updated_at for contracts
-        // currently Approved (best available proxy — no dedicated
-        // approved_at column exists on this table).
+        // Legacy approvals use their last update as the historical proxy.
         $avgApprovalHours = Contract::where('approval_status_id', 2)
-            ->get(['created_at', 'updated_at'])
-            ->map(fn ($c) => $c->created_at?->diffInHours($c->updated_at))
+            ->get(['created_at', 'updated_at', 'internal_approved_at'])
+            ->map(fn ($c) => $c->created_at?->diffInHours($c->internal_approved_at ?? $c->updated_at))
             ->filter(fn ($h) => $h !== null)
             ->average();
 

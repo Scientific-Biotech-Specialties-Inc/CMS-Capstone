@@ -71,6 +71,9 @@ class WorkflowBuilderTest extends TestCase
                     ],
                 ], 200),
                 'http://auth-service:8000/api/admin/permissions*' => Http::response($allPerms, 200),
+                'http://auth-service:8000/api/internal/roles/350/describe' => Http::response([
+                    'exists' => true, 'deleted' => false, 'current_name' => 'Manager',
+                ]),
             ],
             collect($roleIdToSlugs)->mapWithKeys(function ($slugs, $roleId) use ($slugToId) {
                 $ids = array_map(fn ($slug) => $slugToId[$slug], $slugs);
@@ -458,5 +461,65 @@ class WorkflowBuilderTest extends TestCase
         $response->assertOk();
         $this->assertDatabaseHas('workflows', ['id' => $workflow->id, 'name' => 'Live chain (renamed)']);
         $this->assertDatabaseHas('workflow_steps', ['id' => $step->id]);
+    }
+
+    public function test_activating_a_reviewer_change_preserves_an_ongoing_contract_workflow(): void
+    {
+        $this->fakeRolePermissions([350 => ['cms.contracts.view', 'cms.contracts.edit']]);
+        [$category, $oldVersion, $oldStep] = $this->makeUsedWorkflow();
+        $client = $this->withToken('admin-token');
+        $client->getJson("/api/workflows/{$oldVersion->id}")->assertOk()->assertJsonPath('data.has_runs', true);
+
+        $role = ['auth_role_id' => 350, 'role_name' => 'Manager'];
+        $payload = [
+            'contract_type_id' => $category->category_id,
+            'name' => 'Updated execution reviewers',
+            'steps' => [['order_index' => 1, 'mode' => 'sequential', 'roles' => [$role]]],
+            'execution_reviewers' => ['Client Review' => [$role]],
+        ];
+
+        $draftId = $client->postJson('/api/workflows', $payload + ['status' => 'draft'])->assertCreated()->json('data.id');
+        $client->getJson('/api/workflows/contract-types')->assertOk()
+            ->assertJsonPath('data.0.active_workflow.id', $oldVersion->id)
+            ->assertJsonPath('data.0.draft_workflow.id', $draftId);
+
+        $replacement = ['status' => 'active', 'replace_active_workflow_id' => $oldVersion->id];
+        $client->putJson("/api/workflows/{$draftId}", $payload + $replacement)->assertOk()
+            ->assertJsonPath('data.execution_reviewers.Client Review.0.auth_role_id', 350);
+        $client->getJson('/api/workflows/contract-types')->assertOk()
+            ->assertJsonPath('data.0.active_workflow.id', $draftId)
+            ->assertJsonPath('data.0.draft_workflow', null);
+
+        $this->assertNotNull($oldVersion->refresh()->superseded_at);
+        $this->assertNull($oldVersion->execution_reviewers);
+        $this->assertDatabaseHas('workflow_steps', ['id' => $oldStep->id]);
+        $this->assertDatabaseHas('approval_instances', ['workflow_id' => $oldVersion->id, 'status' => 'in_progress']);
+        $this->assertEquals($draftId, app(\App\Services\ApprovalEngineService::class)->resolveActiveWorkflow($category->category_id)?->id);
+
+        $client->postJson('/api/workflows', $payload + $replacement)->assertConflict();
+        $this->assertDatabaseHas('workflows', ['id' => $draftId, 'status' => 'active']);
+    }
+
+    public function test_activating_a_new_version_of_a_used_draft_hides_the_old_draft(): void
+    {
+        $this->fakeRolePermissions([350 => ['cms.contracts.view', 'cms.contracts.edit']]);
+        [$category, $draft] = $this->makeUsedWorkflow();
+        $draft->update(['status' => 'draft']);
+
+        $client = $this->withToken('admin-token');
+        $newId = $client->postJson('/api/workflows', [
+            'contract_type_id' => $category->category_id,
+            'name' => 'Reactivated version',
+            'status' => 'active',
+            'replace_draft_workflow_id' => $draft->id,
+            'steps' => [['order_index' => 1, 'mode' => 'sequential', 'roles' => [
+                ['auth_role_id' => 350, 'role_name' => 'Manager'],
+            ]]],
+        ])->assertCreated()->json('data.id');
+
+        $client->getJson('/api/workflows/contract-types')->assertOk()
+            ->assertJsonPath('data.0.active_workflow.id', $newId)
+            ->assertJsonPath('data.0.draft_workflow', null);
+        $this->assertDatabaseHas('approval_instances', ['workflow_id' => $draft->id, 'status' => 'in_progress']);
     }
 }

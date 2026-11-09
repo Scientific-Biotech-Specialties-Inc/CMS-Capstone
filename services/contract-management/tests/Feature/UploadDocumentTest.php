@@ -23,6 +23,10 @@ class UploadDocumentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\SyncContractToMeilisearch::class,
+            \App\Jobs\RemoveContractFromMeilisearch::class,
+        ]);
         Storage::fake(config('filesystems.default', 'local'));
         \Illuminate\Support\Facades\Cache::store('file')->flush();
         $this->mockCleanMalwareScan();
@@ -350,7 +354,7 @@ class UploadDocumentTest extends TestCase
         ]);
 
         $response->assertStatus(201);
-        $contractId = $response->json()['data']['contract_id'];
+        $contractId = $response->json()['data']['contract_db_id'] ?? $response->json()['data']['contract_id'];
 
         // Verify the MongoDB document now has the correct contract_id
         $updatedDoc = Document::find($docId);
@@ -420,7 +424,7 @@ class UploadDocumentTest extends TestCase
         ]);
 
         $createResponse->assertStatus(201);
-        $contractId = $createResponse->json()['data']['contract_id'];
+        $contractId = $createResponse->json()['data']['contract_db_id'] ?? $createResponse->json()['data']['contract_id'];
 
         // 3. Verify they are linked
         $this->assertCount(2, Contract::find($contractId)->documents);

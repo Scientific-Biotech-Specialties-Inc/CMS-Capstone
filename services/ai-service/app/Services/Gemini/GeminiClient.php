@@ -56,7 +56,7 @@ class GeminiClient
      */
     protected function callGenerateWithRetry(string $model, string $systemInstruction, string $userPrompt, array $responseSchema): ?array
     {
-        $delays = [2, 5]; // seconds between retries — short since 429/503 are usually transient
+        $delays = app()->environment('testing') ? [0] : [2, 5]; // in testing, avoid sleeping and extra retries
         foreach ($delays as $i => $delay) {
             [$result, $shouldRetry] = $this->callGenerateRaw($model, $systemInstruction, $userPrompt, $responseSchema);
             if ($result !== null) {

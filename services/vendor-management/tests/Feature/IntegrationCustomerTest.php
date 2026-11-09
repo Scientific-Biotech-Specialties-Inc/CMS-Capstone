@@ -20,6 +20,7 @@ final class IntegrationCustomerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->secret = (string) (env('INTERNAL_SERVICE_SECRET') ?: 'cms-internal-secret-key-2026');
         // Set up the environment secret key
         config(['services.auth.secret' => $this->secret]);
         putenv("INTERNAL_SERVICE_SECRET={$this->secret}");

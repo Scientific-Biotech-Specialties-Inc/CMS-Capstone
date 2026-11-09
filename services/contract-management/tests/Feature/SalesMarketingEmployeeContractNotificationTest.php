@@ -13,6 +13,15 @@ class SalesMarketingEmployeeContractNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Bus::fake([
+            \App\Jobs\SyncContractToMeilisearch::class,
+            \App\Jobs\RemoveContractFromMeilisearch::class,
+        ]);
+    }
+
     protected function mockAuth(string $role, string $department): void
     {
         Http::fake([
@@ -64,6 +73,7 @@ class SalesMarketingEmployeeContractNotificationTest extends TestCase
             'itemCode' => 'ITM-99',
             'description' => 'Test Sales & Marketing Contract',
             'serialNo' => 'SN-999',
+            'document_ids' => [$this->createDraftPdf()],
             'sbuNumber' => 'SBU-99',
             'region' => 'Luzon',
             'startDate' => '2026-06-01',
@@ -114,6 +124,7 @@ class SalesMarketingEmployeeContractNotificationTest extends TestCase
             'itemCode' => 'ITM-99',
             'description' => 'Test Sales Contract',
             'serialNo' => 'SN-888',
+            'document_ids' => [$this->createDraftPdf()],
             'sbuNumber' => 'SBU-99',
             'region' => 'Luzon',
             'startDate' => '2026-06-01',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watchEffect } from 'vue'
+import { ref, reactive, computed, onMounted, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { FileX, Clock } from 'lucide-vue-next'
 import { useAmendmentStore } from '@/composables/useAmendmentStore'
@@ -16,14 +16,18 @@ import type { StoredContract } from '@/composables/useContractStore'
 import ContractDetailHeader     from './ContractDetailHeader.vue'
 import ContractInfoSection      from './ContractInfoSection.vue'
 import ContractDocumentsSection from './ContractDocumentsSection.vue'
+import ContractExecutionSection from './ContractExecutionSection.vue'
+import InternalApprovalActions from './InternalApprovalActions.vue'
 import VersionHistoryDrawer     from './VersionHistoryDrawer.vue'
 import ConfirmationDialog       from '@/components/shared/ConfirmationDialog.vue'
 import RejectionReasonModal     from './RejectionReasonModal.vue'
 import HighRiskApprovalModal    from '@/components/shared/HighRiskApprovalModal.vue'
 import WorkflowTrackerModal     from '@/components/shared/ContractWorkflowTracker/WorkflowTrackerModal.vue'
-import type { WorkflowProgress } from '@/types/contractWorkflow'
+import ExecutionActionDialog    from './ExecutionActionDialog.vue'
+import type { WorkflowGroup, WorkflowProgress } from '@/types/contractWorkflow'
 import { nudgeLabelFor } from '@/types/contractWorkflow'
 import { useApprovalProgress } from '@/composables/useApprovalProgress'
+import { useContractExecution, type ExecutionAction } from '@/composables/useContractExecution'
 import { AlertCircle } from 'lucide-vue-next'
 
 const route  = useRoute()
@@ -32,7 +36,7 @@ const { state: authState, role } = useAuth()
 const isManager = computed(() => role.value === 'Manager' || role.value === 'Admin')
 const isOwner   = computed(() => !!contract.value && !contract.value.createdBy.startsWith('User #'))
 const { success, error } = useToast()
-const { state: cacheState, fetchContracts, updateContractInCache } = useApiCache()
+const { state: cacheState, fetchContracts, updateContractInCache, invalidateRequests } = useApiCache()
 
 const id = route.params.id as string
 
@@ -46,11 +50,19 @@ const savingEdit      = ref(false)
 // `?workflowMock=A..E` scenarios below are a dev-only override for
 // exercising every visual state without seeded engine data — they apply
 // only when the query param is explicitly present.
-const { workflow: liveWorkflow, status: liveTrackerStatus, currentStepRoles, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
+const { workflow: liveWorkflow, status: liveTrackerStatus, currentStepRoles, myTasks, decide, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
+const mockExecutionGroups: WorkflowGroup[] = [
+  { id: 'eg1', mode: 'sequential', nodes: [{ id: 'en1', title: 'SBSI Review', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Confirmed · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
+  { id: 'eg2', mode: 'sequential', nodes: [{ id: 'en2', title: 'Client Review', status: 'active', actedAt: null, subText: 'In progress · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
+  { id: 'eg3', mode: 'sequential', nodes: [{ id: 'en3', title: 'For Signing', status: 'pending', actedAt: null, subText: 'Awaiting signed document · Reviewers: Manager, CEO', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
+  { id: 'eg4', mode: 'sequential', nodes: [{ id: 'en4', title: 'Signed', status: 'pending', actedAt: null, subText: 'Pending · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
+  { id: 'eg5', mode: 'sequential', nodes: [{ id: 'en5', title: 'Notarized PDF', status: 'pending', actedAt: null, subText: 'Optional post-signing step · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
+]
 const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // Scenario A: normal progress — some completed, one active, rest pending.
   A: {
     contractId: 'CTR-1001', currentRun: 1,
+    executionGroups: mockExecutionGroups,
     runs: [{ runNumber: 1, groups: [
       { id: 'g1', mode: 'sequential', nodes: [{ id: 'n1', title: 'Contract created', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Submitted by Procurement', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
       { id: 'g2', mode: 'sequential', nodes: [{ id: 'n2', title: 'Regulatory', status: 'completed', actedAt: '2026-09-28T14:30:00Z', subText: 'Compliant with regional rules', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -62,6 +74,7 @@ const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // Scenario B: rejection — Sales rejects, downstream steps stay pending.
   B: {
     contractId: 'CTR-1002', currentRun: 1,
+    executionGroups: mockExecutionGroups,
     runs: [{ runNumber: 1, groups: [
       { id: 'g1', mode: 'sequential', nodes: [{ id: 'n1', title: 'Contract created', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Submitted by Procurement', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
       { id: 'g2', mode: 'sequential', nodes: [{ id: 'n2', title: 'Regulatory', status: 'completed', actedAt: '2026-09-28T14:30:00Z', subText: 'Compliant with regional rules', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -74,6 +87,7 @@ const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // renamed-role indicator on Regulatory to exercise decision #14.
   C: {
     contractId: 'CTR-1003', currentRun: 1,
+    executionGroups: mockExecutionGroups,
     runs: [{ runNumber: 1, groups: [
       { id: 'g1', mode: 'sequential', nodes: [{ id: 'n1', title: 'Contract created', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Submitted by Procurement', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
       { id: 'g2', mode: 'sequential', nodes: [{ id: 'n2', title: 'Regulatory Officer', status: 'completed', actedAt: '2026-09-28T14:30:00Z', subText: 'Compliant with regional rules', delegation: null, roleDeleted: false, roleRenamedFrom: 'Regulatory' }] },
@@ -88,6 +102,7 @@ const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // task is canceled (not rejected), per spec 5.4.
   D: {
     contractId: 'CTR-1004', currentRun: 1,
+    executionGroups: mockExecutionGroups,
     runs: [{ runNumber: 1, groups: [
       { id: 'g1', mode: 'sequential', nodes: [{ id: 'n1', title: 'Contract created', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: null, delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
       { id: 'g2', mode: 'sequential', nodes: [{ id: 'n2', title: 'Regulatory', status: 'completed', actedAt: '2026-09-28T14:30:00Z', subText: null, delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -102,6 +117,7 @@ const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // in progress. Also exercises the deleted-role warning icon.
   E: {
     contractId: 'CTR-1005', currentRun: 2,
+    executionGroups: mockExecutionGroups,
     runs: [
       { runNumber: 1, groups: [
         { id: 'g1-r1', mode: 'sequential', nodes: [{ id: 'n1-r1', title: 'Contract created', status: 'completed', actedAt: '2026-08-01T09:00:00Z', subText: null, delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -117,6 +133,7 @@ const workflowMockScenarios: Record<string, WorkflowProgress> = {
   // active holders (decision #12): amber badge, current-step emphasis.
   F: {
     contractId: 'CTR-1006', currentRun: 1,
+    executionGroups: mockExecutionGroups,
     runs: [{ runNumber: 1, groups: [
       { id: 'g1', mode: 'sequential', nodes: [{ id: 'n1', title: 'Contract created', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Submitted by Procurement', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
       { id: 'g2', mode: 'sequential', nodes: [{ id: 'n2', title: 'Regulatory', status: 'completed', actedAt: '2026-09-28T14:30:00Z', subText: null, delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -145,8 +162,11 @@ function handleWorkflowRetry() {
 // to the historic manager-targeted endpoint. The button label derives
 // from the progress response, not the tracker nodes.
 const nudgeLabel = computed(() => nudgeLabelFor(currentStepRoles.value))
-const isEngineRouted = computed(() => currentStepRoles.value.length > 0)
+const isEngineRouted = computed(() => contract.value?.hasPendingApprovalWorkflow === true || currentStepRoles.value.length > 0)
 const showWorkflowTracker = ref(false)
+watch(() => route.query.execution, value => {
+  if (value === '1') showWorkflowTracker.value = true
+})
 
 const amendmentStore = useAmendmentStore()
 const viewingSnapshotVersion = ref<number | null>(null)
@@ -229,6 +249,9 @@ function mapApiToContract(data: any): StoredContract {
     endDate:         data.end_date ?? '',
     approvalStatus:  (data.approval_status ?? 'Pending') as ContractApprovalStatus,
     workflowStatus:  (data.workflow_status ?? null) as ContractWorkflowStatus | null,
+    lifecycleStatus: data.lifecycle_status,
+    executionRequired: data.execution_required,
+    hasPendingApprovalWorkflow: data.has_pending_approval_workflow,
     rejectionReason: data.rejection_reason ?? undefined,
     contractLink:    '',
     createdBy,
@@ -239,6 +262,10 @@ function mapApiToContract(data: any): StoredContract {
       size: d.file_size ?? 0,
       previewUrl: normalizeDocumentUrl(d.document_url),
       uploadStatus: 'success',
+      category: d.doc_category,
+      isCurrentDraft: d.is_current_draft,
+      isPrimary: d.is_primary,
+      signerName: d.signer_name,
     })),
   }
 }
@@ -254,7 +281,7 @@ function loadLocalContract() {
   }
 }
 
-async function loadContract() {
+async function loadContract(force = false) {
   loadLocalContract()
   if (contract.value) {
     loadingContract.value = false
@@ -270,7 +297,7 @@ async function loadContract() {
     loadLocalContract()
 
     // If contract not found or docs are empty, fetch from direct backend endpoint with documents relation
-    if (!contract.value || (contract.value.docs && contract.value.docs.length === 0)) {
+    if (force || !contract.value || (contract.value.docs && contract.value.docs.length === 0)) {
       const res = await fetch(`${apiBase}/contracts/${id}`, {
         headers: {
           'Accept': 'application/json',
@@ -281,6 +308,7 @@ async function loadContract() {
         const json = await res.json()
         if (json.data) {
           contract.value = mapApiToContract(json.data)
+          if (force) updateContractInCache(contract.value.id, contract.value)
         }
       }
     }
@@ -291,6 +319,52 @@ async function loadContract() {
   } finally {
     loadingContract.value = false
   }
+}
+
+const {
+  state: executionState,
+  loading: executionLoading,
+  loadError: executionLoadError,
+  load: loadExecution,
+  submit: submitExecution,
+  loadDraft: loadExecutionDraft,
+} = useContractExecution(id)
+
+const activeExecutionAction = ref<ExecutionAction | null>(null)
+const currentExecution = computed(() => executionLoading.value || executionLoadError.value ? null : executionState.value)
+
+const executionSubmitLabel = computed(() => {
+  const stage = currentExecution.value?.stage
+  const labels: Record<string, string> = {
+    'SBSI Review': 'Submit SBSI Review',
+    'Client Review': 'Submit Client Acceptance',
+    'For Signing': 'Submit Signed PDF',
+    'Signed': 'Submit Notarized PDF',
+  }
+  return stage && labels[stage] ? labels[stage] : 'Update Execution Status'
+})
+
+function handleExecutionAction(act: ExecutionAction) {
+  if (currentExecution.value?.allowed[act === 'return' ? 'confirm' : act]) {
+    activeExecutionAction.value = act
+  }
+}
+
+async function onExecutionActionSaved() {
+  activeExecutionAction.value = null
+  success('Workflow updated')
+  await refreshExecution()
+}
+
+function documentUrl(documentId?: string | null) {
+  if (!documentId) return ''
+  const portal = route.path.split('/')[1]
+  return router.resolve(`/${portal}/contracts/${id}/documents/${documentId}`).href
+}
+
+async function refreshExecution() {
+  invalidateRequests()
+  await Promise.all([loadContract(true), fetchWorkflowProgress(id), loadExecution()])
 }
 
 const showRejectionModal = ref(false)
@@ -309,6 +383,8 @@ const aiRiskAssessmentVisible = computed(() => aiPreferences.value.aiRiskAssessm
 
 onMounted(async () => {
   await loadContract()
+  await loadExecution()
+  if (route.query.execution === '1') showWorkflowTracker.value = true
   if (!route.query.workflowMock) {
     await fetchWorkflowProgress(id)
   }
@@ -422,7 +498,7 @@ async function handleApprove() {
       return
     }
 
-    updateContractInCache(id, { approvalStatus: 'Approved', workflowStatus: 'SBSI Review' })
+    updateContractInCache(id, mapApiToContract(data.data))
     success('Contract approved', `${contract.value.businessPartner}'s contract has been approved.`)
     loadLocalContract()
   } catch {
@@ -454,7 +530,7 @@ async function confirmReject() {
     const data = await res.json()
     if (!res.ok) { error('Failed to reject', data.message ?? 'Something went wrong.'); return }
 
-    updateContractInCache(id, { approvalStatus: 'Rejected', workflowStatus: null, rejectionReason: rejectReason.value.trim() })
+    updateContractInCache(id, mapApiToContract(data.data))
     success('Contract rejected', `${contract.value.businessPartner}'s contract has been rejected.`)
     showRejectInput.value = false
     rejectReason.value = ''
@@ -567,7 +643,7 @@ async function confirmSaveEdit() {
       end_date:      editForm.endDate,
       document_ids:  contractDocs.value.filter(d => d.id).map(d => d.id),
     }
-    if (isManager.value || isOwner.value) {
+    if (!contract.value?.executionRequired && (isManager.value || isOwner.value)) {
       payload.workflow_status = editForm.workflowStatus || null
     }
 
@@ -856,8 +932,11 @@ const activeSnapForDiff = computed(() => {
         :approval-locked="false"
         :nudge-label="nudgeLabel"
         :is-engine-routed="isEngineRouted"
+        :execution-state="currentExecution"
+        :execution-submit-label="executionSubmitLabel"
         @back="router.push(backPath)"
         @edit="handleEditClick"
+        @execution-action="handleExecutionAction"
         @open-history="showHistoryDrawer = true"
         @save="triggerSaveEdit"
         @cancel="cancelEdit"
@@ -894,6 +973,9 @@ const activeSnapForDiff = computed(() => {
         </Button>
       </div>
 
+      <InternalApprovalActions v-if="!viewingSnapshotVersion && !isEditing && myTasks.length" :tasks="myTasks"
+        :save="(task, outcome, reason) => decide(id, task, outcome, reason)" @changed="refreshExecution" />
+
       <ContractInfoSection
         v-if="displayedContract"
         :contract="displayedContract"
@@ -929,6 +1011,34 @@ const activeSnapForDiff = computed(() => {
       :workflow="workflowTracker"
       :status="workflowTrackerStatus"
       :on-retry="handleWorkflowRetry"
+      :initial-tab="route.query.execution === '1' || contract?.approvalStatus === 'Approved' ? 'execution' : 'approval'"
+      :execution-state="currentExecution"
+      :execution-submit-label="executionSubmitLabel"
+      @execution-action="handleExecutionAction"
+    >
+      <template v-if="!viewingSnapshotVersion && !isEditing" #execution-details>
+        <ContractExecutionSection
+          :contract-id="id"
+          :state="currentExecution"
+          :loading="executionLoading"
+          :load-error="executionLoadError"
+          :submit-label="executionSubmitLabel"
+          @execution-action="handleExecutionAction"
+          @retry="loadExecution"
+        />
+      </template>
+    </WorkflowTrackerModal>
+
+    <ExecutionActionDialog
+      v-if="activeExecutionAction && currentExecution"
+      :contract-id="id"
+      :action="activeExecutionAction"
+      :execution="currentExecution"
+      :save="submitExecution"
+      :load-draft="loadExecutionDraft"
+      :draft-url="documentUrl(currentExecution.draft_document_id)"
+      @close="activeExecutionAction = null"
+      @saved="onExecutionActionSaved"
     />
 
     <RejectionReasonModal

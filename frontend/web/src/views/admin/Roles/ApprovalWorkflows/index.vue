@@ -1,60 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { AlertCircle } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useWorkflowBuilder } from '@/composables/useWorkflowBuilder'
-import type { ContractTypeWithWorkflow, Workflow } from '@/types/workflow'
-import ContractTypeWorkflowCard from './ContractTypeWorkflowCard.vue'
-import WorkflowEditor from './WorkflowEditor.vue'
+import ContractTypeWorkflowRow from './ContractTypeWorkflowRow.vue'
+import WorkflowDraftList from './WorkflowDraftList.vue'
 import DuplicateWorkflowDialog from './DuplicateWorkflowDialog.vue'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const { success, error: toastError } = useToast()
+const router = useRouter()
 
 const {
   loading,
   error,
   contractTypes,
-  assignableRoles,
   fetchContractTypesWithWorkflows,
-  fetchAssignableRoles,
   fetchWorkflow,
   deleteWorkflow,
   saveWorkflow,
 } = useWorkflowBuilder()
 
-// ── Editor state ───────────────────────────────────────────────────────
-const showEditor = ref(false)
-const editingWorkflow = ref<Workflow | null>(null)
-const editingContractType = ref<ContractTypeWithWorkflow | null>(null)
+const drafts = computed(() => contractTypes.value.filter(type => type.draft_workflow))
 
-async function openCreate(contractType: ContractTypeWithWorkflow) {
-  editingContractType.value = contractType
-  editingWorkflow.value = null
-  showEditor.value = true
-}
-
-async function openEdit(contractType: ContractTypeWithWorkflow, workflowId: number) {
-  const workflow = await fetchWorkflow(workflowId)
-  if (!workflow) {
-    toastError('Failed to load workflow', 'Please try again.')
-    return
-  }
-  editingContractType.value = contractType
-  editingWorkflow.value = workflow
-  showEditor.value = true
-}
-
-function closeEditor() {
-  showEditor.value = false
-  editingWorkflow.value = null
-  editingContractType.value = null
-}
-
-async function handleSaved() {
-  closeEditor()
-  success('Workflow saved', 'The approval workflow has been saved.')
-  await refresh()
+function openEditor(contractTypeId: number, workflowId?: number) {
+  router.push({ name: 'admin-workflow-editor', params: { contractTypeId, workflowId } })
 }
 
 // ── Duplicate dialog state ───────────────────────────────────────────────
@@ -122,6 +94,7 @@ async function executeDeactivate() {
         name: existing.name,
         status: 'draft',
         resubmit_mode: existing.resubmit_mode,
+        execution_reviewers: existing.execution_reviewers ?? undefined,
         steps: existing.steps,
       },
       deactivateTargetId.value
@@ -137,10 +110,7 @@ async function executeDeactivate() {
 }
 
 // ── Load ──────────────────────────────────────────────────────────────
-async function refresh() {
-  await Promise.all([fetchContractTypesWithWorkflows(), fetchAssignableRoles()])
-}
-
+const refresh = fetchContractTypesWithWorkflows
 onMounted(refresh)
 </script>
 
@@ -148,48 +118,49 @@ onMounted(refresh)
   <div class="space-y-4">
     <div>
       <h2 class="text-sm font-semibold text-black">Approval Workflows</h2>
-      <p class="text-xs text-black/40 mt-0.5">
-        Define the approval chain for each contract type. Only one active workflow applies per type —
-        types without one fall back to the standard manager approval.
+      <p class="mt-2 font-montserrat text-xs text-slate-600">
+        Manage internal approval and execution reviewers for each contract type.
       </p>
     </div>
 
     <!-- Loading skeleton -->
-    <div v-if="loading && !contractTypes.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div v-for="i in 4" :key="i" class="h-32 rounded-xl border border-black/8 bg-black/3 animate-pulse" />
-    </div>
+    <ul v-if="loading && !contractTypes.length" aria-busy="true" aria-label="Loading approval workflows" class="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+      <li v-for="i in 4" :key="i" class="flex gap-4 p-4">
+        <span class="h-8 flex-1 animate-pulse rounded-md bg-slate-100" />
+        <span class="h-8 flex-1 animate-pulse rounded-md bg-slate-100" />
+      </li>
+    </ul>
 
     <!-- Error state -->
     <div v-else-if="error"
       class="flex items-center gap-3 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
       <AlertCircle class="w-4 h-4 shrink-0" />
       <span>{{ error }}</span>
-      <button @click="refresh" class="ml-auto font-semibold underline text-xs">Retry</button>
+      <Button variant="outline" size="sm" class="ml-auto" @click="refresh">Retry</Button>
     </div>
 
     <!-- Loaded state -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ContractTypeWorkflowCard
-        v-for="ct in contractTypes"
-        :key="ct.contract_type_id"
-        :contract-type="ct"
-        @create="openCreate(ct)"
-        @edit="(workflowId: number) => openEdit(ct, workflowId)"
-        @duplicate="(workflowId: number, name: string) => openDuplicate(workflowId, name)"
-        @delete="confirmDelete"
-        @deactivate="confirmDeactivate"
-      />
-    </div>
-
-    <WorkflowEditor
-      v-if="showEditor && editingContractType"
-      :open="showEditor"
-      :contract-type="editingContractType"
-      :workflow="editingWorkflow"
-      :assignable-roles="assignableRoles"
-      @close="closeEditor"
-      @saved="handleSaved"
-    />
+    <template v-else>
+      <WorkflowDraftList :contract-types="drafts" @edit="openEditor" @delete="confirmDelete" />
+      <section aria-labelledby="workflows-by-type" class="rounded-xl border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 p-4">
+          <h3 id="workflows-by-type" class="font-semibold text-slate-900">Workflows by Contract Type</h3>
+          <p class="font-montserrat text-xs text-slate-600">Each type can have one active workflow. Otherwise, new contracts use manager approval.</p>
+        </div>
+        <p v-if="!contractTypes.length" class="p-4 text-sm text-slate-600">No contract types are available.</p>
+        <ul v-else class="divide-y divide-slate-200">
+          <ContractTypeWorkflowRow
+            v-for="ct in contractTypes"
+            :key="ct.contract_type_id"
+            :contract-type="ct"
+            @create="openEditor(ct.contract_type_id)"
+            @edit="(workflowId: number) => openEditor(ct.contract_type_id, workflowId)"
+            @duplicate="openDuplicate"
+            @deactivate="confirmDeactivate"
+          />
+        </ul>
+      </section>
+    </template>
 
     <DuplicateWorkflowDialog
       v-if="showDuplicateDialog && duplicateSource"
@@ -214,7 +185,7 @@ onMounted(refresh)
     <ConfirmationDialog
       v-model:open="showDeactivateConfirm"
       title="Deactivate Workflow"
-      description="Are you sure you want to deactivate this workflow? Contracts of this type will revert to the default manager approval flow. You can re-activate the workflow at any time."
+      description="New contracts of this type will use manager approval. Existing contracts keep their assigned workflow."
       confirm-label="Deactivate"
       variant="destructive"
       :loading="isDeactivating"

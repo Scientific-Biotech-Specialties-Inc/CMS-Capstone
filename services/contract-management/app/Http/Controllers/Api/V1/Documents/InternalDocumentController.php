@@ -56,12 +56,10 @@ final class InternalDocumentController extends Controller
             return response()->json(['message' => 'Document not found.'], 404);
         }
 
-        // file_path is encrypted in the DB; reconstruct the path from the uuid
-        // which is stored plaintext and matches the actual filename on disk.
-        $disk = 'public';
-        $path = "contracts/documents/{$document->uuid}.{$document->file_type}";
+        $disk = config('filesystems.default', 'local');
+        $path = $document->file_path;
 
-        if (!Storage::disk($disk)->exists($path)) {
+        if (!$path || !Storage::disk($disk)->exists($path)) {
             return response()->json(['message' => 'File not found on storage disk.'], 404);
         }
 
@@ -78,11 +76,19 @@ final class InternalDocumentController extends Controller
             return response()->json(['message' => 'Document not found.'], 404);
         }
 
+        $contractCreatedBy = null;
+        if ($document->contract_id !== null) {
+            $contractCreatedBy = \App\Models\Contract::where('contract_id', $document->contract_id)->value('created_by');
+        }
+
         return response()->json([
             'data' => [
-                'document_id' => (string) $document->getKey(),
-                'file_name'   => $document->file_name,
-                'file_type'   => $document->file_type,
+                'document_id'         => (string) $document->getKey(),
+                'file_name'           => $document->file_name,
+                'file_type'           => $document->file_type,
+                'contract_id'         => $document->contract_id,
+                'uploaded_by'         => $document->uploaded_by,
+                'contract_created_by' => $contractCreatedBy,
             ],
         ]);
     }

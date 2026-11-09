@@ -85,7 +85,8 @@ class BusinessPartnerCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->postJson('/api/partners', [
             'bp_code' => 'BP-999',
-            'partner_name' => 'Acme Duplicate'
+            'partner_name' => 'Acme Duplicate',
+            'email' => 'acme_dup@test.com',
         ]);
 
         $response->assertStatus(409); // Conflict
@@ -107,7 +108,8 @@ class BusinessPartnerCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->postJson('/api/partners', [
             'bp_code' => 'BP-888',
-            'partner_name' => 'Acme Corp'
+            'partner_name' => 'Acme Corp',
+            'email' => 'acme_corp@test.com',
         ]);
 
         $response->assertStatus(201);
@@ -137,7 +139,8 @@ class BusinessPartnerCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->putJson('/api/partners/' . $partner->partner_id, [
             'bp_code' => 'BP-999', // same BP code is allowed for self
-            'partner_name' => 'New Name'
+            'partner_name' => 'New Name',
+            'email' => 'updated_partner@test.com',
         ]);
 
         $response->assertStatus(200);

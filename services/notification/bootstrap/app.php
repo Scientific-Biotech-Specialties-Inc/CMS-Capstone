@@ -12,10 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
         $middleware->alias([
             'auth.internal'   => \App\Http\Middleware\AuthenticateInternal::class,
             'permission'      => \App\Http\Middleware\HasPermission::class,
             'internal.secret' => \App\Http\Middleware\ValidateInternalSecret::class,
+        ]);
+
+        $middleware->encryptCookies(except: [
+            'session_id',
+            'access_token',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

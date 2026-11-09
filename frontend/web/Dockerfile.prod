@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+COPY .env.example .env.production
+RUN npm run build
+
+FROM nginx:1.27-alpine
+ARG CMS_WEB_PORT=5001
+ENV CMS_WEB_PORT=${CMS_WEB_PORT}
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+RUN mkdir -p /docker-entrypoint.d /etc/nginx/templates
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'NS=$(awk '\''/^nameserver/{print $2; exit}'\'' /etc/resolv.conf 2>/dev/null)' \
+    'SEARCH=$(awk '\''/^search/{print $2; exit}'\'' /etc/resolv.conf 2>/dev/null)' \
+    'export RESOLVER="${NS:-127.0.0.11}"' \
+    'if [ -z "$INTERNAL_DOMAIN" ] && [ -n "$SEARCH" ]; then export INTERNAL_DOMAIN=".$SEARCH"; fi' \
+    > /docker-entrypoint.d/15-local-resolver.envsh && chmod +x /docker-entrypoint.d/15-local-resolver.envsh
+
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+EXPOSE ${CMS_WEB_PORT}
+CMD ["nginx", "-g", "daemon off;"]

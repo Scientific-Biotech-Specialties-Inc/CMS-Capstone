@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Clock, ArrowLeft, ClipboardList, FilePenLine, Loader2, CheckCircle, XCircle, Bell } from 'lucide-vue-next'
+import { AlertTriangle, Clock, ArrowLeft, ClipboardList, FilePenLine, Loader2, CheckCircle, XCircle, Bell, Eye } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { requestStatusBadge } from '@/types/contractRequest'
 import type { ContractRequest } from '@/types/contractRequest'
@@ -12,19 +12,16 @@ const props = defineProps<{
   actionInProgress?: boolean
   isManager:         boolean
   isFollowedUp:      boolean
-  showRejectInput:   boolean
-  rejectReasonValid: boolean
 }>()
 
 defineEmits<{
-  back:          []
-  edit:          []
-  save:          []
-  cancel:        []
-  followUp:      []
-  approve:       []
-  toggleReject:  []
-  confirmReject: []
+  back:     []
+  edit:     []
+  save:     []
+  cancel:   []
+  followUp: []
+  approve:  []
+  reject:   []
 }>()
 
 function daysDisplay(days: number) {
@@ -82,9 +79,9 @@ function daysDisplay(days: number) {
       </template>
 
       <template v-else>
-        <!-- Edit Request (Pending / Under Review, not while reject input is open) -->
+        <!-- Edit Request (Pending / Under Review) -->
         <Button
-          v-if="(request.status === 'Pending' || request.status === 'Under Review') && !showRejectInput"
+          v-if="(request.status === 'Pending' || request.status === 'Under Review')"
           @click="$emit('edit')" variant="outline"
           class="h-9 gap-2 text-sm font-medium border-brand-navy/25 text-brand-navy hover:bg-brand-navy/5 hover:border-brand-navy/40">
           <FilePenLine class="w-4 h-4" />
@@ -103,31 +100,22 @@ function daysDisplay(days: number) {
         </template>
 
         <!-- Manager: Approve / Reject -->
-        <template v-if="isManager && (request.status === 'Pending' || request.status === 'Under Review')">
-          <template v-if="!showRejectInput">
-            <Button @click="$emit('approve')" :disabled="actionInProgress"
-              class="h-9 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-              <Loader2 v-if="actionInProgress" class="w-3.5 h-3.5 animate-spin" />
-              <CheckCircle v-else class="w-4 h-4" />
-              Approve Request
-            </Button>
-            <Button @click="$emit('toggleReject')" :disabled="actionInProgress" variant="outline"
-              class="h-9 border-red-200 text-red-600 hover:bg-red-50 gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-              <XCircle class="w-4 h-4" /> Reject Request
-            </Button>
-          </template>
-          <template v-else>
-            <Button variant="outline" @click="$emit('toggleReject')" :disabled="actionInProgress"
-              class="h-9 border-black/10 text-black/60 hover:text-black disabled:opacity-50 disabled:cursor-not-allowed">
-              Cancel
-            </Button>
-            <Button @click="$emit('confirmReject')" :disabled="!rejectReasonValid || actionInProgress"
-              class="h-9 bg-red-600 hover:bg-red-700 text-white gap-2 font-semibold disabled:opacity-40 shadow-sm">
-              <Loader2 v-if="actionInProgress" class="w-3.5 h-3.5 animate-spin" />
-              <XCircle v-else class="w-4 h-4" />
-              Confirm Reject
-            </Button>
-          </template>
+        <Button v-if="isManager && request.hasPendingApprovalWorkflow && (request.status === 'Pending' || request.status === 'Under Review')" as-child variant="outline">
+          <RouterLink :to="{ name: 'manager-contracts-detail', params: { id: request.contractId ?? request.contractDbId ?? request.id.replace(/^REQ-/, '') } }">
+            <Eye class="size-4" /> Review Approval
+          </RouterLink>
+        </Button>
+        <template v-else-if="isManager && request.hasPendingApprovalWorkflow === false && (request.status === 'Pending' || request.status === 'Under Review')">
+          <Button @click="$emit('approve')" :disabled="actionInProgress"
+            class="h-9 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            <Loader2 v-if="actionInProgress" class="w-3.5 h-3.5 animate-spin" />
+            <CheckCircle v-else class="w-4 h-4" />
+            Approve Request
+          </Button>
+          <Button @click="$emit('reject')" :disabled="actionInProgress" variant="outline"
+            class="h-9 border-red-200 text-red-600 hover:bg-red-50 gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+            <XCircle class="w-4 h-4" /> Reject Request
+          </Button>
         </template>
       </template>
 

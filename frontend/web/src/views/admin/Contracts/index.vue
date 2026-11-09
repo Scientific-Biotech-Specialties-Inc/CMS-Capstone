@@ -9,7 +9,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useApiCache } from '@/composables/useApiCache'
 import ContractsTable       from './ContractsTable.vue'
 import ConfirmationDialog   from '@/components/shared/ConfirmationDialog.vue'
-import { remainingDays } from '@/types/contract'
+import { contractLifecycle, remainingDays } from '@/types/contract'
 import type { ContractWithDays, FilterTab, StatusFilter } from '@/types/contract'
 import { sortContractsForAll } from '@/utils/contractSort'
 
@@ -41,10 +41,10 @@ const withDays = computed(() =>
 const statCards = computed(() => {
   return {
     total:    cacheState.contractsStats?.total ?? withDays.value.length,
-    active:   cacheState.contractsStats?.active ?? withDays.value.filter(c => c.days > 30 && c.approvalStatus === 'Approved').length,
-    inactive: cacheState.contractsStats?.inactive ?? withDays.value.filter(c => c.approvalStatus !== 'Approved').length,
-    expiring: cacheState.contractsStats?.expiring ?? withDays.value.filter(c => c.days >= 0 && c.days <= 30 && c.approvalStatus === 'Approved').length,
-    expired:  cacheState.contractsStats?.expired ?? withDays.value.filter(c => c.days < 0 && c.approvalStatus === 'Approved').length,
+    active:   cacheState.contractsStats?.active ?? withDays.value.filter(c => contractLifecycle(c) === 'active').length,
+    inactive: cacheState.contractsStats?.inactive ?? withDays.value.filter(c => contractLifecycle(c) === 'inactive').length,
+    expiring: cacheState.contractsStats?.expiring ?? withDays.value.filter(c => contractLifecycle(c) === 'expiring').length,
+    expired:  cacheState.contractsStats?.expired ?? withDays.value.filter(c => contractLifecycle(c) === 'expired').length,
   }
 })
 
@@ -74,12 +74,7 @@ const filtered = computed(() => {
       || c.category.toLowerCase().includes(q)
       || c.itemCode.toLowerCase().includes(q)
 
-    const byTab =
-      activeFilter.value === 'all'      ? true :
-      activeFilter.value === 'active'   ? (c.days > 30 && c.approvalStatus === 'Approved') :
-      activeFilter.value === 'expiring' ? (c.days >= 0 && c.days <= 30 && c.approvalStatus === 'Approved') :
-      activeFilter.value === 'expired'  ? (c.days < 0 && c.approvalStatus === 'Approved') :
-      (c.approvalStatus !== 'Approved')
+    const byTab = activeFilter.value === 'all' || contractLifecycle(c) === activeFilter.value
 
     const byCategory = !cat || c.category === cat
     const byRegion = !reg || c.region === reg

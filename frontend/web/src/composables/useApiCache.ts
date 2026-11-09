@@ -137,6 +137,9 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
     endDate: d.end_date ?? '',
     approvalStatus: (d.approval_status ?? 'Pending') as ContractApprovalStatus,
     workflowStatus: (d.workflow_status ?? null) as ContractWorkflowStatus | null,
+    lifecycleStatus: d.lifecycle_status,
+    executionRequired: d.execution_required,
+    hasPendingApprovalWorkflow: d.has_pending_approval_workflow,
     contractLink: '',
     createdBy,
     rejectionReason: d.rejection_reason ?? undefined,
@@ -147,6 +150,10 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
       size: doc.file_size ?? 0,
       previewUrl: normalizeDocumentUrl(doc.document_url),
       uploadStatus: 'success',
+      category: doc.doc_category,
+      isCurrentDraft: doc.is_current_draft,
+      isPrimary: doc.is_primary,
+      signerName: doc.signer_name,
     })),
     prsActivityId: d.prs_activity_id ? Number(d.prs_activity_id) : undefined,
   }
@@ -158,8 +165,16 @@ function mapApiToRequest(d: any, currentUserId: number | null, firstName?: strin
     ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
     : d.creator_name ? d.creator_name : (d.created_by ? `User #${d.created_by}` : '—')
 
+  const contractDbId = typeof d.contract_db_id === 'number'
+    ? d.contract_db_id
+    : (typeof d.contract_id === 'number' ? d.contract_id : (!isNaN(Number(d.contract_id)) ? Number(d.contract_id) : undefined))
+  const rawContractId = d.contract_code ?? d.contract_db_id ?? d.contract_id
+
   return {
     id: `REQ-${String(d.contract_id).padStart(3, '0')}`,
+    contractId: rawContractId ? String(rawContractId) : undefined,
+    contractDbId,
+    hasPendingApprovalWorkflow: d.has_pending_approval_workflow,
     businessPartner: d.bp_name ?? '',
     category: d.category ?? '',
     description: d.description ?? '',
@@ -214,7 +229,7 @@ async function fetchDashboard(force = false): Promise<void> {
     const res = await fetch(`${apiBase}/dashboard`, {
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${state.cachedToken}`,
+        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
       },
     })
 
@@ -288,7 +303,7 @@ async function fetchContracts(
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${state.cachedToken}`,
+        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
       },
     })
 
@@ -351,7 +366,7 @@ async function fetchRequests(userId?: number, force = false): Promise<ContractRe
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${state.cachedToken}`,
+        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
       },
     })
 

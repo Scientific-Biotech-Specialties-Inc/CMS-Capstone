@@ -103,7 +103,7 @@ final class OcrExtractionControllerTest extends TestCase
             ->andReturn($dummyData);
         $this->app->instance(GeminiClient::class, $geminiMock);
 
-        $file = UploadedFile::fake()->create('contract.pdf', 500, 'application/pdf');
+        $file = UploadedFile::fake()->createWithContent('contract.pdf', "%PDF-1.4\n%EOF");
 
         $response = $this->withHeaders(['Authorization' => 'Bearer token'])
             ->postJson('/api/ocr/extract', [
@@ -118,6 +118,102 @@ final class OcrExtractionControllerTest extends TestCase
             'status' => 'completed',
             'confidence_score' => 95.5,
         ]);
+    }
+
+    public function test_extraction_rejects_disallowed_file_types(): void
+    {
+        $this->fakeAuth();
+
+        $file = UploadedFile::fake()->createWithContent('script.exe', "MZ\x90\x00");
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer token'])
+            ->postJson('/api/ocr/extract', [
+                'file' => $file,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['file']);
+    }
+
+    public function test_extraction_by_document_id_rejects_unowned_document_for_sales(): void
+    {
+        $this->fakeAuth('Sales', 42);
+
+        $docClientMock = Mockery::mock(ContractDocumentClient::class);
+        $docClientMock->shouldReceive('getDocumentMetadata')
+            ->once()
+            ->with('123')
+            ->andReturn([
+                'document_id' => '123',
+                'file_name' => 'smart-contract.pdf',
+                'file_type' => 'pdf',
+                'contract_created_by' => 999, // Owned by another user
+                'uploaded_by' => 999,
+            ]);
+        $this->app->instance(ContractDocumentClient::class, $docClientMock);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer token'])
+            ->postJson('/api/ocr/extract', [
+                'document_id' => '123',
+            ]);
+
+        $response->assertStatus(403);
+        $response->assertJson(['message' => 'Forbidden.']);
+    }
+
+    public function test_extraction_by_document_id_allows_owned_document_for_sales(): void
+    {
+        $this->fakeAuth('Sales', 42);
+
+        $dummyData = [
+            'business_partner' => 'Smart Communications',
+            'category' => 'Partnership Agreement',
+            'item_code' => 'ITM-0088',
+            'description' => 'Internal Integration Agreement',
+            'serial_number' => 'SN-888-INTEG',
+            'sbu_number' => 'SBU-888',
+            'region' => 'Visayas',
+            'start_date' => '2026-09-01',
+            'end_date' => '2027-09-01',
+            'confidence_score' => 88.0,
+        ];
+
+        $docClientMock = Mockery::mock(ContractDocumentClient::class);
+        $docClientMock->shouldReceive('getDocumentMetadata')
+            ->once()
+            ->with('123')
+            ->andReturn([
+                'document_id' => '123',
+                'file_name' => 'smart-contract.pdf',
+                'file_type' => 'pdf',
+                'contract_created_by' => 42, // Owned by current sales user
+                'uploaded_by' => 42,
+            ]);
+        $docClientMock->shouldReceive('fetchFileBytes')
+            ->once()
+            ->with('123')
+            ->andReturn('dummy raw bytes of file');
+        $this->app->instance(ContractDocumentClient::class, $docClientMock);
+
+        $extractorMock = Mockery::mock(OcrTextExtractor::class);
+        $extractorMock->shouldReceive('extract')
+            ->once()
+            ->andReturn('This is a mock contract text for Smart Communications.');
+        $this->app->instance(OcrTextExtractor::class, $extractorMock);
+
+        $geminiMock = Mockery::mock(GeminiClient::class);
+        $geminiMock->shouldReceive('generateJson')
+            ->once()
+            ->andReturn($dummyData);
+        $this->app->instance(GeminiClient::class, $geminiMock);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer token'])
+            ->postJson('/api/ocr/extract', [
+                'document_id' => '123',
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonFragment(['business_partner' => 'Smart Communications']);
     }
 
     public function test_extraction_with_document_id_succeeds(): void

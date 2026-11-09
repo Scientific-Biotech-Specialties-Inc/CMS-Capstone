@@ -11,6 +11,14 @@ class UpdateController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
+        // System-wide notification settings are admin-only. The route has no
+        // role middleware in this service, so enforce it here (mirrors the
+        // Admin/Super Admin guard on the SPA's system-config page).
+        $role = $request->get('auth_role');
+        if (!in_array($role, ['Admin', 'Super Admin'], true)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
         $validated = $request->validate([
             'email_notifs_enabled' => 'nullable|boolean',
             'in_app_notifs_enabled' => 'nullable|boolean',

@@ -54,6 +54,10 @@ const isNotifOpen = ref(false);
 function openNotification(n: Notification) {
   if (!n.isRead) markRead(n.id);
   isNotifOpen.value = false;
+  if (n.notifType?.startsWith('execution_confirmation_') && n.contractId) {
+    router.push({ name: 'admin-contracts-detail', params: { id: n.contractId }, query: { execution: '1' } });
+    return;
+  }
   router.push('/admin/notifications');
 }
 
@@ -85,6 +89,7 @@ const navGroups = computed(() => {
       items: [
         { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, show: true },
         { title: "Contracts", url: "/admin/contracts", icon: FileText, show: hasPermission('cms.contracts.view') },
+        { title: "Contract Requests", url: "/admin/contract-requests", icon: FileText, show: hasPermission('cms.contracts.approve') },
       ],
     },
     {
@@ -123,6 +128,8 @@ const user = computed(() => {
   const initials = `${firstName[0] ?? "A"}${lastName[0] ?? "U"}`.toUpperCase();
   return { name, role: currentRole, email, initials };
 });
+
+
 
 // ── Calendar in Header ──
 

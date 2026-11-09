@@ -126,6 +126,8 @@ class WorkflowController extends Controller
             'contract_type_id'            => 'required|integer|exists:contract_categories,category_id',
             'name'                        => 'required|string|max:255',
             'status'                      => 'required|string|in:draft,active',
+            'replace_active_workflow_id'  => 'sometimes|prohibited_unless:status,active|integer|min:1',
+            'replace_draft_workflow_id'   => 'sometimes|integer|min:1',
             'resubmit_mode'               => 'nullable|string|in:restart,resume_at_rejected',
             'steps'                       => 'array',
             'steps.*.order_index'         => 'required_with:steps|integer|min:1',
@@ -133,6 +135,10 @@ class WorkflowController extends Controller
             'steps.*.roles'               => 'array',
             'steps.*.roles.*.auth_role_id' => 'required_with:steps.*.roles|integer',
             'steps.*.roles.*.role_name'    => 'required_with:steps.*.roles|string',
+            'execution_reviewers'         => 'nullable|array:SBSI Review,Client Review,For Signing,Signed',
+            'execution_reviewers.*'       => 'array|max:10',
+            'execution_reviewers.*.*.auth_role_id' => 'required|integer|min:1',
+            'execution_reviewers.*.*.role_name' => 'required|string|max:255',
         ]);
 
         return $validator->validate();
@@ -145,7 +151,9 @@ class WorkflowController extends Controller
             'contract_type_id' => $workflow->contract_type_id,
             'name'             => $workflow->name,
             'status'           => $workflow->status,
+            'has_runs'         => $workflow->instances()->exists(),
             'resubmit_mode'    => $workflow->resubmit_mode,
+            'execution_reviewers' => $workflow->execution_reviewers,
             'steps'            => $workflow->steps->map(fn (WorkflowStep $step) => [
                 'id'          => $step->id,
                 'order_index' => $step->order_index,

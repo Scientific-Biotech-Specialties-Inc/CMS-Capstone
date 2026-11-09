@@ -13,6 +13,7 @@ import { safeHref } from '@/utils/sanitize'
 import RequestDetailHeader from './RequestDetailHeader.vue'
 import RequestInfoSection  from './RequestInfoSection.vue'
 import ConfirmationDialog  from '@/components/shared/ConfirmationDialog.vue'
+import RejectRequestDialog from './RejectRequestDialog.vue'
 import RejectionReasonModal from '@/views/sales/Contracts/ContractDetail/RejectionReasonModal.vue'
 
 const route  = useRoute()
@@ -32,9 +33,9 @@ watchEffect(() => {
 })
 
 const backPath = computed(() =>
-  route.path.startsWith('/manager') ? '/manager/contract-requests' : '/sales/contract-requests'
+  route.path.slice(0, route.path.lastIndexOf('/'))
 )
-const isManager = computed(() => route.path.startsWith('/manager'))
+const isManager = computed(() => route.meta.requiresPermission === 'cms.contracts.approve')
 
 const days = computed(() =>
   request.value?.endDate ? remainingDays(request.value.endDate) : 0
@@ -54,8 +55,7 @@ function handleFollowUp() {
 
 // ── Manager actions ──────────────────────────────────────────────────────────
 
-const showRejectInput  = ref(false)
-const rejectReason     = ref('')
+const showRejectModal  = ref(false)
 const actionInProgress = ref(false)
 
 const showConfirm = ref(false)
@@ -67,14 +67,6 @@ function triggerApprove() {
   confirmTitle.value = 'Approve Request'
   confirmDesc.value = 'Are you sure you want to approve this contract request? This will change the status to Approved and advance the workflow.'
   confirmAction.value = handleApprove
-  showConfirm.value = true
-}
-
-function triggerReject() {
-  if (!rejectReason.value.trim()) return
-  confirmTitle.value = 'Reject Request'
-  confirmDesc.value = 'Are you sure you want to reject this contract request? This will mark it as Rejected.'
-  confirmAction.value = confirmReject
   showConfirm.value = true
 }
 
@@ -105,12 +97,12 @@ function normalizeDocumentUrl(url?: string): string {
 async function handleApprove() {
   if (!request.value || actionInProgress.value) return
   showConfirm.value = false
-  const numericId  = parseInt(id.replace('REQ-', ''), 10)
-  const contractId = String(numericId)
+  const targetId = request.value.contractDbId ?? request.value.contractId ?? id.replace(/^REQ-/, '')
+  const contractId = String(request.value.contractId ?? targetId)
 
   actionInProgress.value = true
   try {
-    const res = await fetch(`${apiBase}/contracts/${numericId}/status`, {
+    const res = await fetch(`${apiBase}/contracts/${targetId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -134,37 +126,30 @@ async function handleApprove() {
   }
 }
 
-function handleToggleReject() {
-  showRejectInput.value = !showRejectInput.value
-  if (!showRejectInput.value) rejectReason.value = ''
-}
-
-async function confirmReject() {
-  if (!request.value || !rejectReason.value.trim() || actionInProgress.value) return
-  showConfirm.value = false
-  const numericId  = parseInt(id.replace('REQ-', ''), 10)
-  const contractId = String(numericId)
+async function handleRejectSubmit(reasonText: string) {
+  if (!request.value || !reasonText.trim() || actionInProgress.value) return
+  const targetId = request.value.contractDbId ?? request.value.contractId ?? id.replace(/^REQ-/, '')
+  const contractId = String(request.value.contractId ?? targetId)
 
   actionInProgress.value = true
   try {
-    const res = await fetch(`${apiBase}/contracts/${numericId}/status`, {
+    const res = await fetch(`${apiBase}/contracts/${targetId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': `Bearer ${authState.token}`,
       },
-      body: JSON.stringify({ approval_status: 'Rejected', rejection_reason: rejectReason.value.trim() }),
+      body: JSON.stringify({ approval_status: 'Rejected', rejection_reason: reasonText.trim() }),
     })
 
     const data = await res.json()
     if (!res.ok) { error('Failed to reject', data.message ?? 'Something went wrong.'); return }
 
-    updateRequestStatusInCache(id, 'Rejected', { rejectionReason: rejectReason.value.trim() })
+    updateRequestStatusInCache(id, 'Rejected', { rejectionReason: reasonText.trim() })
     updateContractInCache(contractId, { approvalStatus: 'Rejected', workflowStatus: null })
     success('Request rejected', `${request.value.businessPartner}'s contract request has been rejected.`)
-    showRejectInput.value = false
-    rejectReason.value = ''
+    showRejectModal.value = false
     loadLocalRequest()
   } catch {
     error('Network error', 'Could not reach the server. Please try again.')
@@ -272,11 +257,10 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
-  Object.keys(touched).forEach(k => (touched[k] = true))
-  if (!isFormValid.value) return
+  if (!isFormValid.value || savingEdit.value) return
   showConfirm.value = false
-
   savingEdit.value = true
+
   try {
     const payload = {
       bp_name:       editForm.businessPartner,
@@ -290,8 +274,8 @@ async function saveEdit() {
       end_date:      editForm.endDate,
     }
 
-    const dbId = parseInt(id.replace('REQ-', ''), 10)
-    const res  = await fetch(`${apiBase}/contracts/${dbId}`, {
+    const targetId = request.value?.contractDbId ?? request.value?.contractId ?? id.replace(/^REQ-/, '')
+    const res  = await fetch(`${apiBase}/contracts/${targetId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -311,8 +295,16 @@ async function saveEdit() {
       ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
       : data.data.created_by ? `User #${data.data.created_by}` : '—'
 
+    const rawContractId = data.data.contract_code ?? data.data.contract_db_id ?? data.data.contract_id
+    const contractDbId = typeof data.data.contract_db_id === 'number'
+      ? data.data.contract_db_id
+      : (typeof data.data.contract_id === 'number' ? data.data.contract_id : (!isNaN(Number(data.data.contract_id)) ? Number(data.data.contract_id) : undefined))
+
     const updated: ContractRequest = {
       id:              `REQ-${String(data.data.contract_id).padStart(3, '0')}`,
+      contractId:      rawContractId ? String(rawContractId) : undefined,
+      contractDbId,
+      hasPendingApprovalWorkflow: data.data.has_pending_approval_workflow,
       businessPartner: data.data.bp_name        ?? '',
       category:        data.data.category       ?? '',
       description:     data.data.description    ?? '',
@@ -422,16 +414,13 @@ function fmtSize(bytes: number) {
         :action-in-progress="actionInProgress"
         :is-manager="isManager"
         :is-followed-up="isFollowedUp"
-        :show-reject-input="showRejectInput"
-        :reject-reason-valid="rejectReason.trim().length > 0"
         @back="router.push(backPath)"
         @edit="startEdit"
         @save="triggerSaveEdit"
         @cancel="cancelEdit"
         @follow-up="handleFollowUp"
         @approve="triggerApprove"
-        @toggle-reject="handleToggleReject"
-        @confirm-reject="triggerReject"
+        @reject="showRejectModal = true"
       />
 
       <RequestInfoSection
@@ -442,18 +431,8 @@ function fmtSize(bytes: number) {
         :date-error="dateError"
       />
 
-      <!-- Rejection input (manager rejecting) -->
-      <div v-if="showRejectInput" class="bg-white rounded-lg border border-black/8 shadow-sm p-6">
-        <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4">Rejection Reason</h2>
-        <label class="text-xs font-semibold text-red-600/80 block mb-1.5">
-          Reason <span class="text-red-500">*</span>
-        </label>
-        <textarea v-model="rejectReason" rows="3" placeholder="Provide a reason for rejection..."
-          class="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm placeholder:text-black/25 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200/15 transition resize-none" />
-      </div>
-
       <!-- Rejection reason display (already rejected) -->
-      <div v-else-if="request.status === 'Rejected'"
+      <div v-if="request.status === 'Rejected'"
         class="bg-white rounded-lg border border-red-100 shadow-sm p-6 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <AlertCircle class="w-5 h-5 text-red-500 shrink-0" />
@@ -478,15 +457,22 @@ function fmtSize(bytes: number) {
         <div class="p-8 pt-4">
           <div v-if="allDocs.length === 0" class="flex flex-col items-center gap-2 py-10 text-black/25">
             <FileX class="w-8 h-8" />
-            <p class="text-sm font-medium">No documents attached</p>
+            <p class="text-xs">No documents attached.</p>
           </div>
-          <div v-else class="flex flex-wrap gap-4">
-            <a v-for="doc in allDocs" :key="doc.name"
-              :href="safeHref(doc.previewUrl)" target="_blank" rel="noopener noreferrer"
-              class="relative w-36 rounded-lg border border-black/8 overflow-hidden shadow-sm bg-white flex flex-col group hover:border-brand-blue/50 transition-colors">
+          <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <a
+              v-for="doc in allDocs"
+              :key="doc.id"
+              :href="safeHref(doc.previewUrl)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group relative flex flex-col rounded-xl border border-black/8 overflow-hidden hover:border-black/20 hover:shadow-sm transition bg-white"
+            >
               <template v-if="doc.type === 'pdf'">
-                <div class="w-full h-44 bg-red-50 flex flex-col items-center justify-center gap-2 relative group-hover:bg-red-100 transition-all border-b border-black/5">
-                  <FileType2 class="w-10 h-10 text-red-400" />
+                <div class="w-full h-44 bg-red-50 flex flex-col items-center justify-center gap-2 relative">
+                  <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                    <ClipboardList class="w-5 h-5 text-red-600" />
+                  </div>
                   <span class="text-[10px] font-bold text-red-500 uppercase tracking-wider">PDF</span>
                   <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
                     <ExternalLink class="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
@@ -520,6 +506,14 @@ function fmtSize(bytes: number) {
       variant="default"
       :loading="actionInProgress || savingEdit"
       @confirm="confirmAction ? confirmAction() : undefined"
+    />
+
+    <RejectRequestDialog
+      v-if="request"
+      v-model:open="showRejectModal"
+      :business-partner="request.businessPartner"
+      :loading="actionInProgress"
+      @confirm="handleRejectSubmit"
     />
 
     <RejectionReasonModal
