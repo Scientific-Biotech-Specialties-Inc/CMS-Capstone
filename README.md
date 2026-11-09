@@ -197,6 +197,36 @@ docker compose exec web npm install <package>
 
 ---
 
+## CI/CD
+
+Pull requests targeting `main` run **CMS PR Checks**. The check covers GitHub
+Actions linting, Vue tests and the production build, and Laravel tests for each
+service. After the first test PR reports the check, add it to the `main`
+branch ruleset as a required status check.
+
+Merges to `main` run the same checks and publish the CMS images to GHCR.
+Download the **cms-release-<commit>** artifact to see the exact image digests
+for a release. **Publish only** on a manual run also produces the manifest.
+
+Before enabling production deployment:
+
+1. In **Settings → Environments**, create `production`, restrict it to
+   `main`, and add the approved GitHub users or team under **Required reviewers**.
+2. Verify the Azure federated identity accepts the
+   `repo:Scientific-Biotech-Specialties-Inc/CMS-Capstone:environment:production`
+   subject and that the three existing `AZURE_*` GitHub secrets are available
+   to the production job.
+3. Set `CMS_PRODUCTION_ENABLED` to `true` as a repository Actions variable.
+   Set `CMS_PRODUCTION_URL` if smoke checks should use a gateway other than the
+   CMS web app's Azure ingress URL.
+
+To release, open the workflow run under **Actions**, select **Review deployments**,
+and choose **Approve and deploy** for `production`. The job deploys the
+recorded image digests, checks Azure revision readiness, and smoke-tests the CMS
+and service health endpoints. If deployment fails partway, download the
+**cms-previous-images-<attempt>** artifact to identify the previous images.
+Review any database migrations before restoring those images in Azure.
+
 ## 🛠️ Troubleshooting
 
 ### ❌ `SQLSTATE[HY000] [2002] Connection refused`
