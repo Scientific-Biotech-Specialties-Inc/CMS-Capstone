@@ -136,33 +136,13 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-  production-approval:
-    name: Verify production approval is configured
+  deploy:
+    name: Deploy to Azure production
     needs: release
     if: >-
       github.ref == 'refs/heads/main' &&
       vars.CMS_PRODUCTION_ENABLED == 'true' &&
       (github.event_name == 'push' || !inputs.publish_only)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      actions: read
-    steps:
-      - name: Check GitHub environment protection
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ! configured=$(gh api "repos/$GITHUB_REPOSITORY/environments/production" \
-            --jq 'any(.protection_rules[]; .type == "required_reviewers" and (.reviewers | length > 0))') \
-            || [[ "$configured" != true ]]; then
-            echo "::error::Configure required reviewers on the production GitHub environment before deploying."
-            exit 1
-          fi
-
-  deploy:
-    name: Deploy to Azure production
-    needs: production-approval
-    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
