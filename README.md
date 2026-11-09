@@ -208,22 +208,26 @@ Merges to `main` run the same checks and publish the CMS images to GHCR.
 Download the **cms-release-<commit>** artifact to see the exact image digests
 for a release. **Publish only** on a manual run also produces the manifest.
 
-Before enabling production deployment:
+When `CMS_PRODUCTION_ENABLED` is `true` as a repository Actions variable,
+successful `main` runs deploy automatically. Set `CMS_PRODUCTION_URL` if smoke
+checks should use a gateway other than the CMS web app's Azure ingress URL.
 
-1. In **Settings → Environments**, create `production`, restrict it to
-   `main`, and add the approved GitHub users or team under **Required reviewers**.
-2. Verify the Azure federated identity accepts the
-   `repo:Scientific-Biotech-Specialties-Inc/CMS-Capstone:environment:production`
-   subject and that the three existing `AZURE_*` GitHub secrets are available
-   to the production job.
-3. Set `CMS_PRODUCTION_ENABLED` to `true` as a repository Actions variable.
-   Set `CMS_PRODUCTION_URL` if smoke checks should use a gateway other than the
-   CMS web app's Azure ingress URL.
+Azure Login uses the existing `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
+`AZURE_SUBSCRIPTION_ID` Actions secrets. The Azure deployment identity must
+have a federated credential for the exact subject GitHub sends:
 
-To release, open the workflow run under **Actions**, select **Review deployments**,
-and choose **Approve and deploy** for `production`. The job deploys the
-recorded image digests, checks Azure revision readiness, and smoke-tests the CMS
-and service health endpoints. If deployment fails partway, download the
+```text
+repo:Scientific-Biotech-Specialties-Inc@351859334/CMS-Capstone@1234562984:ref:refs/heads/main
+```
+
+Use issuer `https://token.actions.githubusercontent.com` and audience
+`api://AzureADTokenExchange`. If Azure Login reports `AADSTS700213`, have
+the deployment identity owner verify that the subject, issuer, and audience
+match exactly.
+
+The job deploys the recorded image digests, checks Azure revision readiness,
+and smoke-tests the CMS and service health endpoints. If deployment fails
+partway, download the
 **cms-previous-images-<attempt>** artifact to identify the previous images.
 Review any database migrations before restoring those images in Azure.
 
