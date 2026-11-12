@@ -58,6 +58,11 @@ class ContractController extends Controller
             'created_by'       => $contract->created_by,
             'creator_name'     => $contract->creator_name ?? null,
             'prs_activity_id'  => $contract->prs_activity_id,
+            'product_id'       => $contract->product_id,
+            'product_snapshot' => $contract->product_snapshot,
+            'prs_institution_id' => $contract->prs_institution_id,
+            'prs_branch_id'      => $contract->prs_branch_id,
+            'prs_closing_outcome' => $contract->getAttribute('prs_closing_outcome'),
             'created_at'       => $contract->created_at?->toISOString(),
             'documents'        => ($contract->relationLoaded('documents') ? $contract->documents : collect())
                 ->reject(fn ($d) => ($d->doc_category === 'signed' && (string) $d->getKey() !== $contract->signed_document_id)
@@ -309,6 +314,44 @@ class ContractController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
+        $selection = $request->validate([
+            'product_id' => 'nullable|integer|min:1',
+            'prs_institution_id' => 'nullable|required_with:prs_branch_id|integer|min:1',
+            'prs_branch_id' => 'nullable|integer|min:1',
+        ]);
+        if (isset($selection['prs_institution_id'])) {
+            $url = (string) config('services.prs.institutions_url');
+            abort_if($url === '', 503, 'The PRS institution directory is unavailable.');
+            try {
+                $institution = \Illuminate\Support\Facades\Http::acceptJson()
+                    ->timeout(5)->get(rtrim($url, '/') . '/' . $selection['prs_institution_id']);
+            } catch (\Illuminate\Http\Client\ConnectionException) {
+                abort(503, 'The PRS institution directory is unavailable.');
+            }
+            abort_if(!$institution->successful() && !$institution->notFound(), 503, 'The PRS institution directory is unavailable.');
+            $branchIds = array_column($institution->json('data.branches', []), 'branch_id');
+            if ($institution->notFound() || (isset($selection['prs_branch_id'])
+                && !in_array((int) $selection['prs_branch_id'], $branchIds, true))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'prs_institution_id' => 'Select a valid PRS institution and branch.',
+                ]);
+            }
+            $partnerCode = config('services.prs.institution_partners.' . $selection['prs_institution_id']);
+            if ($partnerCode !== null) {
+                $partnerName = DB::table('business_partners')->where('bp_code', $partnerCode)
+                    ->where('status', 'Active')->value('partner_name');
+                abort_unless($partnerName, 422, 'The mapped CMS business partner is unavailable.');
+                $data['bp_name'] = $partnerName;
+            }
+        }
+        $product = null;
+        if (isset($selection['product_id'])) {
+            $product = \App\Models\Product::query()->where('is_active', true)->find($selection['product_id']);
+            if (!$product) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['product_id' => 'Select an active product.']);
+            }
+            $data = array_replace($data, $product->only(['item_code', 'sbu_number', 'description']));
+        }
 
         // Normalize camelCase fields from test to snake_case
         $normalized = [
@@ -398,6 +441,10 @@ class ContractController extends Controller
             'end_date'           => $incoming['end_date'],
             'created_by'         => $userId,
             'prs_activity_id'    => $incoming['prs_activity_id'] ?? null,
+            'product_id'         => $product?->id,
+            'product_snapshot'   => $product?->catalogDetails(),
+            'prs_institution_id' => $selection['prs_institution_id'] ?? null,
+            'prs_branch_id'      => $selection['prs_branch_id'] ?? null,
         ]);
 
         // Link MongoDB documents (only unlinked / orphan documents to prevent document hijacking)
@@ -870,6 +917,13 @@ class ContractController extends Controller
         $role = $request->get('auth_role');
         if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== $request->get('auth_id')) {
             return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($contract->prs_activity_id) {
+            $contract->setAttribute('prs_closing_outcome', DB::table('prs_closing_events')
+                ->where('prs_activity_id', $contract->prs_activity_id)
+                ->orderByDesc('revision')
+                ->value('outcome'));
         }
 
         if ($contract->created_by) {

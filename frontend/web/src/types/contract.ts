@@ -21,6 +21,12 @@ export type FilterTab = 'all' | ContractLifecycleStatus
 export type StatusFilter   = '' | ContractApprovalStatus | ContractWorkflowStatus
 
 export interface Contract {
+  prsClosingOutcome?: 'Won' | 'Loss' | 'Follow-up' | null
+  productSnapshot?: {
+    category: string
+    manufacturer: string | null
+    model: string | null
+  } | null
   id:              string
   contractCode?:   string
   contractDbId?:   number

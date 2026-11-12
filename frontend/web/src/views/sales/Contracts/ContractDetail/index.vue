@@ -242,6 +242,8 @@ function mapApiToContract(data: any): StoredContract {
     category:        data.category ?? '',
     itemCode:        data.item_code ?? '',
     description:     data.description ?? '',
+    productSnapshot: data.product_snapshot,
+    prsClosingOutcome: data.prs_closing_outcome,
     serialNo:        data.serial_number ?? '',
     sbuNumber:       data.sbu_number ?? '',
     region:          (data.region ?? '') as ContractRegion,

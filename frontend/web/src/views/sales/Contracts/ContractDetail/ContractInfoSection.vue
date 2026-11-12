@@ -212,6 +212,24 @@ onClickOutside(suggestionsContainer, () => {
             </tr>
           </tbody>
         </table>
+        <dl v-if="contract.productSnapshot || contract.prsClosingOutcome" class="grid gap-4 px-8 py-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div v-if="contract.productSnapshot">
+            <dt class="text-sm font-semibold">Product Category</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.category }}</dd>
+          </div>
+          <div v-if="contract.productSnapshot?.manufacturer">
+            <dt class="text-sm font-semibold">Manufacturer</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.manufacturer }}</dd>
+          </div>
+          <div v-if="contract.productSnapshot?.model">
+            <dt class="text-sm font-semibold">Model</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.model }}</dd>
+          </div>
+          <div v-if="contract.prsClosingOutcome">
+            <dt class="text-sm font-semibold">PRS Closing Outcome</dt>
+            <dd class="font-montserrat">{{ contract.prsClosingOutcome }}</dd>
+          </div>
+        </dl>
       </div>
 
       <!-- Edit mode grid -->

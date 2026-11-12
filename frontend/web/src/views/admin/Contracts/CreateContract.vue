@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, ScanLine, Sparkles } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { readPrsContractLink, usePrsContractHandoff } from '@/composables/usePrsContractHandoff'
 import { useApiCache } from '@/composables/useApiCache'
 import DocumentUpload from '@/views/sales/Contracts/DocumentUpload.vue'
 import type { ContractRegion, UploadedDoc } from '@/types/contract'
@@ -22,6 +23,8 @@ const canUseContractGenerator = computed(() => hasPermission('cms.ai.contract_ge
 
 const router = useRouter()
 const route  = useRoute()
+const { fetchCatalogProduct } = usePrsContractHandoff()
+const prsLink = readPrsContractLink(route.query)
 const ocrOpen = ref(false)
 const { detectType: detectOcrDocType, validate: validateOcrDoc, uploadFile: uploadOcrDoc } = useDocumentUpload()
 
@@ -115,6 +118,10 @@ const maxDate = (() => {
 const minDate = '1999-01-01'
 
 interface FormState {
+  prsActivityId?: number
+  productId?: number
+  prsInstitutionId?: number
+  prsBranchId?: number
   businessPartner: string
   category:        string
   itemCode:        string
@@ -139,6 +146,10 @@ const form = reactive<FormState>({
 })
 
 const touched = reactive<Record<keyof FormState, boolean>>({
+  prsActivityId: false,
+  productId: false,
+  prsInstitutionId: false,
+  prsBranchId: false,
   businessPartner: false,
   category:        false,
   itemCode:        false,
@@ -316,6 +327,10 @@ async function handleSubmit() {
       bp_name:       form.businessPartner,
       category:      form.category,
       item_code:     form.itemCode,
+      prs_activity_id: form.prsActivityId,
+      product_id: form.productId,
+      prs_institution_id: form.prsInstitutionId,
+      prs_branch_id: form.prsBranchId,
       description:   form.description,
       serial_number: form.serialNo,
       sbu_number:    form.sbuNumber,
@@ -420,6 +435,20 @@ onMounted(async () => {
       contractDocs.value = [...saved.docs]
     }
     draft.active = false
+  }
+  if (prsLink.businessPartner) form.businessPartner = prsLink.businessPartner
+  if (prsLink.sbuNumber) form.sbuNumber = prsLink.sbuNumber
+  if (prsLink.description) form.description = prsLink.description
+  form.prsActivityId = prsLink.prsActivityId ?? form.prsActivityId
+  form.productId = prsLink.productId ?? form.productId
+  form.prsInstitutionId = prsLink.prsInstitutionId ?? form.prsInstitutionId
+  form.prsBranchId = prsLink.prsBranchId ?? form.prsBranchId
+  if (form.productId) {
+    try {
+      Object.assign(form, await fetchCatalogProduct(form.productId))
+    } catch {
+      error('Could not load the PRS product.')
+    }
   }
 })
 

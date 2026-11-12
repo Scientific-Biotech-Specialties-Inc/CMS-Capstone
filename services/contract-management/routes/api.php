@@ -5,7 +5,18 @@ use App\Http\Controllers\LookupController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::prefix('/integrations/v1')->middleware('throttle:60,1')->group(function () {
+    Route::get('/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'index']);
+    Route::post('/prs/closing-outcomes', \App\Http\Controllers\Api\V1\PrsClosingOutcomeController::class);
+});
+
 Route::middleware(['auth.internal'])->group(function () {
+    Route::get('/products/{product}', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'show'])
+        ->middleware('permission:cms.contracts.create');
+    Route::middleware('role:Admin')->group(function () {
+        Route::post('/integrations/v1/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'store']);
+        Route::patch('/integrations/v1/products/{product}', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'update']);
+    });
 
     Route::get('/lookups/{type}', [LookupController::class, 'show']);
     

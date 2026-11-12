@@ -19,6 +19,7 @@ class ContractAmendment extends Model
         'bp_name',
         'category',
         'item_code',
+        'product_snapshot',
         'description',
         'serial_number',
         'sbu_number',
@@ -36,6 +37,7 @@ class ContractAmendment extends Model
     ];
 
     protected $casts = [
+        'product_snapshot' => 'array',
         'bp_name' => EncryptedCast::class,
         'description' => EncryptedCast::class,
         'start_date' => 'date',
