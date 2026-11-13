@@ -8,6 +8,16 @@ This guide is for **SERMS developers** integrating with **CMS (Contract Manageme
 
 ---
 
+## Integration Flow Overview
+
+| Flow | What SERMS Does | What CMS Provides / Does |
+| :--- | :--- | :--- |
+| **1.1 Contract Burn Rate & Net Margin** | Shows a searchable contract dropdown on reimbursements/cash advances; saves `contract_id` & `client_name`; exposes `/api/internal/expenses/by-contract`. | Exposes `GET /api/contract/active` (with `contract_value`); Analytics Service pulls SERMS expenses via `GET /api/analytics/contract-margins` and displays **Burn Rate %** & **True Net Margin** in the **Contract Margins** dashboard tab. |
+| **1.2 Vendor TIN Cross-Validation** | Extracts vendor name & TIN via receipt OCR; auto-tags accredited vendors, flags unknown/flagged ones for audit, applies conditional routing, and submits new merchants. | Exposes `GET /api/internal/vendors/lookup?tin=...&name=...` to validate accreditation/flag status & default expense category; exposes `POST /api/internal/vendors/suggest` and lets CMS admins onboard them from **Vendor Suggestions**. |
+| **1.3 Recurring Expense → Contract Request** | Detects recurring one-off purchases for the same supplier/service and lets Accounting forward the purchase history summary. | Exposes `POST /api/internal/contract-requests/from-serms` to automatically create a **Pending Contract Request** tagged `source_system = SERMS` with the attached `supporting_expense_summary`. |
+
+---
+
 ## Authentication & Base URLs
 
 All internal service-to-service endpoints use the shared `X-Internal-Secret` header.
