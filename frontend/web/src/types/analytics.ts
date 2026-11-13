@@ -45,6 +45,41 @@ export interface RefreshResult {
   predictionsGenerated?: number
 }
 
+export interface ExpenseBreakdown {
+  travel: number
+  spareParts: number
+  fieldService: number
+  other: number
+}
+
+export interface ContractMarginItem {
+  contractId: number
+  contractCode: string | null
+  clientName: string | null
+  category: string | null
+  totalContractValue: number | null
+  actualExpenses: number
+  expenseBreakdown: ExpenseBreakdown
+  burnRatePct: number | null
+  trueNetMargin: number | null
+  marginPct: number | null
+  startDate: string | null
+  endDate: string | null
+}
+
+export interface ContractMarginsSummary {
+  contractsCount: number
+  totalContractValue: number
+  totalExpenses: number
+  totalNetMargin: number
+}
+
+export interface ContractMarginsResponse {
+  sermsConnected: boolean
+  summary: ContractMarginsSummary
+  contracts: ContractMarginItem[]
+}
+
 // ── Display labels ──────────────────────────────────────────────────
 
 export const serviceLabels: Record<string, string> = {

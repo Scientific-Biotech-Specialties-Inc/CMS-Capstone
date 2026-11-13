@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { LayoutDashboard, Sparkles, TrendingUp } from 'lucide-vue-next'
+import { Coins, LayoutDashboard, Sparkles, TrendingUp } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useApiCache } from '@/composables/useApiCache'
 import { useToast } from '@/composables/useToast'
@@ -8,6 +8,7 @@ import { remainingDays } from '@/types/contract'
 import DashboardOverviewTab from './DashboardOverviewTab.vue'
 import DiagnosticInsightsTab from '@/components/dashboard/insights/DiagnosticInsightsTab.vue'
 import PredictiveInsightsTab from '@/components/dashboard/insights/PredictiveInsightsTab.vue'
+import ContractMarginsTab from '@/components/dashboard/insights/ContractMarginsTab.vue'
 
 type Role   = 'Admin' | 'Manager' | 'Sales'
 type Status = 'Active' | 'Inactive'
@@ -48,7 +49,7 @@ const { state: authState, hasPermission } = useAuth()
 const userFirstName = computed(() => (authState.user as any)?.profile?.first_name || authState.user?.first_name || 'Admin')
 
 // ── Tabs ─────────────────────────────────────────────────────────────
-type Tab = 'overview' | 'diagnostic' | 'predictive'
+type Tab = 'overview' | 'diagnostic' | 'predictive' | 'margins'
 const activeTab = ref<Tab>('overview')
 const canUseAiInsights = computed(() => hasPermission('cms.ai.risk_assessment'))
 
@@ -249,6 +250,14 @@ onMounted(() => {
         <TrendingUp class="w-4 h-4 text-brand-navy" />
         Predictive
       </button>
+      <button
+        @click="activeTab = 'margins'"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all"
+        :class="activeTab === 'margins' ? 'bg-white text-black shadow-xs' : 'text-black/50 hover:text-black'"
+      >
+        <Coins class="w-4 h-4 text-brand-blue" />
+        Contract Margins
+      </button>
     </div>
 
     <!-- Skeletal loader during fetch -->
@@ -283,6 +292,7 @@ onMounted(() => {
     <!-- Diagnostic / Predictive tabs (AI-permission gated) -->
     <DiagnosticInsightsTab v-else-if="activeTab === 'diagnostic' && canUseAiInsights" />
     <PredictiveInsightsTab v-else-if="activeTab === 'predictive' && canUseAiInsights" />
+    <ContractMarginsTab v-else-if="activeTab === 'margins'" />
 
   </div>
 </template>
