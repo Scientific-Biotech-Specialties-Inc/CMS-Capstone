@@ -137,4 +137,9 @@ Route::middleware(['internal.secret'])->group(function () {
     // Feature 4: Analytics — descriptive/diagnostic metrics snapshot for analytics-service.
     Route::get('/internal/metrics/contracts', [\App\Http\Controllers\Api\V1\Internal\InternalMetricsController::class, 'contracts']);
     Route::get('/internal/metrics/contracts/by-segment', [\App\Http\Controllers\Api\V1\Internal\InternalMetricsController::class, 'contractsBySegment']);
+
+    // SERMS Integration (1.1): Active contracts for searchable dropdown & burn-rate margin lookups.
+    // Exposed at /active (routed via Nginx /api/contract/active) and /internal/contracts/active.
+    Route::get('/active', \App\Http\Controllers\Api\V1\Internal\ActiveContractsController::class);
+    Route::get('/internal/contracts/active', \App\Http\Controllers\Api\V1\Internal\ActiveContractsController::class);
 });

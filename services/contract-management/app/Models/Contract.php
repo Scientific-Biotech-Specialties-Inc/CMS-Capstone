@@ -32,6 +32,7 @@ class Contract extends Model
         'region_id',
         'start_date',
         'end_date',
+        'contract_value',
         'created_by',
         'prs_activity_id',
         'notify_manager_count',
@@ -43,8 +44,18 @@ class Contract extends Model
         'description' => EncryptedCast::class,
         'start_date' => 'date',
         'end_date' => 'date',
+        'contract_value' => 'decimal:2',
         'prs_activity_id' => 'integer',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('approval_status_id', 2)
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            });
+    }
 
     public static function generateUniqueContractCode(): string
     {
