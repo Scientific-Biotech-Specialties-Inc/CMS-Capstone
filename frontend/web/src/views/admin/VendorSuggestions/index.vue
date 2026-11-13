@@ -8,6 +8,7 @@ import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import { useVendorSuggestions } from '@/composables/useVendorSuggestions'
 import VendorSuggestionCard from './VendorSuggestionCard.vue'
+import SermsSuggestedVendorsSection from './SermsSuggestedVendorsSection.vue'
 
 // Feature 3, Page 1: request a suggestion batch (industry/region hint),
 // poll until the async Gemini pipeline completes, then let the Admin
@@ -189,5 +190,7 @@ function toggleSelectAll() {
     <div v-else-if="batch" class="text-center py-16 text-sm text-black/35">
       No pending candidates in this batch — request a new suggestion above.
     </div>
+
+    <SermsSuggestedVendorsSection />
   </div>
 </template>

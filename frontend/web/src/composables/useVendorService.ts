@@ -1,5 +1,5 @@
 import { useAuth } from './useAuth'
-import type { Partner, AddPartnerForm } from '@/types/partner'
+import type { Partner, AddPartnerForm, SuggestedVendor } from '@/types/partner'
 
 const BASE_URL = import.meta.env.VITE_VENDOR_API_URL as string
 
@@ -45,6 +45,9 @@ function mapSupplier(d: any): Partner {
     address:       d.address        ?? '',
     bpCode:        null,
     tinNumber:     d.tin_number     ?? null,
+    isAccredited:  Boolean(d.is_accredited),
+    isFlagged:     Boolean(d.is_flagged),
+    defaultExpenseCategory: d.default_expense_category ?? null,
   }
 }
 
@@ -211,6 +214,58 @@ async function deleteSupplier(id: number): Promise<void> {
   }
 }
 
+function mapSuggestedVendor(d: any): SuggestedVendor {
+  return {
+    suggestedVendorId: Number(d.suggested_vendor_id),
+    vendorName: d.vendor_name ?? '',
+    tinNumber: d.tin_number ?? null,
+    industry: d.industry ?? null,
+    contactPerson: d.contact_person ?? null,
+    contactNumber: d.contact_number ?? null,
+    email: d.email ?? null,
+    address: d.address ?? null,
+    region: d.region ?? null,
+    defaultExpenseCategory: d.default_expense_category ?? null,
+    sourceSystem: d.source_system ?? 'SERMS',
+    sourceReceiptId: d.source_receipt_id ?? null,
+    status: d.status ?? 'Pending',
+    createdAt: d.created_at ?? null,
+  }
+}
+
+async function fetchSuggestedVendors(status: string = 'Pending'): Promise<SuggestedVendor[]> {
+  const res = await fetch(`${BASE_URL}/suggested-vendors?status=${encodeURIComponent(status)}`, {
+    headers: makeHeaders(),
+  })
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+  const json = await res.json()
+  return (json.data ?? []).map(mapSuggestedVendor)
+}
+
+async function approveSuggestedVendor(id: number, isAccredited: boolean = true): Promise<void> {
+  const res = await fetch(`${BASE_URL}/suggested-vendors/${id}/approve`, {
+    method: 'POST',
+    headers: makeHeaders(),
+    body: JSON.stringify({ is_accredited: isAccredited }),
+  })
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}))
+    throw json
+  }
+}
+
+async function rejectSuggestedVendor(id: number, rejectionReason?: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/suggested-vendors/${id}/reject`, {
+    method: 'POST',
+    headers: makeHeaders(),
+    body: JSON.stringify({ rejection_reason: rejectionReason ?? null }),
+  })
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}))
+    throw json
+  }
+}
+
 export function useVendorService() {
   return {
     fetchPartners,
@@ -223,5 +278,8 @@ export function useVendorService() {
     createSupplier,
     updateSupplier,
     deleteSupplier,
+    fetchSuggestedVendors,
+    approveSuggestedVendor,
+    rejectSuggestedVendor,
   }
 }

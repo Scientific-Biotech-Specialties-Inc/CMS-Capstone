@@ -16,6 +16,9 @@ export interface Partner {
   linkedContracts?: LinkedContract[]
   bpCode?: string | null
   tinNumber?: string | null
+  isAccredited?: boolean
+  isFlagged?: boolean
+  defaultExpenseCategory?: string | null
   contracts?: number
   totalValue?: string
   /** ISO date the partner/supplier record was created, if the API returns it. */
@@ -52,4 +55,21 @@ export const engagementBadge: Record<EngagementStatus, string> = {
   expiring: 'bg-amber-50 text-amber-700 border-amber-200',
   expired: 'bg-black/5 text-black/40 border-black/10',
   inactive: 'bg-brand-navy/5 text-brand-navy/70 border-brand-navy/15',
+}
+
+export interface SuggestedVendor {
+  suggestedVendorId: number
+  vendorName: string
+  tinNumber: string | null
+  industry: string | null
+  contactPerson: string | null
+  contactNumber: string | null
+  email: string | null
+  address: string | null
+  region: string | null
+  defaultExpenseCategory: string | null
+  sourceSystem: string
+  sourceReceiptId: string | null
+  status: 'Pending' | 'Approved' | 'Rejected'
+  createdAt: string | null
 }
