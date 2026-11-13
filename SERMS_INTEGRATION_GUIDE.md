@@ -10,11 +10,11 @@ This guide is for **SERMS developers** integrating with **CMS (Contract Manageme
 
 ## Integration Flow Overview
 
-| Flow | What SERMS Does | What CMS Provides / Does |
-| :--- | :--- | :--- |
-| **1.1 Contract Burn Rate & Net Margin** | Shows a searchable contract dropdown on reimbursements/cash advances; saves `contract_id` & `client_name`; exposes `/api/internal/expenses/by-contract`. | Exposes `GET /api/contract/active` (with `contract_value`); Analytics Service pulls SERMS expenses via `GET /api/analytics/contract-margins` and displays **Burn Rate %** & **True Net Margin** in the **Contract Margins** dashboard tab. |
-| **1.2 Vendor TIN Cross-Validation** | Extracts vendor name & TIN via receipt OCR; auto-tags accredited vendors, flags unknown/flagged ones for audit, applies conditional routing, and submits new merchants. | Exposes `GET /api/internal/vendors/lookup?tin=...&name=...` to validate accreditation/flag status & default expense category; exposes `POST /api/internal/vendors/suggest` and lets CMS admins onboard them from **Vendor Suggestions**. |
-| **1.3 Recurring Expense → Contract Request** | Detects recurring one-off purchases for the same supplier/service and lets Accounting forward the purchase history summary. | Exposes `POST /api/internal/contract-requests/from-serms` to automatically create a **Pending Contract Request** tagged `source_system = SERMS` with the attached `supporting_expense_summary`. |
+| Integration | Direction | What SERMS Does | What CMS Does |
+| :--- | :--- | :--- | :--- |
+| **1.1 Burn Rate & Net Margin** | SERMS ↔ CMS | • Dropdown of active contracts on expenses<br>• Saves `contract_id` & `client_name`<br>• Exposes `GET /api/internal/expenses/by-contract` | • Exposes `GET /api/contract/active` (with `contract_value`)<br>• Pulls SERMS expenses in Analytics<br>• Shows **Burn Rate %** & **True Net Margin** |
+| **1.2 Vendor TIN Validation** | SERMS → CMS | • Extracts vendor name & TIN via OCR<br>• Auto-tags accredited vendors & suggests categories<br>• Flags unlisted/flagged vendors for audit<br>• Submits new verified merchants | • Exposes `GET /api/vendor/internal/vendors/lookup`<br>• Exposes `POST /api/vendor/internal/vendors/suggest`<br>• Lets admins onboard them in **Vendor Suggestions** |
+| **1.3 Recurring Expense → Contract** | SERMS → CMS | • Detects recurring one-off purchases<br>• Generates purchase history summary<br>• Accounting forwards summary to CMS | • Exposes `POST /api/contract/internal/contract-requests/from-serms`<br>• Creates a **Pending Contract Request** (`source_system = SERMS`) with `supporting_expense_summary` |
 
 ---
 
