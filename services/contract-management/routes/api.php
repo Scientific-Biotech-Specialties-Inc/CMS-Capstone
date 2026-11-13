@@ -142,4 +142,7 @@ Route::middleware(['internal.secret'])->group(function () {
     // Exposed at /active (routed via Nginx /api/contract/active) and /internal/contracts/active.
     Route::get('/active', \App\Http\Controllers\Api\V1\Internal\ActiveContractsController::class);
     Route::get('/internal/contracts/active', \App\Http\Controllers\Api\V1\Internal\ActiveContractsController::class);
+
+    // SERMS Integration (1.3): Create a Contract Request from recurring SERMS expense history.
+    Route::post('/internal/contract-requests/from-serms', \App\Http\Controllers\Api\V1\Internal\RecurringExpenseContractRequestController::class);
 });

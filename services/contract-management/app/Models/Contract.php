@@ -35,6 +35,9 @@ class Contract extends Model
         'contract_value',
         'created_by',
         'prs_activity_id',
+        'source_system',
+        'source_reference_id',
+        'supporting_expense_summary',
         'notify_manager_count',
         'rejection_reason',
     ];
@@ -46,6 +49,7 @@ class Contract extends Model
         'end_date' => 'date',
         'contract_value' => 'decimal:2',
         'prs_activity_id' => 'integer',
+        'supporting_expense_summary' => 'array',
     ];
 
     public function scopeActive($query)
