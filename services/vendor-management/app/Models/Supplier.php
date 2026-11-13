@@ -25,9 +25,10 @@ class Supplier extends Model
         'email',
         'address',
         'region',
-        'industry',
         'status',
-        'contact_person',
+        'is_accredited',
+        'is_flagged',
+        'default_expense_category',
     ];
 
     protected $casts = [
@@ -35,6 +36,8 @@ class Supplier extends Model
         'email' => EncryptedCast::class,
         'address' => EncryptedCast::class,
         'contact_person' => EncryptedCast::class,
+        'is_accredited' => 'boolean',
+        'is_flagged' => 'boolean',
     ];
 
     public function associations(): \Illuminate\Database\Eloquent\Relations\HasMany

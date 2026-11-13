@@ -80,8 +80,11 @@ class SupplierController extends Controller
             'contact_number' => 'nullable|string',
             'email'          => 'nullable|email|max:255',
             'address'        => 'nullable|string',
-            'region'         => 'nullable|string|max:100',
-            'status'         => 'nullable|string|in:Active,Inactive,Suspended',
+            'region'                   => 'nullable|string|max:100',
+            'status'                   => 'nullable|string|in:Active,Inactive,Suspended',
+            'is_accredited'            => 'nullable|boolean',
+            'is_flagged'               => 'nullable|boolean',
+            'default_expense_category' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -179,8 +182,11 @@ class SupplierController extends Controller
             'contact_number' => 'nullable|string',
             'email'          => 'nullable|email|max:255',
             'address'        => 'nullable|string',
-            'region'         => 'nullable|string|max:100',
-            'status'         => 'nullable|string|in:Active,Inactive,Suspended',
+            'region'                   => 'nullable|string|max:100',
+            'status'                   => 'nullable|string|in:Active,Inactive,Suspended',
+            'is_accredited'            => 'nullable|boolean',
+            'is_flagged'               => 'nullable|boolean',
+            'default_expense_category' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {

@@ -14,6 +14,10 @@ Route::middleware(['internal.secret'])->group(function () {
 
     // Feature 4: Analytics — descriptive metrics snapshot for analytics-service.
     Route::get('/internal/metrics/vendors', [\App\Http\Controllers\Api\V1\Internal\InternalMetricsController::class, 'vendors']);
+
+    // SERMS Integration (1.2): Vendor TIN/name lookup & suggested vendor intake.
+    Route::get('/internal/vendors/lookup', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'lookup']);
+    Route::post('/internal/vendors/suggest', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'suggestFromSerms']);
 });
 
 // Integration Endpoint for retrieving SBSI customer details
@@ -81,5 +85,13 @@ Route::middleware(['auth.internal'])->group(function () {
     // Vendor eligibility lookup (for integration with other systems)
     Route::get('/vendors/{code}/eligibility', \App\Http\Controllers\Api\V1\VendorEligibilityController::class)
         ->middleware('permission:cms.partners.view');
+
+    // SERMS Integration (1.2): Onboarding review for SERMS-submitted suggested vendors
+    Route::get('/suggested-vendors', [\App\Http\Controllers\Api\V1\SuggestedVendorController::class, 'index'])
+        ->middleware('permission:cms.partners.view');
+    Route::post('/suggested-vendors/{id}/approve', [\App\Http\Controllers\Api\V1\SuggestedVendorController::class, 'approve'])
+        ->middleware('permission:cms.partners.create');
+    Route::post('/suggested-vendors/{id}/reject', [\App\Http\Controllers\Api\V1\SuggestedVendorController::class, 'reject'])
+        ->middleware('permission:cms.partners.edit');
 
 });

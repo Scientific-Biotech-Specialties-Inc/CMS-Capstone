@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Internal;
 
 use App\Http\Controllers\Controller;
 use App\Models\BusinessPartner;
+use App\Models\SuggestedVendor;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
 use App\Services\DuplicateDetectionService;
@@ -131,5 +132,138 @@ class InternalVendorController extends Controller
         $this->auditLogService->log('created', 'BusinessPartner', $partner->partner_id, $decidedBy, [], $partner->toArray(), null);
 
         return response()->json(['data' => $partner], 201);
+    }
+
+    /**
+     * GET /internal/vendors/lookup?tin=...&name=...
+     * Cross-validates OCR-extracted vendor name & TIN from SERMS against
+     * CMS supplier master data.
+     */
+    public function lookup(Request $request)
+    {
+        $tin = trim((string) $request->query('tin', ''));
+        $name = trim((string) $request->query('name', ''));
+
+        if ($tin === '' && $name === '') {
+            return response()->json(['message' => 'Provide either tin or name query parameter.'], 422);
+        }
+
+        $supplier = null;
+        $matchType = null;
+
+        if ($tin !== '') {
+            $normalizedTin = preg_replace('/[^0-9]/', '', $tin) ?? '';
+            $supplier = Supplier::where('tin_number', $tin)->first();
+
+            if (!$supplier && $normalizedTin !== '') {
+                $supplier = Supplier::query()
+                    ->whereNotNull('tin_number')
+                    ->get()
+                    ->first(static fn (Supplier $s): bool => (preg_replace('/[^0-9]/', '', (string) $s->tin_number) ?? '') === $normalizedTin);
+            }
+
+            if ($supplier) {
+                $matchType = 'tin';
+            }
+        }
+
+        if (!$supplier && $name !== '') {
+            $needle = mb_strtolower($name);
+            $supplier = Supplier::query()
+                ->whereRaw('LOWER(supplier_name) = ?', [$needle])
+                ->first()
+                ?? Supplier::query()->where('supplier_name', 'like', '%' . $name . '%')->first();
+
+            if ($supplier) {
+                $matchType = 'name';
+            }
+        }
+
+        if (!$supplier) {
+            return response()->json([
+                'data' => [
+                    'matched'                  => false,
+                    'match_type'               => null,
+                    'requires_audit'           => true,
+                    'is_accredited'            => false,
+                    'is_flagged'               => false,
+                    'status'                   => null,
+                    'default_expense_category' => null,
+                    'supplier_id'              => null,
+                    'supplier_name'            => null,
+                    'tin_number'               => null,
+                ],
+            ]);
+        }
+
+        $requiresAudit = (bool) $supplier->is_flagged || $supplier->status !== 'Active' || !(bool) $supplier->is_accredited;
+
+        return response()->json([
+            'data' => [
+                'matched'                  => true,
+                'match_type'               => $matchType,
+                'requires_audit'           => $requiresAudit,
+                'is_accredited'            => (bool) $supplier->is_accredited,
+                'is_flagged'               => (bool) $supplier->is_flagged,
+                'status'                   => $supplier->status,
+                'default_expense_category' => $supplier->default_expense_category,
+                'supplier_id'              => $supplier->supplier_id,
+                'supplier_name'            => $supplier->supplier_name,
+                'tin_number'               => $supplier->tin_number,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /internal/vendors/suggest
+     * Allows SERMS to submit a newly verified merchant as a Suggested Vendor
+     * for CMS supplier onboarding.
+     */
+    public function suggestFromSerms(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'vendor_name'              => 'required|string|max:255',
+            'tin_number'               => 'nullable|string|max:100',
+            'industry'                 => 'nullable|string|max:100',
+            'contact_person'           => 'nullable|string|max:255',
+            'contact_number'           => 'nullable|string|max:100',
+            'email'                    => 'nullable|email|max:255',
+            'address'                  => 'nullable|string',
+            'region'                   => 'nullable|string|max:100',
+            'default_expense_category' => 'nullable|string|max:100',
+            'source_receipt_id'        => 'nullable|string|max:100',
+            'submitted_by'             => 'nullable|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+
+        if (!empty($data['tin_number'])) {
+            $existingSupplier = Supplier::where('tin_number', $data['tin_number'])->first();
+            if ($existingSupplier) {
+                return response()->json([
+                    'message'     => 'Vendor already exists in CMS supplier master list.',
+                    'supplier_id' => $existingSupplier->supplier_id,
+                ], 409);
+            }
+
+            $existingSuggestion = SuggestedVendor::where('tin_number', $data['tin_number'])
+                ->where('status', 'Pending')
+                ->first();
+            if ($existingSuggestion) {
+                return response()->json(['data' => $existingSuggestion], 200);
+            }
+        }
+
+        $suggestion = SuggestedVendor::create([
+            ...$data,
+            'source_system' => 'SERMS',
+            'status'        => 'Pending',
+        ]);
+
+        return response()->json(['data' => $suggestion], 201);
     }
 }
