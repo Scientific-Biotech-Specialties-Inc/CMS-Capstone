@@ -8,5 +8,6 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
     Route::get('/analytics/diagnostics', [AnalyticsController::class, 'diagnostics']);
     Route::get('/analytics/predictive', [AnalyticsController::class, 'predictive']);
+    Route::get('/analytics/contract-margins', [AnalyticsController::class, 'contractMargins']);
     Route::post('/analytics/refresh', [AnalyticsController::class, 'refresh']);
 });

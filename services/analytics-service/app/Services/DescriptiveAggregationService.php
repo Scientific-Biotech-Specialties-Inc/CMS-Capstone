@@ -26,6 +26,7 @@ class DescriptiveAggregationService
         $written['vendors']       = $this->aggregateVendors($today);
         $written['notifications'] = $this->aggregateNotifications($today);
         $written['ai']            = $this->aggregateAi($today);
+        $written['serms']         = $this->aggregateSermsExpenses($today);
 
         return $written;
     }
@@ -90,6 +91,25 @@ class DescriptiveAggregationService
         $count += $this->write('emails_failed', 'notification', $data['total_emails_failed'] ?? null, $date);
         $count += $this->write('email_success_rate_pct', 'notification', $data['email_success_rate_pct'] ?? null, $date, [
             'notifications_by_type' => $data['notifications_by_type'] ?? null,
+        ]);
+
+        return $count;
+    }
+
+    protected function aggregateSermsExpenses(string $date): int
+    {
+        $data = $this->client->sermsExpensesByContract();
+        if ($data === null) {
+            Log::warning('DescriptiveAggregationService: SERMS expense metrics unavailable, skipping.');
+            return 0;
+        }
+
+        $items = $data['data'] ?? [];
+        $totalExpenses = array_reduce($items, static fn (float $sum, array $row): float => $sum + (float) ($row['total_expenses'] ?? 0.0), 0.0);
+
+        $count = 0;
+        $count += $this->write('serms_total_contract_expenses', 'serms', $totalExpenses, $date, [
+            'contracts_with_expenses' => count($items),
         ]);
 
         return $count;

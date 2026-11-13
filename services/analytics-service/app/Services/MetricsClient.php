@@ -19,6 +19,7 @@ class MetricsClient
     protected string $vendorServiceUrl;
     protected string $notificationServiceUrl;
     protected string $aiServiceUrl;
+    protected string $sermsServiceUrl;
 
     public function __construct()
     {
@@ -27,6 +28,7 @@ class MetricsClient
         $this->vendorServiceUrl       = env('VENDOR_SERVICE_URL', 'http://vendor-management:8000/api');
         $this->notificationServiceUrl = env('NOTIFICATION_SERVICE_URL', 'http://notification:8000/api');
         $this->aiServiceUrl           = env('AI_SERVICE_URL', 'http://ai-service:8000/api');
+        $this->sermsServiceUrl        = env('SERMS_SERVICE_URL', 'http://serms-service:8000/api');
     }
 
     public function contractMetrics(): ?array
@@ -52,6 +54,21 @@ class MetricsClient
     public function aiMetrics(): ?array
     {
         return $this->getJson("{$this->aiServiceUrl}/internal/metrics/ai");
+    }
+
+    public function activeContracts(): ?array
+    {
+        return $this->getJson("{$this->contractServiceUrl}/internal/contracts/active");
+    }
+
+    public function sermsExpensesByContract(): ?array
+    {
+        return $this->getJson("{$this->sermsServiceUrl}/internal/expenses/by-contract");
+    }
+
+    public function sermsContractExpenses(int $contractId): ?array
+    {
+        return $this->getJson("{$this->sermsServiceUrl}/internal/contracts/{$contractId}/expenses");
     }
 
     protected function getJson(string $url): ?array

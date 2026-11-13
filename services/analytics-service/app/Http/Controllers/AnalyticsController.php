@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AggregatedMetric;
 use App\Models\DiagnosticInsight;
 use App\Models\PredictiveInsight;
+use App\Services\ContractMarginService;
 use App\Services\DescriptiveAggregationService;
 use App\Services\DiagnosticAnalysisService;
 use App\Services\PredictiveAnalysisService;
@@ -22,6 +23,7 @@ class AnalyticsController extends Controller
         protected DescriptiveAggregationService $descriptive,
         protected DiagnosticAnalysisService $diagnostic,
         protected PredictiveAnalysisService $predictive,
+        protected ContractMarginService $contractMargins,
     ) {
     }
 
@@ -128,6 +130,21 @@ class AnalyticsController extends Controller
             'metrics_written'      => $written,
             'insights_generated'   => count($insights),
             'predictions_generated' => count($predictions),
+        ]);
+    }
+
+    /**
+     * GET /analytics/contract-margins — SERMS contract-tied expenses,
+     * burn rate, and True Net Contract Margin (Admin/Manager only).
+     */
+    public function contractMargins(Request $request)
+    {
+        if ($denied = $this->denyIfNotAuthorized($request)) {
+            return $denied;
+        }
+
+        return response()->json([
+            'data' => $this->contractMargins->compute(),
         ]);
     }
 
