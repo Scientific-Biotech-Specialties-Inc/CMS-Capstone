@@ -35,11 +35,11 @@ const emit = defineEmits<{
       </span>
       <span v-else-if="contractType.draft_workflow"
         class="text-xs font-semibold px-2.5 py-1 rounded-full bg-black/4 text-black/50 border border-black/8 shrink-0">
-        Draft only
+        No Workflow
       </span>
       <span v-else
         class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 shrink-0">
-        No workflow
+        No Workflow
       </span>
     </div>
 

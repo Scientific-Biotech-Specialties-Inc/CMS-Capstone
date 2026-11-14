@@ -45,6 +45,22 @@ class WorkflowService
         })->values()->all();
     }
 
+    public function createContractType(string $name): array
+    {
+        $cat = ContractCategory::create([
+            'category_name' => $name,
+            'is_active'     => true,
+        ]);
+
+        return [
+            'contract_type_id'   => $cat->category_id,
+            'contract_type_name' => $cat->category_name,
+            'is_active'          => (bool) $cat->is_active,
+            'active_workflow'    => null,
+            'draft_workflow'     => null,
+        ];
+    }
+
     public function getWorkflow(int $workflowId): Workflow
     {
         $workflow = Workflow::with(['steps.workflowStepRoles'])->find($workflowId);

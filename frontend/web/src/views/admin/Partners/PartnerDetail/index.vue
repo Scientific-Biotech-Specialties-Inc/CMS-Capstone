@@ -12,14 +12,15 @@ import { usePartners } from '@/composables/usePartners'
 import { useAuth } from '@/composables/useAuth'
 import { setBreadcrumbTitle } from '@/composables/useBreadcrumbs'
 import PartnerLinkedContracts from '@/views/admin/Partners/PartnerLinkedContracts.vue'
+import PartnerReimbursementHistory from '@/views/admin/Partners/PartnerReimbursementHistory.vue'
 import DeleteConfirmDialog from '@/views/admin/Partners/DeleteConfirmDialog.vue'
-import type { Partner, TabKey } from '@/types/partner'
+import type { Partner, TabKey, VendorReimbursement, VendorReimbursementMeta } from '@/types/partner'
 
 const route  = useRoute()
 const router = useRouter()
 const { success, error } = useToast()
 const { fetchPartnerById, fetchSupplierById } = useVendorService()
-const { fetchVendorContracts, detachContract, deletePartner } = usePartners()
+const { fetchVendorContracts, fetchVendorReimbursements, detachContract, deletePartner } = usePartners()
 const { hasPermission } = useAuth()
 
 const rawCode = route.params.code as string
@@ -33,6 +34,15 @@ const activeTab = computed<TabKey>(() => type === 'bp' ? 'partners' : 'suppliers
 
 const partner   = ref<Partner | null>(null)
 const loading   = ref(true)
+const reimbursements = ref<VendorReimbursement[]>([])
+const reimbursementsLoading = ref(false)
+const reimbursementsRefreshing = ref(false)
+const reimbursementsMeta = ref<VendorReimbursementMeta>({
+  sermsConnected: true,
+  count: 0,
+  totalAmount: 0,
+  syncedAt: null,
+})
 
 watchEffect(() => {
   if (partner.value?.name) {
@@ -77,12 +87,42 @@ async function loadPartner() {
       const dbId = Number(partner.value.db_id || partner.value.id)
       const contracts = await fetchVendorContracts(activeTab.value, dbId)
       partner.value.linkedContracts = contracts
+      void loadReimbursements(dbId)
     }
   } catch {
     partner.value = null
   } finally {
     loading.value = false
   }
+}
+
+async function loadReimbursements(vendorId: number | string, manualRefresh = false) {
+  if (manualRefresh) {
+    reimbursementsRefreshing.value = true
+  } else {
+    reimbursementsLoading.value = true
+  }
+  try {
+    const res = await fetchVendorReimbursements(activeTab.value, vendorId)
+    reimbursements.value = res.items
+    reimbursementsMeta.value = res.meta
+    if (manualRefresh) {
+      success('Reimbursements synced', `Loaded ${res.items.length} SERMS reimbursement record(s).`)
+    }
+  } catch {
+    if (manualRefresh) {
+      error('Sync failed', 'Could not fetch reimbursement history from SERMS.')
+    }
+  } finally {
+    reimbursementsLoading.value = false
+    reimbursementsRefreshing.value = false
+  }
+}
+
+function handleRefreshReimbursements() {
+  if (!partner.value) return
+  const dbId = Number(partner.value.db_id || partner.value.id)
+  void loadReimbursements(dbId, true)
 }
 
 function handleCreateContractForPartner() {
@@ -331,6 +371,20 @@ const statusClass = computed(() => {
           :can-manage="isAdmin"
           @detach="handleDetachContract"
           @open-contract="handleOpenContract"
+        />
+      </div>
+
+      <!-- Related Reimbursement History (SERMS) -->
+      <div class="bg-white rounded-xl border border-black/8 shadow-sm p-6">
+        <PartnerReimbursementHistory
+          :items="reimbursements"
+          :loading="reimbursementsLoading"
+          :refreshing="reimbursementsRefreshing"
+          :serms-connected="reimbursementsMeta.sermsConnected"
+          :total-amount="reimbursementsMeta.totalAmount"
+          :synced-at="reimbursementsMeta.syncedAt"
+          :vendor-type="activeTab"
+          @refresh="handleRefreshReimbursements"
         />
       </div>
 

@@ -32,6 +32,24 @@ class WorkflowController extends Controller
     }
 
     /**
+     * POST /workflows/contract-types — add a new contract category/type.
+     */
+    public function storeContractType(Request $request)
+    {
+        $request->merge([
+            'category_name' => trim((string) $request->input('category_name', '')),
+        ]);
+
+        $validated = Validator::make($request->all(), [
+            'category_name' => 'required|string|max:255|unique:contract_categories,category_name',
+        ])->validate();
+
+        return response()->json([
+            'data' => $this->workflowService->createContractType($validated['category_name']),
+        ], 201);
+    }
+
+    /**
      * GET /workflows/assignable-roles — proxies auth-module's role list
      * for the Role Picker dialog.
      */

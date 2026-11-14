@@ -73,3 +73,26 @@ export interface SuggestedVendor {
   status: 'Pending' | 'Approved' | 'Rejected'
   createdAt: string | null
 }
+
+export interface VendorReimbursement {
+  id: number
+  sermsReimbursementId: number
+  referenceNo: string
+  tinNumber: string | null
+  vendorName: string
+  category: string | null
+  description: string | null
+  amount: number
+  status: string
+  employeeName: string | null
+  contractId: number | null
+  expenseDate: string | null
+  syncedAt: string | null
+}
+
+export interface VendorReimbursementMeta {
+  sermsConnected: boolean
+  count: number
+  totalAmount: number
+  syncedAt: string | null
+}

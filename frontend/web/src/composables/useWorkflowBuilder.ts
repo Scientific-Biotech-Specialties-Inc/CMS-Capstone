@@ -49,6 +49,24 @@ export function useWorkflowBuilder() {
     }
   }
 
+  async function createContractType(categoryName: string): Promise<ContractTypeWithWorkflow> {
+    const res = await fetch(`${apiBase()}/workflows/contract-types`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ category_name: categoryName }),
+    })
+
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const messages = json.errors
+        ? Object.values(json.errors as Record<string, string[]>).flat()
+        : [json.message || 'Failed to add contract type.']
+      throw new Error(messages.join(' '))
+    }
+
+    return json.data as ContractTypeWithWorkflow
+  }
+
   async function fetchAssignableRoles(): Promise<AssignableRole[]> {
     try {
       const res = await fetch(`${apiBase()}/workflows/assignable-roles`, { headers: authHeaders() })
@@ -135,6 +153,7 @@ export function useWorkflowBuilder() {
     contractTypes,
     assignableRoles,
     fetchContractTypesWithWorkflows,
+    createContractType,
     fetchAssignableRoles,
     fetchWorkflow,
     saveWorkflow,

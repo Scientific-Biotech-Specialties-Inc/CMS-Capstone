@@ -281,6 +281,26 @@ attached_by unsignedInteger (nullable, indexed)
 created_at timestamp
 updated_at timestamp
 
+### Table: vendor_reimbursements
+PK id bigint
+vendor_type string(20)
+vendor_id bigint (unsigned, indexed with vendor_type)
+serms_reimbursement_id bigint (unsigned, unique with vendor_type + vendor_id)
+reference_no string(100)
+tin_number string(100) (nullable)
+vendor_name string(255)
+category string(100) (nullable)
+description text (nullable)
+amount decimal(14,2)
+status string(50)
+employee_name string(255) (nullable)
+contract_id bigint (unsigned, nullable)
+expense_date date (nullable)
+serms_created_at timestamp (nullable)
+synced_at timestamp
+created_at timestamp
+updated_at timestamp
+
 ### Table: personal_access_tokens
 PK id bigint
 tokenable_type string (morphs)

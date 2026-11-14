@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'serms' => [
+        'url' => rtrim((string) env('SERMS_SERVICE_URL', 'http://serms-service:8000/api'), '/'),
+        'secret' => (string) (env('SERMS_INTERNAL_SECRET', '') ?: env('INTERNAL_SERVICE_SECRET', '')),
+    ],
+
 ];

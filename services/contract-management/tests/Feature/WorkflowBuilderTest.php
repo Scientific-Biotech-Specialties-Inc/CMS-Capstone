@@ -459,4 +459,28 @@ class WorkflowBuilderTest extends TestCase
         $this->assertDatabaseHas('workflows', ['id' => $workflow->id, 'name' => 'Live chain (renamed)']);
         $this->assertDatabaseHas('workflow_steps', ['id' => $step->id]);
     }
+
+    public function test_admin_can_add_a_new_contract_type_and_duplicate_is_rejected()
+    {
+        $this->fakeAdminAuth();
+
+        $create = $this->withHeaders(['Authorization' => 'Bearer admin-token'])
+            ->postJson('/api/workflows/contract-types', [
+                'category_name' => '  Field Service  ',
+            ]);
+
+        $create->assertStatus(201)
+            ->assertJsonPath('data.contract_type_name', 'Field Service')
+            ->assertJsonPath('data.is_active', true);
+
+        $this->assertDatabaseHas('contract_categories', ['category_name' => 'Field Service']);
+
+        $duplicate = $this->withHeaders(['Authorization' => 'Bearer admin-token'])
+            ->postJson('/api/workflows/contract-types', [
+                'category_name' => 'Field Service',
+            ]);
+
+        $duplicate->assertStatus(422)
+            ->assertJsonValidationErrors(['category_name']);
+    }
 }

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
-import type { Partner, TabKey, Region, Status, LinkedContract } from '@/types/partner'
+import type { Partner, TabKey, Region, Status, LinkedContract, VendorReimbursement, VendorReimbursementMeta } from '@/types/partner'
 
 export function usePartners() {
   const { state: authState } = useAuth()
@@ -346,6 +346,52 @@ export function usePartners() {
     }
   }
 
+  const fetchVendorReimbursements = async (
+    type: TabKey,
+    vendorId: number | string
+  ): Promise<{ items: VendorReimbursement[]; meta: VendorReimbursementMeta }> => {
+    const apiBase = import.meta.env.VITE_VENDOR_API_URL || 'http://localhost:8001/api'
+    const endpoint = type === 'partners' ? 'partners' : 'suppliers'
+    const res = await fetch(`${apiBase}/${endpoint}/${vendorId}/reimbursements`, {
+      headers: {
+        'Authorization': `Bearer ${authState.token || ''}`,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch vendor reimbursements (${res.status})`)
+    }
+
+    const json = await res.json()
+    const items: VendorReimbursement[] = (json.data || []).map((row: Record<string, unknown>) => ({
+      id: Number(row.id),
+      sermsReimbursementId: Number(row.serms_reimbursement_id),
+      referenceNo: String(row.reference_no ?? ''),
+      tinNumber: row.tin_number ? String(row.tin_number) : null,
+      vendorName: String(row.vendor_name ?? ''),
+      category: row.category ? String(row.category) : null,
+      description: row.description ? String(row.description) : null,
+      amount: Number(row.amount ?? 0),
+      status: String(row.status ?? 'Pending'),
+      employeeName: row.employee_name ? String(row.employee_name) : null,
+      contractId: row.contract_id !== null && row.contract_id !== undefined ? Number(row.contract_id) : null,
+      expenseDate: row.expense_date ? String(row.expense_date) : null,
+      syncedAt: row.synced_at ? String(row.synced_at) : null,
+    }))
+
+    const m = (json.meta ?? {}) as Record<string, unknown>
+    return {
+      items,
+      meta: {
+        sermsConnected: Boolean(m.serms_connected),
+        count: Number(m.count ?? items.length),
+        totalAmount: Number(m.total_amount ?? 0),
+        syncedAt: m.synced_at ? String(m.synced_at) : null,
+      },
+    }
+  }
+
   return {
     loading,
     partners,
@@ -354,6 +400,7 @@ export function usePartners() {
     fetchPartners,
     fetchIndustries,
     fetchVendorContracts,
+    fetchVendorReimbursements,
     fetchLinkedContractIds,
     addPartner,
     deletePartner,

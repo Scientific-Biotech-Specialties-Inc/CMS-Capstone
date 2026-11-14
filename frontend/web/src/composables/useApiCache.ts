@@ -1,6 +1,6 @@
 import { reactive, watch } from 'vue'
 import { useAuth } from './useAuth'
-import type { Contract, ContractRegion, ContractApprovalStatus, ContractWorkflowStatus } from '@/types/contract'
+import type { Contract, ContractRegion, ContractApprovalStatus, ContractWorkflowStatus, SupportingExpenseSummary } from '@/types/contract'
 import type { ContractRequest, RequestStatus } from '@/types/contractRequest'
 
 interface CacheState {
@@ -113,11 +113,20 @@ function sortContractsWithRejectedAtBottom(contracts: Contract[]): Contract[] {
   })
 }
 
-function mapApiContract(d: any, currentUserId: number | null, firstName?: string, lastName?: string): Contract {
+function resolveCreatorName(d: any, currentUserId: number | null, firstName?: string, lastName?: string): string {
   const isCreatedByCurrentUser = currentUserId !== null && d.created_by === currentUserId
-  const createdBy = isCreatedByCurrentUser
-    ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
-    : d.creator_name ? d.creator_name : (d.created_by ? `User #${d.created_by}` : '—')
+  if (isCreatedByCurrentUser) {
+    return `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
+  }
+  if (d.creator_name) return d.creator_name
+  if (d.source_system === 'SERMS') {
+    return d.supporting_expense_summary?.forwarded_by_name || 'SERMS Accounting'
+  }
+  return d.created_by ? `User #${d.created_by}` : '—'
+}
+
+function mapApiContract(d: any, currentUserId: number | null, firstName?: string, lastName?: string): Contract {
+  const createdBy = resolveCreatorName(d, currentUserId, firstName, lastName)
 
   const contractCode = d.contract_code || d.contract_id
   const contractId = contractCode ? String(contractCode) : String(d.contract_id || '')
@@ -149,14 +158,33 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
       uploadStatus: 'success',
     })),
     prsActivityId: d.prs_activity_id ? Number(d.prs_activity_id) : undefined,
+    sourceSystem: d.source_system ?? null,
+    sourceReferenceId: d.source_reference_id ?? null,
+    supportingExpenseSummary: mapExpenseSummary(d.supporting_expense_summary),
+  }
+}
+
+function mapExpenseSummary(raw: any): SupportingExpenseSummary | null {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    vendorName: String(raw.vendor_name ?? ''),
+    tinNumber: raw.tin_number ? String(raw.tin_number) : null,
+    occurrenceCount: Number(raw.occurrence_count ?? 0),
+    totalSpend: Number(raw.total_spend ?? 0),
+    periodStart: String(raw.period_start ?? ''),
+    periodEnd: String(raw.period_end ?? ''),
+    expenseItems: Array.isArray(raw.expense_items)
+      ? raw.expense_items.map((item: any) => ({
+          date: String(item.date ?? ''),
+          amount: Number(item.amount ?? 0),
+          reference: String(item.reference ?? ''),
+        }))
+      : [],
   }
 }
 
 function mapApiToRequest(d: any, currentUserId: number | null, firstName?: string, lastName?: string): ContractRequest {
-  const isCreatedByCurrentUser = currentUserId !== null && d.created_by === currentUserId
-  const createdBy = isCreatedByCurrentUser
-    ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
-    : d.creator_name ? d.creator_name : (d.created_by ? `User #${d.created_by}` : '—')
+  const createdBy = resolveCreatorName(d, currentUserId, firstName, lastName)
 
   const contractDbId = typeof d.contract_db_id === 'number'
     ? d.contract_db_id
@@ -194,6 +222,9 @@ function mapApiToRequest(d: any, currentUserId: number | null, firstName?: strin
     serialNo: d.serial_number ?? '',
     sbuNumber: d.sbu_number ?? '',
     prsActivityId: d.prs_activity_id ? Number(d.prs_activity_id) : undefined,
+    sourceSystem: d.source_system ?? null,
+    sourceReferenceId: d.source_reference_id ?? null,
+    supportingExpenseSummary: mapExpenseSummary(d.supporting_expense_summary),
   }
 }
 

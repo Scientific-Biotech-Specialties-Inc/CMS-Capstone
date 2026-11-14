@@ -16,12 +16,23 @@ class ValidateInternalSecret
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $secret = env('INTERNAL_SERVICE_SECRET');
         $provided = (string) ($request->header('X-Internal-Secret') ?? '');
+        $candidates = array_filter([
+            (string) env('INTERNAL_SERVICE_SECRET', ''),
+            (string) env('SERMS_INTERNAL_SECRET', ''),
+        ]);
 
         // Constant-time comparison: prevents byte-by-byte timing attacks
         // against the shared internal service secret.
-        if (!$secret || !hash_equals((string) $secret, $provided)) {
+        $matched = false;
+        foreach ($candidates as $secret) {
+            if (hash_equals($secret, $provided)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
             return response()->json(['message' => 'Unauthorized internal request.'], 401);
         }
 

@@ -1,4 +1,4 @@
-import type { UploadedDoc } from './contract'
+import type { UploadedDoc, SupportingExpenseSummary } from './contract'
 
 export type RequestStatus   = 'Pending' | 'Under Review' | 'Approved' | 'Rejected'
 export type RequestFilterTab = 'all' | 'pending' | 'reviewing' | 'approved' | 'rejected'
@@ -24,6 +24,9 @@ export interface ContractRequest {
   serialNo:         string
   sbuNumber?:       string
   prsActivityId?:   number
+  sourceSystem?:    string | null
+  sourceReferenceId?: string | null
+  supportingExpenseSummary?: SupportingExpenseSummary | null
 }
 
 export const requestStatusBadge: Record<RequestStatus, string> = {

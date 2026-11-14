@@ -11,11 +11,12 @@ import { useApiCache } from '@/composables/useApiCache'
 import { useHighRiskApproval } from '@/composables/useHighRiskApproval'
 import { useEmailPreferences } from '@/composables/useEmailPreferences'
 import { remainingDays } from '@/types/contract'
-import type { ContractApprovalStatus, ContractWorkflowStatus, ContractRegion, UploadedDoc } from '@/types/contract'
+import type { ContractApprovalStatus, ContractWorkflowStatus, ContractRegion, UploadedDoc, SupportingExpenseSummary } from '@/types/contract'
 import type { StoredContract } from '@/composables/useContractStore'
-import ContractDetailHeader     from './ContractDetailHeader.vue'
-import ContractInfoSection      from './ContractInfoSection.vue'
-import ContractDocumentsSection from './ContractDocumentsSection.vue'
+import ContractDetailHeader       from './ContractDetailHeader.vue'
+import ContractInfoSection        from './ContractInfoSection.vue'
+import ContractDocumentsSection   from './ContractDocumentsSection.vue'
+import SermsExpenseSummarySection from '@/components/shared/SermsExpenseSummarySection.vue'
 import VersionHistoryDrawer     from './VersionHistoryDrawer.vue'
 import ConfirmationDialog       from '@/components/shared/ConfirmationDialog.vue'
 import RejectionReasonModal     from './RejectionReasonModal.vue'
@@ -240,6 +241,28 @@ function mapApiToContract(data: any): StoredContract {
       previewUrl: normalizeDocumentUrl(d.document_url),
       uploadStatus: 'success',
     })),
+    sourceSystem: data.source_system ?? null,
+    sourceReferenceId: data.source_reference_id ?? null,
+    supportingExpenseSummary: mapExpenseSummary(data.supporting_expense_summary),
+  }
+}
+
+function mapExpenseSummary(raw: any): SupportingExpenseSummary | null {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    vendorName: String(raw.vendor_name ?? ''),
+    tinNumber: raw.tin_number ? String(raw.tin_number) : null,
+    occurrenceCount: Number(raw.occurrence_count ?? 0),
+    totalSpend: Number(raw.total_spend ?? 0),
+    periodStart: String(raw.period_start ?? ''),
+    periodEnd: String(raw.period_end ?? ''),
+    expenseItems: Array.isArray(raw.expense_items)
+      ? raw.expense_items.map((item: any) => ({
+          date: String(item.date ?? ''),
+          amount: Number(item.amount ?? 0),
+          reference: String(item.reference ?? ''),
+        }))
+      : [],
   }
 }
 
@@ -904,6 +927,12 @@ const activeSnapForDiff = computed(() => {
         :is-manager="isManager"
         :is-owner="isOwner"
         :is-approved="contract.approvalStatus === 'Approved'"
+      />
+      <SermsExpenseSummarySection
+        v-if="displayedContract?.supportingExpenseSummary"
+        :summary="displayedContract.supportingExpenseSummary"
+        :source-system="displayedContract.sourceSystem"
+        :source-reference-id="displayedContract.sourceReferenceId"
       />
       <ContractDocumentsSection
         v-if="displayedContract"

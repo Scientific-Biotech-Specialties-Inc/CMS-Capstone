@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { AlertCircle } from 'lucide-vue-next'
+import { AlertCircle, Plus } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useWorkflowBuilder } from '@/composables/useWorkflowBuilder'
 import type { ContractTypeWithWorkflow, Workflow } from '@/types/workflow'
 import ContractTypeWorkflowCard from './ContractTypeWorkflowCard.vue'
 import WorkflowEditor from './WorkflowEditor.vue'
 import DuplicateWorkflowDialog from './DuplicateWorkflowDialog.vue'
+import AddContractTypeDialog from './AddContractTypeDialog.vue'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const { success, error: toastError } = useToast()
@@ -137,6 +139,14 @@ async function executeDeactivate() {
 }
 
 // ── Load ──────────────────────────────────────────────────────────────
+const showAddContractTypeDialog = ref(false)
+
+async function handleContractTypeCreated(created: ContractTypeWithWorkflow) {
+  showAddContractTypeDialog.value = false
+  success('Contract type added', `"${created.contract_type_name}" is now available.`)
+  await refresh()
+}
+
 async function refresh() {
   await Promise.all([fetchContractTypesWithWorkflows(), fetchAssignableRoles()])
 }
@@ -146,12 +156,18 @@ onMounted(refresh)
 
 <template>
   <div class="space-y-4">
-    <div>
-      <h2 class="text-sm font-semibold text-black">Approval Workflows</h2>
-      <p class="text-xs text-black/40 mt-0.5">
-        Define the approval chain for each contract type. Only one active workflow applies per type —
-        types without one fall back to the standard manager approval.
-      </p>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h2 class="text-sm font-semibold text-black">Approval Workflows</h2>
+        <p class="text-xs text-black/40 mt-0.5">
+          Define the approval chain for each contract type. Only one active workflow applies per type —
+          types without one fall back to the standard manager approval.
+        </p>
+      </div>
+      <Button @click="showAddContractTypeDialog = true"
+        class="h-9 px-3.5 text-sm bg-brand-navy hover:bg-brand-dark text-white shadow-sm shrink-0">
+        <Plus class="w-4 h-4" /> Add Contract Type
+      </Button>
     </div>
 
     <!-- Loading skeleton -->
@@ -199,6 +215,12 @@ onMounted(refresh)
       :contract-types="contractTypes"
       @close="showDuplicateDialog = false"
       @duplicated="handleDuplicated"
+    />
+
+    <AddContractTypeDialog
+      :open="showAddContractTypeDialog"
+      @close="showAddContractTypeDialog = false"
+      @created="handleContractTypeCreated"
     />
 
     <ConfirmationDialog

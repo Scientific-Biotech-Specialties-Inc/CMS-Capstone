@@ -6,6 +6,7 @@ import type { StoredContract } from '@/composables/useContractStore'
 import type { RiskLevel } from '@/types/riskAssessment'
 import RiskFlagBadge from '@/components/shared/RiskFlagBadge.vue'
 import LockedStatusBadge from '@/components/shared/LockedStatusBadge.vue'
+import SourceSystemBadge from '@/components/shared/SourceSystemBadge.vue'
 
 const props = defineProps<{
   contract:  StoredContract
@@ -74,6 +75,9 @@ function daysDisplay(days: number) {
           <span v-if="contract.workflowStatus" class="px-3 py-1 text-xs font-semibold rounded-full border" :class="workflowStatusBadge[contract.workflowStatus]">
             {{ contract.workflowStatus }}
           </span>
+          <span v-else-if="contract.approvalStatus === 'Pending'" class="px-3 py-1 text-xs font-semibold rounded-full border bg-amber-50 text-amber-700 border-amber-200/60">
+            No Workflow
+          </span>
           <span class="px-3 py-1 text-xs font-medium rounded-full border flex items-center gap-1.5"
             :class="daysDisplay(days).cls">
             <component :is="daysDisplay(days).icon" class="w-3.5 h-3.5" />
@@ -88,6 +92,11 @@ function daysDisplay(days: number) {
             @click="$emit('openRiskAssessment')"
           />
           <LockedStatusBadge v-if="approvalLocked" size="md" />
+          <SourceSystemBadge
+            :source-system="contract.sourceSystem"
+            :source-reference-id="contract.sourceReferenceId"
+            size="md"
+          />
         </div>
       </div>
     </div>

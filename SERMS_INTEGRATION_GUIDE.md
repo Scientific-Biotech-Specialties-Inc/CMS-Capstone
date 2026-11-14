@@ -12,7 +12,7 @@ This guide is for **SERMS developers** integrating with **CMS (Contract Manageme
 
 | Integration | Direction | What SERMS Does | What CMS Does |
 | :--- | :--- | :--- | :--- |
-| **1.1 Burn Rate & Net Margin** | SERMS ↔ CMS | • Dropdown of active contracts on expenses<br>• Saves `contract_id` & `client_name`<br>• Exposes `GET /api/internal/expenses/by-contract` | • Exposes `GET /api/contract/active` (with `contract_value`)<br>• Pulls SERMS expenses in Analytics<br>• Shows **Burn Rate %** & **True Net Margin** |
+| **1.1 Burn Rate & Net Margin** | SERMS ↔ CMS | • Dropdown of active contracts on expenses<br>• Saves `contract_id` & `client_name`<br>• Exposes `GET /api/internal/expenses/by-contract`<br>• Exposes `GET /api/internal/reimbursements/by-vendor` | • Exposes `GET /api/contract/active` (with `contract_value`)<br>• Pulls SERMS expenses in Analytics<br>• Shows **Burn Rate %** & **True Net Margin**<br>• Syncs & displays merchant reimbursement history |
 | **1.2 Vendor TIN Validation** | SERMS → CMS | • Extracts vendor name & TIN via OCR<br>• Auto-tags accredited vendors & suggests categories<br>• Flags unlisted/flagged vendors for audit<br>• Submits new verified merchants | • Exposes `GET /api/vendor/internal/vendors/lookup`<br>• Exposes `POST /api/vendor/internal/vendors/suggest`<br>• Lets admins onboard them in **Vendor Suggestions** |
 | **1.3 Recurring Expense → Contract** | SERMS → CMS | • Detects recurring one-off purchases<br>• Generates purchase history summary<br>• Accounting forwards summary to CMS | • Exposes `POST /api/contract/internal/contract-requests/from-serms`<br>• Creates a **Pending Contract Request** (`source_system = SERMS`) with `supporting_expense_summary` |
 
@@ -94,6 +94,34 @@ CMS Analytics Service (`SERMS_SERVICE_URL` in `services/analytics-service/.env`)
         "field_service": 5000.0,
         "other": 0.0
       }
+    }
+  ]
+}
+```
+
+### C. Expose Reimbursements by Vendor to CMS Vendor Management (CMS → SERMS)
+CMS Vendor Management (`SERMS_SERVICE_URL` in root `.env`) calls SERMS when viewing or syncing a Supplier / Business Partner to populate **Related Reimbursement History**:
+
+- **Expected SERMS Endpoint:** `GET {SERMS_SERVICE_URL}/internal/reimbursements/by-vendor?tin={tin}&vendor_name={name}`
+- **Auth Header:** `X-Internal-Secret: <SERMS_INTERNAL_SECRET>`
+
+#### Expected Response Shape (`200 OK`)
+```json
+{
+  "data": [
+    {
+      "reimbursement_id": 8,
+      "reference_no": "RMB-8",
+      "tin_number": "000-774-471-025",
+      "vendor_name": "Bayan Telecommunications , Inc",
+      "category": "Others",
+      "description": "Bayan Telecommunications , Inc",
+      "amount": 1500.5,
+      "status": "Pending",
+      "employee_name": "Summer Love",
+      "contract_id": null,
+      "expense_date": "2026-08-09",
+      "created_at": "2026-11-11T05:43:49Z"
     }
   ]
 }

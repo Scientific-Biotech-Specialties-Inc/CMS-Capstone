@@ -42,6 +42,8 @@ class SermsRecurringContractRequestTest extends TestCase
                 'period_start'        => '2026-01-01',
                 'period_end'          => '2026-10-31',
                 'source_reference_id' => 'SERMS-REC-42',
+                'forwarded_by'        => 12,
+                'forwarded_by_name'   => 'Maria Santos',
                 'expense_items'       => [
                     ['date' => '2026-02-10', 'amount' => 20000, 'reference' => 'RMB-101'],
                     ['date' => '2026-05-12', 'amount' => 20000, 'reference' => 'RMB-204'],
@@ -51,6 +53,8 @@ class SermsRecurringContractRequestTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonPath('data.source_system', 'SERMS')
             ->assertJsonPath('data.approval_status', 'Pending')
+            ->assertJsonPath('data.workflow_status', null)
+            ->assertJsonPath('data.supporting_expense_summary.forwarded_by_name', 'Maria Santos')
             ->assertJsonPath('data.supporting_expense_summary.occurrence_count', 4);
     }
 }

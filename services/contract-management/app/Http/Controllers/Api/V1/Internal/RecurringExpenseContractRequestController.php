@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ContractApprovalStatus;
 use App\Models\ContractCategory;
-use App\Models\ContractStatus;
+use App\Services\ApprovalEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +20,11 @@ use Illuminate\Support\Facades\Validator;
  */
 final class RecurringExpenseContractRequestController extends Controller
 {
+    public function __construct(
+        private readonly ApprovalEngineService $approvalEngine,
+    ) {
+    }
+
     public function __invoke(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -34,6 +39,7 @@ final class RecurringExpenseContractRequestController extends Controller
             'period_end'          => 'required|date',
             'source_reference_id' => 'nullable|string|max:100',
             'forwarded_by'        => 'nullable|integer',
+            'forwarded_by_name'   => 'nullable|string|max:255',
             'expense_items'       => 'nullable|array',
         ]);
 
@@ -49,26 +55,26 @@ final class RecurringExpenseContractRequestController extends Controller
             ?? ContractCategory::firstOrCreate(['category_name' => $data['category'] ?? 'Service Agreement']);
 
         $pendingApproval = ContractApprovalStatus::firstOrCreate(['status_name' => 'Pending']);
-        $initialStatus = ContractStatus::firstOrCreate(['status_name' => 'Draft']);
 
         $regionName = $data['region'] ?? 'Luzon';
         $regionId = DB::table('contract_regions')->where('region_name', $regionName)->value('region_id')
             ?? DB::table('contract_regions')->value('region_id');
 
         $summary = [
-            'vendor_name'      => $data['vendor_name'],
-            'tin_number'       => $data['tin_number'] ?? null,
-            'occurrence_count' => (int) $data['occurrence_count'],
-            'total_spend'      => (float) $data['total_spend'],
-            'period_start'     => $data['period_start'],
-            'period_end'       => $data['period_end'],
-            'expense_items'    => $data['expense_items'] ?? [],
+            'vendor_name'       => $data['vendor_name'],
+            'tin_number'        => $data['tin_number'] ?? null,
+            'occurrence_count'  => (int) $data['occurrence_count'],
+            'total_spend'       => (float) $data['total_spend'],
+            'period_start'      => $data['period_start'],
+            'period_end'        => $data['period_end'],
+            'forwarded_by_name' => $data['forwarded_by_name'] ?? null,
+            'expense_items'     => $data['expense_items'] ?? [],
         ];
 
         $contract = Contract::create([
             'category_id'                => $category->category_id,
             'approval_status_id'         => $pendingApproval->approval_status_id,
-            'workflow_status_id'         => $initialStatus->status_id,
+            'workflow_status_id'         => null,
             'region_id'                  => $regionId,
             'bp_name'                    => $data['vendor_name'],
             'item_code'                  => 'SERMS-REC',
@@ -83,6 +89,13 @@ final class RecurringExpenseContractRequestController extends Controller
             'source_reference_id'        => $data['source_reference_id'] ?? null,
             'supporting_expense_summary' => $summary,
         ]);
+
+        if ($this->approvalEngine->isEnabled()) {
+            $activeWorkflow = $this->approvalEngine->resolveActiveWorkflow((int) $category->category_id);
+            if ($activeWorkflow) {
+                $this->approvalEngine->startInstance($contract, $activeWorkflow);
+            }
+        }
 
         return response()->json([
             'data' => [

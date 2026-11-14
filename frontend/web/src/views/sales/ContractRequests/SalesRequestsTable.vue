@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import TablePagination from '@/components/shared/TablePagination.vue'
+import SourceSystemBadge from '@/components/shared/SourceSystemBadge.vue'
 import { requestStatusBadge, fmtReqDate } from '@/types/contractRequest'
 import type { ContractRequest, RequestFilterTab } from '@/types/contractRequest'
 
@@ -127,7 +128,13 @@ const filterTabs: { label: string; value: RequestFilterTab }[] = [
             @click="emit('openDetail', r)">
 
             <TableCell class="py-4 pl-6">
-              <p class="text-sm font-medium text-black leading-snug">{{ r.businessPartner }}</p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-sm font-medium text-black leading-snug">{{ r.businessPartner }}</p>
+                <SourceSystemBadge
+                  :source-system="r.sourceSystem"
+                  :source-reference-id="r.sourceReferenceId"
+                />
+              </div>
             </TableCell>
 
             <TableCell class="py-4 text-sm text-black/60">{{ r.category }}</TableCell>

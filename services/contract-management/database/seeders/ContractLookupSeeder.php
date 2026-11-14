@@ -15,6 +15,7 @@ class ContractLookupSeeder extends Seeder
             'Supply Contract',
             'Equipment Lease',
             'Equipment Maintenance',
+            'Field Service',
         ];
 
         foreach ($categories as $name) {

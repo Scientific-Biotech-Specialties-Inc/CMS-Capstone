@@ -67,6 +67,7 @@ Route::middleware(['auth.internal'])->group(function () {
     // Admin-only, matching the existing CMS Roles & Permissions admin page.
     Route::middleware('role:Admin')->prefix('workflows')->group(function () {
         Route::get('/contract-types',    [\App\Http\Controllers\WorkflowController::class, 'contractTypes']);
+        Route::post('/contract-types',   [\App\Http\Controllers\WorkflowController::class, 'storeContractType']);
         Route::get('/assignable-roles',  [\App\Http\Controllers\WorkflowController::class, 'assignableRoles']);
         Route::get('/{id}',              [\App\Http\Controllers\WorkflowController::class, 'show']);
         Route::post('/',                 [\App\Http\Controllers\WorkflowController::class, 'store']);

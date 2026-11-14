@@ -21,6 +21,7 @@ import type { ContractWithDays, FilterTab, StatusFilter } from '@/types/contract
 import { contractGroup, CONTRACT_GROUPS, groupCounts } from '@/utils/contractSort'
 import type { ContractGroupKey } from '@/utils/contractSort'
 import ContractLifecycleBadge from '@/components/shared/ContractLifecycleBadge.vue'
+import SourceSystemBadge from '@/components/shared/SourceSystemBadge.vue'
 import { useRiskAssessment } from '@/composables/useRiskAssessment'
 import type { RiskLevel } from '@/types/riskAssessment'
 import { severityIconColor, severityLabel } from '@/types/riskAssessment'
@@ -446,7 +447,13 @@ function avatarColor(name: string) {
                   :title="`AI Risk: ${severityLabel[riskLevels[c.id].riskLevel]}${riskLevels[c.id].findingsCount ? ` (${riskLevels[c.id].findingsCount} flagged clause${riskLevels[c.id].findingsCount === 1 ? '' : 's'})` : ''}`"
                 />
               </div>
-              <p class="text-xs font-mono text-black/40 mt-0.5">{{ c.contractCode || c.id }}</p>
+              <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                <p class="text-xs font-mono text-black/40">{{ c.contractCode || c.id }}</p>
+                <SourceSystemBadge
+                  :source-system="c.sourceSystem"
+                  :source-reference-id="c.sourceReferenceId"
+                />
+              </div>
             </TableCell>
 
             <!-- Category -->
@@ -480,6 +487,10 @@ function avatarColor(name: string) {
                   class="text-xs font-medium px-2.5 py-0.5 rounded-full border whitespace-nowrap w-fit"
                   :class="workflowStatusBadge[c.workflowStatus]">
                   {{ c.workflowStatus }}
+                </span>
+                <span v-else-if="c.approvalStatus === 'Pending'"
+                  class="text-xs font-medium px-2.5 py-0.5 rounded-full border whitespace-nowrap w-fit bg-amber-50 text-amber-700 border-amber-200/60">
+                  No Workflow
                 </span>
               </div>
             </TableCell>

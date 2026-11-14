@@ -12,6 +12,7 @@ import type { ContractRequest } from '@/types/contractRequest'
 import { safeHref } from '@/utils/sanitize'
 import RequestDetailHeader from './RequestDetailHeader.vue'
 import RequestInfoSection  from './RequestInfoSection.vue'
+import SermsExpenseSummarySection from '@/components/shared/SermsExpenseSummarySection.vue'
 import ConfirmationDialog  from '@/components/shared/ConfirmationDialog.vue'
 import RejectRequestDialog from './RejectRequestDialog.vue'
 import RejectionReasonModal from '@/views/sales/Contracts/ContractDetail/RejectionReasonModal.vue'
@@ -428,6 +429,13 @@ function fmtSize(bytes: number) {
         :edit-form="editForm"
         :touched="touched"
         :date-error="dateError"
+      />
+
+      <SermsExpenseSummarySection
+        v-if="request.supportingExpenseSummary"
+        :summary="request.supportingExpenseSummary"
+        :source-system="request.sourceSystem"
+        :source-reference-id="request.sourceReferenceId"
       />
 
       <!-- Rejection reason display (already rejected) -->

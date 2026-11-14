@@ -17,6 +17,7 @@ Route::middleware(['internal.secret'])->group(function () {
 
     // SERMS Integration (1.2): Vendor TIN/name lookup & suggested vendor intake.
     Route::get('/internal/vendors/lookup', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'lookup']);
+    Route::get('/vendor/lookup', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'lookup']);
     Route::post('/internal/vendors/suggest', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'suggestFromSerms']);
 });
 
@@ -93,5 +94,11 @@ Route::middleware(['auth.internal'])->group(function () {
         ->middleware('permission:cms.partners.create');
     Route::post('/suggested-vendors/{id}/reject', [\App\Http\Controllers\Api\V1\SuggestedVendorController::class, 'reject'])
         ->middleware('permission:cms.partners.edit');
+
+    // SERMS Integration (1.1b): Related reimbursement history per supplier / business partner
+    Route::get('/suppliers/{id}/reimbursements', \App\Http\Controllers\Api\V1\VendorReimbursements\IndexController::class)
+        ->middleware('permission:cms.partners.view');
+    Route::get('/partners/{id}/reimbursements', \App\Http\Controllers\Api\V1\VendorReimbursements\IndexController::class)
+        ->middleware('permission:cms.partners.view');
 
 });

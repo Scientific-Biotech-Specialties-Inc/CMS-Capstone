@@ -132,6 +132,8 @@ services:
     command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - SERMS_SERVICE_URL=${SERMS_SERVICE_URL:-http://serms-service:8000/api}
+      - SERMS_INTERNAL_SECRET=${SERMS_INTERNAL_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy
@@ -155,6 +157,8 @@ services:
     command: sh -c "composer install --no-scripts && sleep 10 && php artisan migrate --force && (php artisan schedule:work &) && (php artisan queue:work --queue=contract_queue,default --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - SERMS_SERVICE_URL=${SERMS_SERVICE_URL:-http://serms-service:8000/api}
+      - SERMS_INTERNAL_SECRET=${SERMS_INTERNAL_SECRET:-}
       - PRS_INTEGRATION_KEY=${PRS_INTEGRATION_KEY:-}
       - PHP_CLI_SERVER_WORKERS=4
     depends_on:
@@ -224,6 +228,8 @@ services:
     command: sh -c "composer install --no-scripts && sleep 5 && mysql --skip-ssl -h mysql -u root -p${MYSQL_PASSWORD} -e 'CREATE DATABASE IF NOT EXISTS \`cms-analytics-db\`;' && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - SERMS_SERVICE_URL=${SERMS_SERVICE_URL:-http://serms-service:8000/api}
+      - SERMS_INTERNAL_SECRET=${SERMS_INTERNAL_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy

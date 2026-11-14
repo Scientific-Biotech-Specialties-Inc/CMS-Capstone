@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 class MetricsClient
 {
     protected string $secret;
+    protected string $sermsSecret;
     protected string $contractServiceUrl;
     protected string $vendorServiceUrl;
     protected string $notificationServiceUrl;
@@ -24,11 +25,12 @@ class MetricsClient
     public function __construct()
     {
         $this->secret                 = env('INTERNAL_SERVICE_SECRET', '');
+        $this->sermsSecret            = env('SERMS_INTERNAL_SECRET', '') ?: $this->secret;
         $this->contractServiceUrl     = env('CONTRACT_SERVICE_URL', 'http://contract-management:8000/api');
         $this->vendorServiceUrl       = env('VENDOR_SERVICE_URL', 'http://vendor-management:8000/api');
         $this->notificationServiceUrl = env('NOTIFICATION_SERVICE_URL', 'http://notification:8000/api');
         $this->aiServiceUrl           = env('AI_SERVICE_URL', 'http://ai-service:8000/api');
-        $this->sermsServiceUrl        = env('SERMS_SERVICE_URL', 'http://serms-service:8000/api');
+        $this->sermsServiceUrl        = rtrim((string) env('SERMS_SERVICE_URL', 'http://serms-service:8000/api'), '/');
     }
 
     public function contractMetrics(): ?array
@@ -63,20 +65,20 @@ class MetricsClient
 
     public function sermsExpensesByContract(): ?array
     {
-        return $this->getJson("{$this->sermsServiceUrl}/internal/expenses/by-contract");
+        return $this->getJson("{$this->sermsServiceUrl}/internal/expenses/by-contract", $this->sermsSecret);
     }
 
     public function sermsContractExpenses(int $contractId): ?array
     {
-        return $this->getJson("{$this->sermsServiceUrl}/internal/contracts/{$contractId}/expenses");
+        return $this->getJson("{$this->sermsServiceUrl}/internal/contracts/{$contractId}/expenses", $this->sermsSecret);
     }
 
-    protected function getJson(string $url): ?array
+    protected function getJson(string $url, ?string $secretOverride = null): ?array
     {
         try {
             $response = Http::withHeaders([
                 'Accept'            => 'application/json',
-                'X-Internal-Secret' => $this->secret,
+                'X-Internal-Secret' => $secretOverride ?? $this->secret,
             ])->get($url);
 
             if (!$response->successful()) {

@@ -12,6 +12,7 @@ import FormField from '@/components/shared/FormField.vue'
 import { required, minLength } from '@/lib/validation'
 import { useFormValidation } from '@/composables/useFormValidation'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
+import SourceSystemBadge from '@/components/shared/SourceSystemBadge.vue'
 import { requestStatusBadge, fmtReqDate } from '@/types/contractRequest'
 import type { ContractRequest } from '@/types/contractRequest'
 import { safeHref } from '@/utils/sanitize'
@@ -101,7 +102,10 @@ function confirmReview() {
                   :class="requestStatusBadge[request.status]">
                   {{ request.status }}
                 </span>
-
+                <SourceSystemBadge
+                  :source-system="request.sourceSystem"
+                  :source-reference-id="request.sourceReferenceId"
+                />
               </div>
             </div>
           </div>

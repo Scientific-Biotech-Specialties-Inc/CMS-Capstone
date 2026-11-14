@@ -36,6 +36,25 @@ export interface Contract {
   docs:            UploadedDoc[]
   rejectionReason?: string
   prsActivityId?:  number
+  sourceSystem?: string | null
+  sourceReferenceId?: string | null
+  supportingExpenseSummary?: SupportingExpenseSummary | null
+}
+
+export interface SupportingExpenseItem {
+  date: string
+  amount: number
+  reference: string
+}
+
+export interface SupportingExpenseSummary {
+  vendorName: string
+  tinNumber: string | null
+  occurrenceCount: number
+  totalSpend: number
+  periodStart: string
+  periodEnd: string
+  expenseItems: SupportingExpenseItem[]
 }
 
 /** A contract decorated with its computed remaining days (shared by the contract lists). */

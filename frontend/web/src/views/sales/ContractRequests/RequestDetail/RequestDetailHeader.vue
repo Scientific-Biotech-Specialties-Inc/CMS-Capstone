@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle, Clock, ArrowLeft, ClipboardList, FilePenLine, Loader2, CheckCircle, XCircle, Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import SourceSystemBadge from '@/components/shared/SourceSystemBadge.vue'
 import { requestStatusBadge } from '@/types/contractRequest'
 import type { ContractRequest } from '@/types/contractRequest'
 
@@ -53,6 +54,10 @@ function daysDisplay(days: number) {
             <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border" :class="requestStatusBadge[request.status]">
               {{ request.status }}
             </span>
+            <SourceSystemBadge
+              :source-system="request.sourceSystem"
+              :source-reference-id="request.sourceReferenceId"
+            />
             <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border"
               :class="daysDisplay(days).cls">
               <component :is="daysDisplay(days).icon" class="w-3 h-3" />
