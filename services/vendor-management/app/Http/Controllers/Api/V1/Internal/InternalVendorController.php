@@ -62,7 +62,7 @@ class InternalVendorController extends Controller
             'industry'       => 'nullable|string|max:100',
             'contact_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string',
-            'email'          => 'nullable|email|max:255',
+            'email'          => 'required|email|max:255',
             'address'        => 'nullable|string',
             'region'         => 'nullable|string|max:100',
             'status'         => 'nullable|string|in:Active,Inactive,Suspended',

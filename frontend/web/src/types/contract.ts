@@ -36,6 +36,10 @@ export interface Contract {
   description:     string
   serialNo:        string
   sbuNumber?:      string
+  sbsiBranch?:     string
+  equipmentName?:  string
+  brand?:          string
+  model?:          string
   region:          ContractRegion
   startDate:       string
   endDate:         string

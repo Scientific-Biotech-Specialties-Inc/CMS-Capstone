@@ -9,6 +9,17 @@ return [
         'institution_partners' => json_decode((string) env('PRS_INSTITUTION_PARTNERS', '{}'), true) ?: [],
     ],
 
+    'ts' => [
+        'inbound_key' => env('TS_TO_CMS_INTEGRATION_KEY'),
+        'internal_secret' => env('INTERNAL_SERVICE_SECRET'),
+        'public_read' => filter_var(env('TS_SYNC_PUBLIC_READ', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
+    'vendor' => [
+        'url' => rtrim((string) env('VENDOR_SERVICE_URL', 'http://vendor-management:8000/api'), '/'),
+        'secret' => env('INTERNAL_SERVICE_SECRET'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

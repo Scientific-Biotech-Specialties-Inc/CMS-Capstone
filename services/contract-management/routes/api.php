@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('/integrations/v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'index']);
     Route::post('/prs/closing-outcomes', \App\Http\Controllers\Api\V1\PrsClosingOutcomeController::class);
+
+    Route::prefix('/ts')->group(function () {
+        Route::get('/sync', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'sync']);
+        Route::get('/equipment', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'equipment']);
+        Route::get('/customers', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'customers']);
+        Route::get('/vendors', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'customers']);
+    });
 });
 
 Route::middleware(['auth.internal'])->group(function () {
@@ -161,4 +168,9 @@ Route::middleware(['internal.secret'])->group(function () {
 
     // SERMS Integration (1.3): Create a Contract Request from recurring SERMS expense history.
     Route::post('/internal/contract-requests/from-serms', \App\Http\Controllers\Api\V1\Internal\RecurringExpenseContractRequestController::class);
+
+    // Internal aliases for TS sync (matches internal service secret middleware).
+    Route::get('/internal/ts/sync', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'sync']);
+    Route::get('/internal/ts/equipment', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'equipment']);
+    Route::get('/internal/ts/customers', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'customers']);
 });

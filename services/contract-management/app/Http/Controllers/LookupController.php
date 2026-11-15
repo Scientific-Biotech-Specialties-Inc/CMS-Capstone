@@ -6,6 +6,7 @@ use App\Models\ContractApprovalStatus;
 use App\Models\ContractCategory;
 use App\Models\ContractRegion;
 use App\Models\ContractStatus;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 
 class LookupController extends Controller
@@ -18,8 +19,9 @@ class LookupController extends Controller
      *   approval-statuses — Pending | Approved | Rejected
      *   workflow-statuses — Notarized PDF | Client Review | SBSI Review (with color codes)
      *   regions           — Luzon | Visayas | Mindanao
+     *   branches          — SBSI branches synced from auth-service
      */
-    public function show(string $type): JsonResponse
+    public function show(string $type, AuthService $authService): JsonResponse
     {
         return match ($type) {
             'categories' => response()->json([
@@ -40,6 +42,10 @@ class LookupController extends Controller
 
             'regions' => response()->json([
                 'data' => ContractRegion::orderBy('region_name')->pluck('region_name'),
+            ]),
+
+            'branches' => response()->json([
+                'data' => $authService->getBranches(),
             ]),
 
             default => response()->json([

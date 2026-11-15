@@ -98,7 +98,7 @@ class VendorManagementClient
                 'industry'       => $fields['industry'] ?? null,
                 'contact_person' => $fields['contact_person'] ?? null,
                 'contact_number' => $fields['phone'] ?? null,
-                'email'          => $fields['email'] ?? null,
+                'email'          => $fields['email'] ?? '',
                 'address'        => $fields['address'] ?? null,
                 'region'         => $fields['region'] ?? null,
                 'status'         => 'Active',

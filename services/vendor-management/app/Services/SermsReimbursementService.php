@@ -70,7 +70,8 @@ final class SermsReimbursementService
     private function fetchRows(string $baseUrl, string $secret, array $query, string $vendorType, int $vendorId): ?array
     {
         try {
-            $response = Http::timeout(5)
+            $response = Http::connectTimeout(3)
+                ->timeout(5)
                 ->withHeaders([
                     'Accept'            => 'application/json',
                     'X-Internal-Secret' => $secret,

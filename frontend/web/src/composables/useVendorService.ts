@@ -242,11 +242,15 @@ async function fetchSuggestedVendors(status: string = 'Pending'): Promise<Sugges
   return (json.data ?? []).map(mapSuggestedVendor)
 }
 
-async function approveSuggestedVendor(id: number, isAccredited: boolean = true): Promise<void> {
+async function approveSuggestedVendor(id: number, isAccredited: boolean = true, email?: string): Promise<void> {
+  const payload: Record<string, unknown> = { is_accredited: isAccredited }
+  if (email !== undefined && email.trim() !== '') {
+    payload.email = email.trim()
+  }
   const res = await fetch(`${BASE_URL}/suggested-vendors/${id}/approve`, {
     method: 'POST',
     headers: makeHeaders(),
-    body: JSON.stringify({ is_accredited: isAccredited }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const json = await res.json().catch(() => ({}))

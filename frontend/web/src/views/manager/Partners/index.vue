@@ -18,7 +18,7 @@ const router = useRouter()
 const { success, error } = useToast()
 const { hasPermission } = useAuth()
 const { fetchPartners, fetchSuppliers } = useVendorService()
-const { deletePartner, fetchIndustries } = usePartners()
+const { deletePartner } = usePartners()
 
 const showAiSuggestionButton = computed(() => hasPermission('cms.ai.vendor_suggestions'))
 
@@ -46,7 +46,6 @@ const viewMode       = ref<'card' | 'table'>('card')
 const search         = ref('')
 const regionFilter   = ref('All')
 const statusFilter   = ref('All')
-const industryFilter = ref('All')
 const regions        = ['All', 'Luzon', 'Visayas', 'Mindanao']
 const statusOptions  = ['All', 'Active', 'Inactive', 'Suspended'] as const
 
@@ -55,48 +54,26 @@ const suppliersCount = computed(() => suppliersData.value.length)
 
 const source = computed(() => activeTab.value === 'partners' ? businessPartners.value : suppliersData.value)
 
-const industryOptions = ref<string[]>([])
-
-// Full industry list comes from the API (not from whatever pages happened to
-// load), so a new industry is never hidden by the current region filter.
-const industries = computed(() => {
-  const vals = source.value.map(p => p.industry).filter(Boolean)
-  return ['All', ...[...new Set([...industryOptions.value, ...vals])].sort()]
-})
-
-async function loadIndustries(tab: TabKey) {
-  const values = await fetchIndustries(tab)
-  if (tab !== activeTab.value) return
-  industryOptions.value = values
-  if (industryFilter.value !== 'All' && !values.includes(industryFilter.value)) {
-    industryFilter.value = 'All'
-  }
-}
-
 const filtered = computed(() =>
   source.value.filter(p => {
     const q = search.value.toLowerCase()
     return (
       (!q || p.name.toLowerCase().includes(q) || p.industry.toLowerCase().includes(q)) &&
       (regionFilter.value   === 'All' || p.region   === regionFilter.value) &&
-      (statusFilter.value   === 'All' || p.status   === statusFilter.value) &&
-      (industryFilter.value === 'All' || p.industry === industryFilter.value)
+      (statusFilter.value   === 'All' || p.status   === statusFilter.value)
     )
   })
 )
 
 const currentPage  = ref(1)
 const itemsPerPage = 15
-watch([search, regionFilter, statusFilter, industryFilter], () => { currentPage.value = 1 })
+watch([search, regionFilter, statusFilter], () => { currentPage.value = 1 })
 watch(activeTab, () => {
   search.value         = ''
   regionFilter.value   = 'All'
   statusFilter.value   = 'All'
-  industryFilter.value = 'All'
   currentPage.value    = 1
-  void loadIndustries(activeTab.value)
 })
-onMounted(() => void loadIndustries(activeTab.value))
 const paginated = computed(() => filtered.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage))
 
 const selectedIds     = ref<(string | number)[]>([])
@@ -231,18 +208,14 @@ async function executeExport() {
     </div>
 
     <div class="flex items-center gap-3">
-      <div class="relative flex-1">
+      <div class="relative flex-1 min-w-0">
         <Search class="w-3.5 h-3.5 text-black/30 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input v-model="search" type="text" :placeholder="`Search ${activeTab === 'partners' ? 'partners' : 'suppliers'}...`"
           class="w-full h-9 rounded-lg border border-black/10 bg-white pl-8.5 pr-3 text-sm placeholder:text-black/25 focus:border-brand-blue focus:outline-none transition" />
       </div>
       <select v-model="regionFilter"
-        class="h-9 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
+        class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
         <option v-for="r in regions" :key="r" :value="r">{{ r === 'All' ? 'All Regions' : r }}</option>
-      </select>
-      <select v-model="industryFilter"
-        class="h-9 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
-        <option v-for="ind in industries" :key="ind" :value="ind">{{ ind === 'All' ? 'All Industries' : ind }}</option>
       </select>
     </div>
 

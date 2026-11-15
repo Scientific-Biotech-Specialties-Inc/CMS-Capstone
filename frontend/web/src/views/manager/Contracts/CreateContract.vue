@@ -17,6 +17,7 @@ import PrefixedNumberInput from '@/components/shared/PrefixedNumberInput.vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
 import { useDocumentUpload } from '@/composables/useDocumentUpload'
 import { useContractTypes } from '@/composables/useContractTypes'
+import { useSbsiBranches } from '@/composables/useSbsiBranches'
 
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
@@ -30,6 +31,7 @@ const { state: cacheState, fetchContracts, invalidateContracts, invalidateReques
 const { draft, saveDraft, restoreDraft, clearDraft } = useCreateContractDraft()
 const { triggerScan } = useRiskAssessment()
 const { contractTypes, fetchContractTypes } = useContractTypes()
+const { branches: sbsiBranches, fetchBranches: fetchSbsiBranches } = useSbsiBranches()
 
 const canUseOcr = computed(() => hasPermission('cms.ai.ocr') || role.value === 'Admin' || role.value === 'CEO')
 const canUseRiskAssessment = computed(() => hasPermission('cms.ai.risk_assessment') || role.value === 'Admin' || role.value === 'CEO')
@@ -118,6 +120,10 @@ interface FormState {
   description:     string
   serialNo:        string
   sbuNumber:       string
+  sbsiBranch:      string
+  equipmentName:   string
+  brand:           string
+  model:           string
   region:          ContractRegion | ''
   startDate:       string
   endDate:         string
@@ -130,6 +136,10 @@ const form = reactive<FormState>({
   description:     '',
   serialNo:        '',
   sbuNumber:       '',
+  sbsiBranch:      '',
+  equipmentName:   '',
+  brand:           '',
+  model:           '',
   region:          '',
   startDate:       '',
   endDate:         '',
@@ -146,6 +156,10 @@ const touched = reactive<Record<keyof FormState, boolean>>({
   description:     false,
   serialNo:        false,
   sbuNumber:       false,
+  sbsiBranch:      false,
+  equipmentName:   false,
+  brand:           false,
+  model:           false,
   region:          false,
   startDate:       false,
   endDate:         false,
@@ -202,6 +216,9 @@ const errors = computed(() => ({
     : touched.sbuNumber && !/^SBU-\d{3}$/.test(form.sbuNumber.trim())
     ? 'SBU number must start with SBU- followed by 3 digits (e.g., SBU-001).'
     : serverErrors.sbuNumber || '',
+  sbsiBranch:      touched.sbsiBranch      && !form.sbsiBranch                ? 'SBSI branch is required.' : '',
+  brand:           touched.brand           && !form.brand.trim()              ? 'Brand is required.' : '',
+  model:           touched.model           && !form.model.trim()              ? 'Model is required.' : '',
   region:          touched.region          && !form.region                    ? 'Region is required.' : '',
   startDate:       touched.startDate       && !form.startDate
     ? 'Start date is required.'
@@ -241,6 +258,9 @@ function isValid() {
     form.serialNo.trim() && /^SN-\d{4}-\d{4}$/.test(form.serialNo.trim()) &&
     !existingSerialNumbers.value.has(form.serialNo.trim().toLowerCase()) &&
     form.sbuNumber.trim() && /^SBU-\d{3}$/.test(form.sbuNumber.trim()) &&
+    form.sbsiBranch &&
+    form.brand.trim() &&
+    form.model.trim() &&
     form.region &&
     form.startDate && form.startDate >= minDate && form.startDate <= maxDate &&
     form.endDate && form.endDate <= maxDate &&
@@ -325,6 +345,10 @@ async function confirmSubmit() {
       description:   form.description,
       serial_number: form.serialNo,
       sbu_number:    form.sbuNumber,
+      sbsi_branch:   form.sbsiBranch,
+      equipment_name: form.equipmentName.trim() || null,
+      brand:         form.brand.trim(),
+      model:         form.model.trim(),
       region:        form.region,
       start_date:    form.startDate,
       end_date:      form.endDate,
@@ -418,6 +442,7 @@ async function fetchPartnerNames() {
 }
 
 onMounted(async () => {
+  fetchSbsiBranches()
   await fetchPartnerNames()
   fetchContractTypes()
   if (route.query.partner) {
@@ -648,13 +673,65 @@ onClickOutside(suggestionsContainer, () => {
             <p v-if="errors.sbuNumber" class="text-xs text-red-500">{{ errors.sbuNumber }}</p>
           </div>
 
+          <!-- Equipment / Machine Name (optional for software products) -->
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <label class="text-xs font-semibold text-black/55">Equipment / Machine Name <span class="font-normal text-black/40">(Optional for software products)</span></label>
+            <input
+              v-model="form.equipmentName"
+              type="text"
+              placeholder="e.g., Sysmex XN-1000 Hematology Analyzer"
+              class="h-9 rounded-lg border border-black/12 bg-white px-3 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition"
+            />
+          </div>
+
+          <!-- Brand -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-black/55">Brand <span class="text-red-500">*</span></label>
+            <input
+              v-model="form.brand"
+              type="text"
+              placeholder="e.g., Sysmex"
+              @blur="touched.brand = true"
+              class="h-9 rounded-lg border bg-white px-3 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2 transition"
+              :class="errors.brand ? 'border-red-400 focus:border-red-400 focus:ring-red-200/50' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
+            />
+            <p v-if="errors.brand" class="text-xs text-red-500">{{ errors.brand }}</p>
+          </div>
+
+          <!-- Model -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-black/55">Model <span class="text-red-500">*</span></label>
+            <input
+              v-model="form.model"
+              type="text"
+              placeholder="e.g., XN-1000"
+              @blur="touched.model = true"
+              class="h-9 rounded-lg border bg-white px-3 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2 transition"
+              :class="errors.model ? 'border-red-400 focus:border-red-400 focus:ring-red-200/50' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
+            />
+            <p v-if="errors.model" class="text-xs text-red-500">{{ errors.model }}</p>
+          </div>
+
         </div>
       </div>
 
       <!-- Section: Schedule & Location -->
       <div class="px-6 py-5 border-b border-black/6">
         <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4">Schedule & Location</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          <!-- SBSI Branch -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-black/55">SBSI Branch <span class="text-red-500">*</span></label>
+            <FormSelect
+              v-model="form.sbsiBranch"
+              :options="sbsiBranches"
+              placeholder="Select branch"
+              :error="!!errors.sbsiBranch"
+              @blur="touched.sbsiBranch = true"
+            />
+            <p v-if="errors.sbsiBranch" class="text-xs text-red-500">{{ errors.sbsiBranch }}</p>
+          </div>
 
           <!-- Region -->
           <div class="flex flex-col gap-1.5">

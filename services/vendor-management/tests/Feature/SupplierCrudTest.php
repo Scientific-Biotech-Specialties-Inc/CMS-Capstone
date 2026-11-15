@@ -85,7 +85,8 @@ class SupplierCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->postJson('/api/suppliers', [
             'supplier_name' => 'Acme Duplicate',
-            'tin_number' => '111-222-333'
+            'tin_number' => '111-222-333',
+            'email' => 'dup@acme.test',
         ]);
 
         $response->assertStatus(409); // Conflict
@@ -107,7 +108,8 @@ class SupplierCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->postJson('/api/suppliers', [
             'supplier_name' => 'Acme Corp',
-            'tin_number' => '444-555-666'
+            'tin_number' => '444-555-666',
+            'email' => 'acme.fuzzy@test.com',
         ]);
 
         $response->assertStatus(201);
@@ -137,7 +139,8 @@ class SupplierCrudTest extends TestCase
             'Authorization' => 'Bearer some-token',
         ])->putJson('/api/suppliers/' . $supplier->supplier_id, [
             'supplier_name' => 'New Name',
-            'tin_number' => '111-222-333' // same TIN is allowed for self
+            'tin_number' => '111-222-333', // same TIN is allowed for self
+            'email' => 'updated@acme.test',
         ]);
 
         $response->assertStatus(200);
@@ -212,5 +215,19 @@ class SupplierCrudTest extends TestCase
         ]);
 
         $response->assertStatus(401);
+    }
+
+    public function test_create_supplier_requires_email()
+    {
+        $this->mockAuthService();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer some-token',
+        ])->postJson('/api/suppliers', [
+            'supplier_name' => 'No Email Supplier',
+            'tin_number' => '111-222-333',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['email']);
     }
 }

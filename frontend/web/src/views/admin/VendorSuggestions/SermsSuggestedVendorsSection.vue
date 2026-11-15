@@ -12,11 +12,17 @@ const { success, error } = useToast()
 const loading = ref(true)
 const actingId = ref<number | null>(null)
 const suggestions = ref<SuggestedVendor[]>([])
+const emailDrafts = ref<Record<number, string>>({})
 
 async function load() {
   loading.value = true
   try {
     suggestions.value = await fetchSuggestedVendors('Pending')
+    const drafts: Record<number, string> = {}
+    for (const item of suggestions.value) {
+      drafts[item.suggestedVendorId] = item.email ?? ''
+    }
+    emailDrafts.value = drafts
   } catch {
     suggestions.value = []
   } finally {
@@ -26,14 +32,24 @@ async function load() {
 
 onMounted(load)
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+}
+
 async function handleApprove(item: SuggestedVendor) {
+  const email = (emailDrafts.value[item.suggestedVendorId] ?? item.email ?? '').trim()
+  if (!isValidEmail(email)) {
+    error('Email required', 'Enter a valid vendor email before onboarding.')
+    return
+  }
+
   actingId.value = item.suggestedVendorId
   try {
-    await approveSuggestedVendor(item.suggestedVendorId, true)
+    await approveSuggestedVendor(item.suggestedVendorId, true, email)
     suggestions.value = suggestions.value.filter(s => s.suggestedVendorId !== item.suggestedVendorId)
     success('Supplier onboarded', `${item.vendorName} has been added as an accredited supplier.`)
-  } catch {
-    error('Action failed', 'Could not approve suggested vendor.')
+  } catch (err: any) {
+    error('Action failed', err?.message || 'Could not approve suggested vendor.')
   } finally {
     actingId.value = null
   }
@@ -91,9 +107,18 @@ async function handleReject(item: SuggestedVendor) {
           </div>
           <p class="text-xs text-black/55">
             TIN: {{ item.tinNumber || 'Not provided' }}
+            <span v-if="item.email"> · {{ item.email }}</span>
             <span v-if="item.defaultExpenseCategory"> · Category: {{ item.defaultExpenseCategory }}</span>
             <span v-if="item.sourceReceiptId"> · Receipt #{{ item.sourceReceiptId }}</span>
           </p>
+          <div v-if="!item.email" class="pt-1 max-w-xs">
+            <input
+              v-model="emailDrafts[item.suggestedVendorId]"
+              type="email"
+              placeholder="Required vendor email (e.g. billing@vendor.com)"
+              class="w-full h-8 rounded-md border border-black/15 bg-white px-2.5 text-xs focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15"
+            />
+          </div>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">

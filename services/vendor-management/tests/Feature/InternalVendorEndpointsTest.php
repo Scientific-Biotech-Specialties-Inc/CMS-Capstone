@@ -113,8 +113,19 @@ class InternalVendorEndpointsTest extends TestCase
         $response = $this->withHeaders($this->secretHeader())->postJson('/api/internal/suppliers', [
             'supplier_name' => 'Different Name Co.',
             'tin_number'    => '999-999-999',
+            'email'         => 'different@existing.test',
         ]);
 
         $response->assertStatus(409);
+    }
+
+    public function test_internal_supplier_creation_requires_email()
+    {
+        $response = $this->withHeaders($this->secretHeader())->postJson('/api/internal/suppliers', [
+            'supplier_name' => 'Missing Email Supplier',
+            'tin_number'    => '888-777-666',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['email']);
     }
 }

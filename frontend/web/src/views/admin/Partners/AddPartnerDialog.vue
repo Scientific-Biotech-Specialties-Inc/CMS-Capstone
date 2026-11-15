@@ -29,7 +29,7 @@ const touched = reactive({
 })
 
 const emailValid = computed(() =>
-  !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
 )
 const phoneValid = computed(() =>
   !form.phone || /^\d{7,11}$/.test(form.phone)
@@ -178,10 +178,11 @@ function err(field: keyof typeof touched, extra = true) {
 
         <!-- Email -->
         <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Email</label>
+          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Email <span class="text-red-500">*</span></label>
           <input v-model="form.email" @blur="touched.email = true" type="email" placeholder="contact@company.com"
-            :class="['w-full h-9 rounded-md border bg-white px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 transition', err('email', !!form.email && !emailValid)]" />
-          <p v-if="touched.email && form.email && !emailValid" class="text-xs text-red-500">Enter a valid email address.</p>
+            :class="['w-full h-9 rounded-md border bg-white px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 transition', err('email', !emailValid)]" />
+          <p v-if="touched.email && !form.email.trim()" class="text-xs text-red-500">Required.</p>
+          <p v-else-if="touched.email && !emailValid" class="text-xs text-red-500">Enter a valid email address.</p>
         </div>
 
         <!-- Address -->

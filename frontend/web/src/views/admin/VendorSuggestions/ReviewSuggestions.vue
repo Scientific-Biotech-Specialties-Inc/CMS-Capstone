@@ -71,12 +71,11 @@ function closeTab(id: number) {
   }
 }
 
-const emailValid = computed(() => !activeForm.value?.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(activeForm.value.email))
+const emailValid = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(activeForm.value?.email?.trim() ?? ''))
 const isFormValid = computed(() => {
   const f = activeForm.value
   if (!f) return false
-  if (!f.name.trim() || !f.industry || !f.region) return false
-  if (f.vendorType === 'partner' && !f.email.trim()) return false
+  if (!f.name.trim() || !f.industry || !f.region || !f.email.trim()) return false
   if (f.vendorType === 'supplier' && !f.tinNumber.trim()) return false
   return emailValid.value
 })
@@ -208,12 +207,13 @@ async function saveActiveTab() {
         </div>
         <div class="flex flex-col gap-1.5 mb-4">
           <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">
-            Email <span v-if="activeForm.vendorType === 'partner'" class="text-red-500">*</span>
+            Email <span class="text-red-500">*</span>
           </label>
-          <input v-model="activeForm.email" type="email"
+          <input v-model="activeForm.email" type="email" placeholder="contact@company.com"
             class="w-full h-9 rounded-md border bg-white px-3 text-sm focus:outline-none focus:ring-2 transition"
             :class="!emailValid ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'" />
-          <p v-if="!emailValid" class="text-xs text-red-500">Enter a valid email address.</p>
+          <p v-if="!activeForm.email.trim()" class="text-xs text-red-500">Email is required.</p>
+          <p v-else-if="!emailValid" class="text-xs text-red-500">Enter a valid email address.</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Address</label>

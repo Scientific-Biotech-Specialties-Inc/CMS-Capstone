@@ -104,5 +104,45 @@ class AuthService
             return [];
         }
     }
+
+    /**
+     * Fetch SBSI branches from auth-service internal endpoint.
+     *
+     * @return array<int, string>
+     */
+    public function getBranches(): array
+    {
+        try {
+            $secret = config('services.ts.internal_secret') ?: config('services.vendor.secret');
+            $response = Http::connectTimeout(3)->timeout(5)->withHeaders([
+                'Accept' => 'application/json',
+                'X-Internal-Service' => 'contract-management',
+                'X-Internal-Secret' => (string) $secret,
+            ])->get("{$this->baseUrl}/internal/branches");
+
+            if ($response->successful()) {
+                $branches = collect($response->json('data') ?? [])
+                    ->pluck('name')
+                    ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+                    ->values()
+                    ->all();
+
+                return $branches !== [] ? $branches : ['Main Office'];
+            }
+
+            Log::warning('Auth service getBranches failed', [
+                'status' => $response->status(),
+                'response' => $response->body(),
+            ]);
+
+            return ['Main Office'];
+        } catch (\Throwable $e) {
+            Log::error('Auth service connection error in getBranches', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['Main Office'];
+        }
+    }
 }
 

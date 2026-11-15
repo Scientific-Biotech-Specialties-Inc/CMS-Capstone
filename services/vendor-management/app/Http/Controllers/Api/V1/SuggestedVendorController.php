@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class SuggestedVendorController extends Controller
 {
@@ -39,13 +40,24 @@ class SuggestedVendorController extends Controller
             return response()->json(['message' => 'Suggested vendor has already been reviewed.'], 422);
         }
 
+        $emailCandidate = trim((string) $request->input('email', $suggestion->email ?? ''));
+        $emailValidator = Validator::make(['email' => $emailCandidate], [
+            'email' => 'required|email|max:255',
+        ]);
+        if ($emailValidator->fails()) {
+            return response()->json([
+                'message' => 'A valid vendor email address is required before onboarding.',
+                'errors'  => $emailValidator->errors(),
+            ], 422);
+        }
+
         $supplier = Supplier::create([
             'supplier_name'            => $suggestion->vendor_name,
             'tin_number'               => $suggestion->tin_number,
             'industry'                 => $suggestion->industry,
             'contact_person'           => $suggestion->contact_person,
             'contact_number'           => $suggestion->contact_number,
-            'email'                    => $suggestion->email,
+            'email'                    => $emailCandidate,
             'address'                  => $suggestion->address,
             'region'                   => $suggestion->region ?? 'Luzon',
             'status'                   => 'Active',

@@ -189,4 +189,34 @@ final class VendorSuggestionControllerTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_accepting_candidate_requires_email(): void
+    {
+        $this->fakeAuth('Admin');
+
+        $suggestionId = DB::table('vendor_suggestions')->insertGetId([
+            'status' => 'completed', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $candidateId = DB::table('vendor_suggestion_candidates')->insertGetId([
+            'vendor_suggestion_id' => $suggestionId,
+            'candidate_name'       => 'No Email AI Co.',
+            'decision'             => 'pending',
+            'created_at'           => now(),
+            'updated_at'           => now(),
+        ]);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer token'])
+            ->patchJson("/api/vendor-suggestion-candidates/{$candidateId}", [
+                'decision'    => 'accepted',
+                'vendor_type' => 'supplier',
+                'fields'      => [
+                    'name'     => 'No Email AI Co.',
+                    'industry' => 'Diagnostics',
+                    'region'   => 'Luzon',
+                ],
+            ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['fields.email']);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'vendor-management'));
+    }
 }

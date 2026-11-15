@@ -4,10 +4,14 @@ import { fmtDate } from '@/types/contract'
 import type { ContractRegion, ContractWorkflowStatus } from '@/types/contract'
 import type { StoredContract } from '@/composables/useContractStore'
 import { CalendarCheck, CalendarX } from 'lucide-vue-next'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
+import { useSbsiBranches } from '@/composables/useSbsiBranches'
 import { initialBusinessPartners, initialSuppliersData } from '@/views/admin/Partners/mockPartners'
 import { onClickOutside } from '@vueuse/core'
+
+const { branches: sbsiBranches, fetchBranches: fetchSbsiBranches } = useSbsiBranches()
+onMounted(() => { fetchSbsiBranches() })
 
 const props = defineProps<{
   contract:   StoredContract
@@ -22,6 +26,10 @@ const props = defineProps<{
     description:     string
     serialNo:        string
     sbuNumber:       string
+    sbsiBranch:      string
+    equipmentName:   string
+    brand:           string
+    model:           string
     region:          ContractRegion | ''
     startDate:       string
     endDate:         string
@@ -212,6 +220,20 @@ onClickOutside(suggestionsContainer, () => {
             </tr>
           </tbody>
         </table>
+        <dl class="grid gap-4 px-8 py-4 border-t border-black/[0.05] sm:grid-cols-3">
+          <div>
+            <dt class="text-xs font-semibold text-black/50">Equipment / Machine Name</dt>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.equipmentName || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-black/50">Brand</dt>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.brand || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold text-black/50">Model</dt>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.model || '—' }}</dd>
+          </div>
+        </dl>
         <dl v-if="contract.productSnapshot || contract.prsClosingOutcome" class="grid gap-4 px-8 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <div v-if="contract.productSnapshot">
             <dt class="text-sm font-semibold">Product Category</dt>
@@ -297,14 +319,61 @@ onClickOutside(suggestionsContainer, () => {
           />
           <p v-if="touched.sbuNumber && !editForm.sbuNumber" class="text-xs text-red-500">SBU number is required.</p>
         </div>
+
+        <!-- Equipment / Machine Name -->
+        <div class="flex flex-col gap-1.5 md:col-span-2">
+          <label class="text-xs font-semibold text-black/50">Equipment / Machine Name <span class="font-normal text-black/35">(Optional)</span></label>
+          <input
+            v-model="editForm.equipmentName"
+            type="text"
+            placeholder="Optional for software products"
+            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
+          />
+        </div>
+
+        <!-- Brand -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-black/50">Brand</label>
+          <input
+            v-model="editForm.brand"
+            type="text"
+            placeholder="e.g. Sysmex"
+            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
+          />
+        </div>
+
+        <!-- Model -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-black/50">Model</label>
+          <input
+            v-model="editForm.model"
+            type="text"
+            placeholder="e.g. XN-1000"
+            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
+          />
+        </div>
       </div>
     </div>
 
     <!-- Section 3: Schedule & Location -->
     <div class="bg-white border border-black/[0.08] rounded-xl p-8 shadow-sm">
       <h3 class="text-[10px] font-bold text-brand-navy/60 uppercase tracking-widest border-b border-black/[0.05] pb-3 mb-6">Schedule & Location</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+        <!-- SBSI Branch -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-black/50">SBSI Branch</label>
+          <p v-if="!isEditing" class="text-[15px] font-medium text-black mt-0.5">{{ contract.sbsiBranch || 'Main Office' }}</p>
+          <template v-else>
+            <FormSelect
+              v-model="editForm.sbsiBranch"
+              :options="sbsiBranches"
+              placeholder="Select branch"
+              class="mt-1"
+            />
+          </template>
+        </div>
+
         <!-- Region -->
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-semibold text-black/50">

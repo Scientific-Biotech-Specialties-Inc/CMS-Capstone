@@ -18,7 +18,7 @@ import type { Partner, TabKey, VendorReimbursement, VendorReimbursementMeta } fr
 
 const route  = useRoute()
 const router = useRouter()
-const { success, error } = useToast()
+const { success, warning, error } = useToast()
 const { fetchPartnerById, fetchSupplierById } = useVendorService()
 const { fetchVendorContracts, fetchVendorReimbursements, detachContract, deletePartner } = usePartners()
 const { hasPermission } = useAuth()
@@ -107,7 +107,11 @@ async function loadReimbursements(vendorId: number | string, manualRefresh = fal
     reimbursements.value = res.items
     reimbursementsMeta.value = res.meta
     if (manualRefresh) {
-      success('Reimbursements synced', `Loaded ${res.items.length} SERMS reimbursement record(s).`)
+      if (res.meta.sermsConnected) {
+        success('Reimbursements synced', `Loaded ${res.items.length} SERMS reimbursement record(s).`)
+      } else {
+        warning('SERMS unreachable', 'Showing stored reimbursement records saved in CMS.')
+      }
     }
   } catch {
     if (manualRefresh) {

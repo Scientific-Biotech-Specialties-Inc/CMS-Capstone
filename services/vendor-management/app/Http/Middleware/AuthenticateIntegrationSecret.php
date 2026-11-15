@@ -15,16 +15,20 @@ class AuthenticateIntegrationSecret
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $secret = (string) ($request->header('X-Internal-Secret') ?? '');
-        $expectedSecret = (string) env('INTERNAL_SERVICE_SECRET');
+        $secret = trim((string) ($request->header('X-Internal-Secret') ?? $request->bearerToken() ?? ''));
+        $candidates = array_filter([
+            (string) env('INTERNAL_SERVICE_SECRET', ''),
+            (string) env('TS_TO_CMS_INTEGRATION_KEY', ''),
+        ], fn (string $value): bool => $value !== '');
 
-        // Constant-time comparison: prevents timing attacks on the shared secret.
-        if ($expectedSecret === '' || !hash_equals($expectedSecret, $secret)) {
-            return response()->json([
-                'message' => 'Forbidden. Invalid or missing integration secret.'
-            ], 403);
+        foreach ($candidates as $expectedSecret) {
+            if ($secret !== '' && hash_equals($expectedSecret, $secret)) {
+                return $next($request);
+            }
         }
 
-        return $next($request);
+        return response()->json([
+            'message' => 'Forbidden. Invalid or missing integration secret.',
+        ], 403);
     }
 }

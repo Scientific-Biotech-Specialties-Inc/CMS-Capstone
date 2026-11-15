@@ -124,7 +124,7 @@ class VendorSuggestionController extends Controller
             'fields.name'           => 'required_if:decision,accepted|string|max:255',
             'fields.industry'       => 'nullable|string|max:150',
             'fields.region'         => 'nullable|string|in:Luzon,Visayas,Mindanao',
-            'fields.email'          => 'nullable|email|max:255',
+            'fields.email'          => 'required_if:decision,accepted|email|max:255',
             'fields.phone'          => 'nullable|string|max:50',
             'fields.address'        => 'nullable|string',
             'fields.contact_person' => 'nullable|string|max:255',

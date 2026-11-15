@@ -12,8 +12,9 @@ class ContractMarginsTest extends TestCase
     public function test_computes_burn_rate_and_true_net_margin_with_serms_data(): void
     {
         Http::fake([
-            '*/api/auth/validate*' => Http::response([
-                'user' => ['id' => 1, 'role' => 'Admin'],
+            '*/internal/verify-token*' => Http::response([
+                'valid' => true,
+                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => []],
             ], 200),
             '*/internal/contracts/active*' => Http::response([
                 'data' => [
@@ -54,5 +55,38 @@ class ContractMarginsTest extends TestCase
             ->assertJsonPath('data.summary.total_net_margin', 75000)
             ->assertJsonPath('data.contracts.0.burn_rate_pct', 25)
             ->assertJsonPath('data.contracts.0.true_net_margin', 75000);
+    }
+
+    public function test_returns_zeroed_serms_expenses_when_serms_tunnel_returns_530(): void
+    {
+        Http::fake([
+            '*/internal/verify-token*' => Http::response([
+                'valid' => true,
+                'user' => ['id' => 1, 'role' => 'Admin', 'permissions' => []],
+            ], 200),
+            '*/internal/contracts/active*' => Http::response([
+                'data' => [
+                    [
+                        'contract_id'    => 10,
+                        'contract_code'  => 'CTR-ABC123',
+                        'client_name'    => 'Acme Biotech',
+                        'category'       => 'Service Agreement',
+                        'contract_value' => 100000.00,
+                        'start_date'     => '2026-01-01',
+                        'end_date'       => '2026-12-31',
+                    ],
+                ],
+            ], 200),
+            '*/internal/expenses/by-contract*' => Http::response([], 530),
+        ]);
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer test-token'])
+            ->getJson('/api/analytics/contract-margins');
+
+        $response->assertOk()
+            ->assertJsonPath('data.serms_connected', false)
+            ->assertJsonPath('data.summary.total_contract_value', 100000)
+            ->assertJsonPath('data.summary.total_expenses', 0)
+            ->assertJsonPath('data.summary.total_net_margin', 100000);
     }
 }

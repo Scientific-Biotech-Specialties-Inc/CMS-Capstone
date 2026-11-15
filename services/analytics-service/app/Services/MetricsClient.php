@@ -65,21 +65,36 @@ class MetricsClient
 
     public function sermsExpensesByContract(): ?array
     {
+        if ($this->sermsServiceUrl === '') {
+            return null;
+        }
+
         return $this->getJson("{$this->sermsServiceUrl}/internal/expenses/by-contract", $this->sermsSecret);
     }
 
     public function sermsContractExpenses(int $contractId): ?array
     {
+        if ($this->sermsServiceUrl === '') {
+            return null;
+        }
+
         return $this->getJson("{$this->sermsServiceUrl}/internal/contracts/{$contractId}/expenses", $this->sermsSecret);
     }
 
     protected function getJson(string $url, ?string $secretOverride = null): ?array
     {
+        if (trim($url) === '') {
+            return null;
+        }
+
         try {
-            $response = Http::withHeaders([
-                'Accept'            => 'application/json',
-                'X-Internal-Secret' => $secretOverride ?? $this->secret,
-            ])->get($url);
+            $response = Http::connectTimeout(3)
+                ->timeout(5)
+                ->withHeaders([
+                    'Accept'            => 'application/json',
+                    'X-Internal-Secret' => $secretOverride ?? $this->secret,
+                ])
+                ->get($url);
 
             if (!$response->successful()) {
                 Log::warning('MetricsClient: request failed', ['url' => $url, 'status' => $response->status()]);
@@ -87,7 +102,7 @@ class MetricsClient
             }
 
             return $response->json();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('MetricsClient: connection error', ['url' => $url, 'message' => $e->getMessage()]);
             return null;
         }

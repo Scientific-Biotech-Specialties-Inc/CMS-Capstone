@@ -132,6 +132,7 @@ services:
     command: sh -c "composer install --no-scripts && sleep 5 && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - TS_TO_CMS_INTEGRATION_KEY=${TS_TO_CMS_INTEGRATION_KEY:-}
       - SERMS_SERVICE_URL=${SERMS_SERVICE_URL:-http://serms-service:8000/api}
       - SERMS_INTERNAL_SECRET=${SERMS_INTERNAL_SECRET:-}
     depends_on:
@@ -157,6 +158,9 @@ services:
     command: sh -c "composer install --no-scripts && sleep 10 && php artisan migrate --force && (php artisan schedule:work &) && (php artisan queue:work --queue=contract_queue,default --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - TS_TO_CMS_INTEGRATION_KEY=${TS_TO_CMS_INTEGRATION_KEY:-}
+      - TS_SYNC_PUBLIC_READ=${TS_SYNC_PUBLIC_READ:-false}
+      - VENDOR_SERVICE_URL=${VENDOR_SERVICE_URL:-http://vendor-management:8000/api}
       - SERMS_SERVICE_URL=${SERMS_SERVICE_URL:-http://serms-service:8000/api}
       - SERMS_INTERNAL_SECRET=${SERMS_INTERNAL_SECRET:-}
       - PRS_INTEGRATION_KEY=${PRS_INTEGRATION_KEY:-}

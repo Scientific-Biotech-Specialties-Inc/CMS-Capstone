@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Building2, Truck, Search, LayoutGrid, List, Plus, Upload, Sparkles } from 'lucide-vue-next'
 import { exportToExcel } from '@/utils/excelExport'
@@ -25,7 +25,6 @@ const {
   loading,
   totalItems,
   fetchPartners,
-  fetchIndustries,
   deletePartner
 } = usePartners()
 
@@ -36,57 +35,31 @@ const viewMode       = ref<'card' | 'table'>('card')
 const search         = ref('')
 const regionFilter   = ref('All')
 const statusFilter   = ref('All')
-const industryFilter = ref('All')
 const regions        = ['All', 'Luzon', 'Visayas', 'Mindanao']
 const statusOptions  = ['All', 'Active', 'Inactive', 'Suspended'] as const
 
 const partnersCount = ref(0)
 const suppliersCount = ref(0)
 
-
-
-const industryOptions = ref<string[]>([])
-
-// The dropdown must list every industry in the database, regardless of the
-// region/status/search currently applied — never derive it from `partners`
-// alone (those rows are already filtered server-side). The values from the
-// loaded page are only merged in as an additive safety net.
-const industries = computed(() => {
-  const pageValues = partners.value.map(p => p.industry).filter(Boolean)
-  return ['All', ...[...new Set([...industryOptions.value, ...pageValues])].sort()]
-})
-
-async function loadIndustries(tab: TabKey) {
-  const values = await fetchIndustries(tab)
-  // Ignore responses for a tab the user has already switched away from.
-  if (tab !== activeTab.value) return
-  industryOptions.value = values
-  if (industryFilter.value !== 'All' && !values.includes(industryFilter.value)) {
-    industryFilter.value = 'All'
-  }
-}
-
-// Status, industry and region are filtered by the API so they apply to the
-// whole dataset, not just the rows of the current page.
+// Status and region are filtered by the API so they apply to the whole dataset,
+// not just the rows of the current page.
 const filtered = computed(() => partners.value)
 
 const currentPage  = ref(1)
 const itemsPerPage = 15
 
-watch([search, regionFilter, statusFilter, industryFilter], () => { currentPage.value = 1 })
+watch([search, regionFilter, statusFilter], () => { currentPage.value = 1 })
 watch(activeTab, () => {
   search.value         = ''
   regionFilter.value   = 'All'
   statusFilter.value   = 'All'
-  industryFilter.value = 'All'
   currentPage.value    = 1
-  loadIndustries(activeTab.value)
 })
 
 watch(
-  [activeTab, currentPage, search, regionFilter, statusFilter, industryFilter],
-  async ([tab, page, q, region, status, industry]) => {
-    await fetchPartners(tab, page, itemsPerPage, q, region, status, industry)
+  [activeTab, currentPage, search, regionFilter, statusFilter],
+  async ([tab, page, q, region, status]) => {
+    await fetchPartners(tab, page, itemsPerPage, q, region, status)
   }
 )
 
@@ -104,19 +77,10 @@ onMounted(async () => {
     suppliersCount.value = totalItems.value
     await fetchPartners('partners', 1, itemsPerPage)
     partnersCount.value = totalItems.value
-    await loadIndustries('partners')
   } catch (err) {
     console.error(err)
   }
 })
-
-// A partner/supplier created in another tab (or just before returning to this
-// page) must appear in the Industry filter without a full reload.
-function refreshIndustries() {
-  void loadIndustries(activeTab.value)
-}
-onMounted(() => window.addEventListener('focus', refreshIndustries))
-onBeforeUnmount(() => window.removeEventListener('focus', refreshIndustries))
 
 const selectedIds     = ref<(string | number)[]>([])
 const allPageSelected = computed(() =>
@@ -164,10 +128,8 @@ async function confirmDelete() {
         itemsPerPage,
         search.value,
         regionFilter.value,
-        statusFilter.value,
-        industryFilter.value
+        statusFilter.value
       )
-      await loadIndustries(activeTab.value)
     }
     selectedIds.value = selectedIds.value.filter(id => id !== target.id)
     success('Entry deleted', `${target.name} has been removed.`)
@@ -264,18 +226,14 @@ async function executeExport() {
     </div>
 
     <div class="flex items-center gap-3">
-      <div class="relative flex-1">
+      <div class="relative flex-1 min-w-0">
         <Search class="w-3.5 h-3.5 text-black/30 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input v-model="search" type="text" :placeholder="`Search ${activeTab === 'partners' ? 'partners' : 'suppliers'}...`"
           class="w-full h-9 rounded-lg border border-black/10 bg-white pl-8.5 pr-3 text-sm placeholder:text-black/25 focus:border-brand-blue focus:outline-none transition" />
       </div>
       <select v-model="regionFilter"
-        class="h-9 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
+        class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
         <option v-for="r in regions" :key="r" :value="r">{{ r === 'All' ? 'All Regions' : r }}</option>
-      </select>
-      <select v-model="industryFilter"
-        class="h-9 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
-        <option v-for="ind in industries" :key="ind" :value="ind">{{ ind === 'All' ? 'All Industries' : ind }}</option>
       </select>
     </div>
 
