@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import type { ApiRole, ApiPermission, Category } from '@/types/role'
 
 const AUTH_API = import.meta.env.VITE_AUTH_API_URL as string
+const BYPASS_CONFIRMATION = 'cms.contracts.bypass_submission_confirmation'
 
 // ── Slug → UI translation map ──────────────────────────────────────────
 // Maps each DB permission slug to the frontend category key and pill label.
@@ -13,6 +14,7 @@ const SLUG_UI_MAP: Record<string, { category: string; label: string }> = {
   'cms.contracts.edit':    { category: 'contracts', label: 'Edit' },
   'cms.contracts.delete':  { category: 'contracts', label: 'Delete' },
   'cms.contracts.approve': { category: 'contracts', label: 'Approve' },
+  [BYPASS_CONFIRMATION]: { category: 'contracts', label: 'Bypass Submission Confirmation' },
 
   // Business Partners & Suppliers
   'cms.partners.view':   { category: 'partners', label: 'View' },
@@ -38,6 +40,7 @@ export const UI_CATEGORIES: Category[] = [
       { key: 'cms.contracts.edit',    label: 'Edit' },
       { key: 'cms.contracts.delete',  label: 'Delete' },
       { key: 'cms.contracts.approve', label: 'Approve' },
+      { key: BYPASS_CONFIRMATION, label: 'Bypass Submission Confirmation' },
     ],
   },
   {
@@ -116,8 +119,14 @@ export function useRolePermissions() {
 
   /** Load all available permissions */
   async function fetchAllPermissions() {
-    const data = await apiFetch<any>('/admin/permissions?per_page=100')
-    const permissionsArray = Array.isArray(data) ? data : (data.data || [])
+    type PermissionPage = ApiPermission[] | { data: ApiPermission[]; last_page?: number }
+    const data = await apiFetch<PermissionPage>('/admin/permissions?per_page=100')
+    const permissionsArray = Array.isArray(data) ? data : data.data
+    if (!permissionsArray.some(permission => permission.slug === BYPASS_CONFIRMATION)) {
+      const search = await apiFetch<PermissionPage>(`/admin/permissions?search=${BYPASS_CONFIRMATION}`)
+      const bypass = (Array.isArray(search) ? search : search.data).find(permission => permission.slug === BYPASS_CONFIRMATION)
+      if (bypass) permissionsArray.push(bypass)
+    }
     // Only keep CMS CRUD permissions that appear in the UI map
     const dbPerms = permissionsArray.filter((p: ApiPermission) => SLUG_UI_MAP[p.slug] !== undefined)
     

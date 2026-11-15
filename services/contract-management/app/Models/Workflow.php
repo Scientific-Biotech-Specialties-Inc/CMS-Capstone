@@ -22,7 +22,10 @@ class Workflow extends Model
         'status',
         'resubmit_mode',
         'created_by',
+        'execution_reviewers',
     ];
+
+    protected $casts = ['execution_reviewers' => 'array'];
 
     public function contractType(): BelongsTo
     {

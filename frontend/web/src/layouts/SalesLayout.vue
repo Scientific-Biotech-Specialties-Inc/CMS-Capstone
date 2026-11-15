@@ -59,6 +59,10 @@ const isNotifOpen = ref(false);
 function openNotification(n: Notification) {
   if (!n.isRead) markRead(n.id);
   isNotifOpen.value = false;
+  if (n.notifType?.startsWith('execution_confirmation_') && n.contractId) {
+    router.push({ name: 'sales-contracts-detail', params: { id: n.contractId }, query: { execution: '1' } });
+    return;
+  }
   router.push('/sales/notifications');
 }
 
@@ -66,7 +70,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => { fetchNotifications(); pollTimer = setInterval(fetchNotifications, 5000); });
 onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
 
-const contractPaths = ["/sales/contracts", "/sales/contract-requests", "/sales/contract-amendments"];
+const contractPaths = ["/sales/contracts", "/sales/contract-requests", "/sales/contract-requests-review", "/sales/contract-amendments"];
 const contractsOpen = ref(contractPaths.includes(route.path));
 
 watch(() => route.path, path => {
@@ -80,6 +84,9 @@ const contractSubItems = computed(() => {
     items.push({ title: "All Contracts",     url: "/sales/contracts",         icon: FileText  })
   }
   items.push({ title: "My Requests",       url: "/sales/contract-requests", icon: FileText  })
+  if (hasPermission('cms.contracts.approve')) {
+    items.push({ title: "Contract Requests", url: "/sales/contract-requests-review", icon: FileText })
+  }
   items.push({ title: "Amendments", url: "/sales/contract-amendments", icon: FileText  })
   return items
 })

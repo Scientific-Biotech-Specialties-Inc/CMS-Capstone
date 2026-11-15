@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Loader2, XCircle } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
@@ -13,6 +13,7 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const { success, error } = useToast()
 const router = useRouter()
+const route = useRoute()
 const { state: authState } = useAuth()
 
 const {
@@ -100,7 +101,7 @@ const paginated = computed(() =>
 )
 
 function openDetail(r: ContractRequest) {
-  router.push(`/manager/contract-requests/${r.id}`)
+  router.push({ name: `${String(route.name)}-detail`, params: { id: r.id } })
 }
 
 async function confirmApprove() {

@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { watch, onUnmounted } from 'vue'
-import { X, GitBranch } from 'lucide-vue-next'
+import { ref, watch, onUnmounted } from 'vue'
+import { X, GitBranch, CheckCircle2 } from 'lucide-vue-next'
 import type { TrackerStatus, WorkflowProgress } from '@/types/contractWorkflow'
+import type { ExecutionAction, ExecutionState } from '@/composables/useContractExecution'
 import ContractWorkflowTracker from './index.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean
   workflow: WorkflowProgress | null
   status: TrackerStatus
   onRetry?: () => void
-}>()
+  initialTab?: 'approval' | 'execution'
+  executionState?: ExecutionState | null
+  executionSubmitLabel?: string
+}>(), { initialTab: 'approval' })
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
+  executionAction: [action: ExecutionAction]
 }>()
+
+const currentTab = ref<'approval' | 'execution'>(props.initialTab)
 
 function close() {
   emit('update:open', false)
@@ -36,6 +43,7 @@ function unlockScroll() {
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     lockScroll()
+    currentTab.value = props.initialTab
   } else {
     // Panel leave-transition still plays; overflow restores on after-leave.
     document.removeEventListener('keydown', onKeydown)
@@ -73,14 +81,14 @@ onUnmounted(() => unlockScroll())
         class="fixed inset-y-0 right-0 h-dvh w-full sm:w-[480px] bg-white border-l border-black/10 shadow-2xl z-50 flex flex-col font-poppins"
         role="dialog"
         aria-modal="true"
-        aria-label="Approval Workflow Tracker"
+        aria-label="Contract Workflow Tracker"
       >
         <!-- Drawer Header -->
         <div class="p-6 border-b border-black/5">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <GitBranch class="w-5 h-5 text-brand-blue" />
-              <h3 class="text-base font-bold text-black">Approval Workflow Tracker</h3>
+              <h3 class="text-base font-bold text-black">Contract Workflow Tracker</h3>
             </div>
             <button
               @click="close"
@@ -91,22 +99,110 @@ onUnmounted(() => unlockScroll())
             </button>
           </div>
           <p class="text-xs text-black/40 mt-1.5">
-            See exactly where this contract is in the approval process and whose desk it's on.
+            Track internal approval steps and post-approval execution stages.
           </p>
+
+          <!-- Tab Switcher -->
+          <div class="mt-4 flex p-1 bg-black/5 rounded-xl border border-black/5 gap-1 font-poppins">
+            <button
+              type="button"
+              @click="currentTab = 'approval'"
+              class="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+              :class="currentTab === 'approval' ? 'bg-white text-brand-navy shadow-sm' : 'text-black/50 hover:text-black hover:bg-black/[0.02]'"
+            >
+              Internal Approval
+            </button>
+            <button
+              type="button"
+              @click="currentTab = 'execution'"
+              class="flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+              :class="currentTab === 'execution' ? 'bg-white text-brand-navy shadow-sm' : 'text-black/50 hover:text-black hover:bg-black/[0.02]'"
+            >
+              Execution Stages
+              <span v-if="workflow?.executionGroups?.length" class="inline-flex w-1.5 h-1.5 rounded-full bg-brand-blue" />
+            </button>
+          </div>
         </div>
 
         <!-- Drawer Content: vertical timeline, scrolls independently -->
-        <!-- :key re-mounts the timeline on each open so the stagger
-             cascade replays every time the drawer opens. -->
+        <!-- :key re-mounts the timeline on each open / tab switch so the stagger
+             cascade replays smoothly. -->
         <div class="flex-1 overflow-y-auto p-6">
           <ContractWorkflowTracker
-            :key="String(open)"
+            :key="`${String(open)}-${currentTab}`"
             :workflow="workflow"
             :status="status"
             :on-retry="onRetry"
+            :tab="currentTab"
             orientation="vertical"
             bare
           />
+        </div>
+
+        <!-- Drawer Footer: Execution Action Trigger when viewing Execution Stages -->
+        <div v-if="currentTab === 'execution' && $slots['execution-details']" class="max-h-64 shrink-0 overflow-y-auto border-t border-black/5">
+          <slot name="execution-details" />
+        </div>
+        <div v-else-if="currentTab === 'execution' && executionState?.enabled" class="p-4 border-t border-black/5 bg-slate-50/80 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-black/50 font-medium">Current Execution Stage:</span>
+            <span class="font-bold text-brand-navy">{{ executionState.stage ?? 'Pending' }}</span>
+          </div>
+
+          <div class="flex gap-2 empty:hidden">
+            <template v-if="executionState.allowed?.confirm">
+              <button
+                type="button"
+                @click="$emit('executionAction', 'confirm')"
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <CheckCircle2 class="w-3.5 h-3.5" />
+                Confirm Submission
+              </button>
+              <button
+                type="button"
+                @click="$emit('executionAction', 'return')"
+                class="py-2 px-3 rounded-lg text-xs font-medium border border-black/15 text-black/65 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+              >
+                Return
+              </button>
+            </template>
+
+            <template v-else-if="executionState.allowed?.submit">
+              <button
+                type="button"
+                @click="$emit('executionAction', 'submit')"
+                class="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-brand-navy hover:bg-brand-dark text-white shadow-sm flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
+                {{ executionSubmitLabel ?? 'Update Execution Status' }}
+              </button>
+            </template>
+
+            <template v-else-if="executionState.allowed?.resume">
+              <button
+                type="button"
+                @click="$emit('executionAction', 'resume')"
+                class="w-full py-2.5 px-3 rounded-lg text-xs font-semibold border border-brand-navy text-brand-navy hover:bg-brand-navy/5 transition-colors"
+              >
+                Resume Workflow
+              </button>
+            </template>
+
+            <template v-else-if="executionState.allowed?.revise">
+              <button
+                type="button"
+                @click="$emit('executionAction', 'revise')"
+                class="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-brand-navy hover:bg-brand-dark text-white shadow-sm transition-colors"
+              >
+                Resubmit for Approval
+              </button>
+            </template>
+
+            <span v-else-if="executionState.awaiting_confirmation" role="status" class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900">
+              Awaiting Confirmation
+            </span>
+          </div>
         </div>
       </aside>
     </Transition>

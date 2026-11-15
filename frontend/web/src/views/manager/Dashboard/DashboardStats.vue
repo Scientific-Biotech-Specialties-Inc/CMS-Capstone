@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 
 const props = defineProps<{
@@ -9,9 +10,9 @@ const props = defineProps<{
 const stats = computed(() => {
   const approvedContracts = props.contracts.filter(c => c.approvalStatus === 'Approved')
   const total = approvedContracts.length
-  const active = approvedContracts.filter(c => c.days > 30).length
-  const expiring = approvedContracts.filter(c => c.days >= 0 && c.days <= 30).length
-  const expired = approvedContracts.filter(c => c.days < 0).length
+  const active = approvedContracts.filter(c => contractLifecycle(c) === 'active').length
+  const expiring = approvedContracts.filter(c => contractLifecycle(c) === 'expiring').length
+  const expired = approvedContracts.filter(c => contractLifecycle(c) === 'expired').length
 
   return [
     { label: 'Total Contracts', value: String(total), change: '+12.5%', positive: true,  sub: 'All time' },

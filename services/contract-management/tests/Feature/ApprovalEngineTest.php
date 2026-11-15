@@ -38,9 +38,11 @@ class ApprovalEngineTest extends TestCase
     }
 
     private array $httpFakes = [];
+    private int $authenticatedUserId = 42;
 
     private function fakeAuth(array $overrides = []): void
     {
+        $this->authenticatedUserId = $overrides['id'] ?? 42;
         $this->httpFakes['http://auth-service:8000/api/internal/verify-token'] = Http::response([
             'valid' => true,
             'user' => array_merge([
@@ -146,6 +148,7 @@ class ApprovalEngineTest extends TestCase
     private function createContractPayload(array $overrides = []): array
     {
         return array_merge([
+            'document_ids' => [$this->createDraftPdf($this->authenticatedUserId)],
             'bp_name' => 'Test Vendor',
             'category' => 'Service Agreement',
             'item_code' => 'ITM-ENG-' . uniqid(),
@@ -172,8 +175,7 @@ class ApprovalEngineTest extends TestCase
 
         $response->assertStatus(201);
         $this->assertDatabaseCount('approval_instances', 0);
-        // Legacy behavior: Manager-created contract is auto-approved.
-        $this->assertEquals('Approved', $response->json('data.approval_status'));
+        $this->assertEquals('Pending', $response->json('data.approval_status'));
     }
 
     public function test_contract_creation_unaffected_when_category_has_no_active_workflow()
@@ -187,7 +189,7 @@ class ApprovalEngineTest extends TestCase
 
         $response->assertStatus(201);
         $this->assertDatabaseCount('approval_instances', 0);
-        $this->assertEquals('Approved', $response->json('data.approval_status'));
+        $this->assertEquals('Pending', $response->json('data.approval_status'));
     }
 
     // ── Instance creation / sequential advance ─────────────────────────
@@ -268,6 +270,10 @@ class ApprovalEngineTest extends TestCase
             'contract_id' => $contractId,
             'approval_status_id' => ContractApprovalStatus::where('status_name', 'Approved')->first()->approval_status_id,
         ]);
+        $this->getJson("/api/contracts/{$contractId}")->assertOk()
+            ->assertJsonPath('data.workflow_status', 'SBSI Review')
+            ->assertJsonPath('data.lifecycle_status', 'pending_execution')
+            ->assertJsonPath('data.has_pending_approval_workflow', false);
     }
 
     // ── Parallel steps ──────────────────────────────────────────────────
@@ -576,15 +582,21 @@ class ApprovalEngineTest extends TestCase
 
     public function test_legacy_update_status_endpoint_is_blocked_for_engine_managed_contracts()
     {
-        config(['services.features.workflow_engine_enabled' => true]);
+        config(['services.features.workflow_engine_enabled' => true, 'services.features.enforce_sod' => false]);
         $this->fakeAuth(['role' => 'Manager', 'id' => 99]);
         $category = $this->makeCategory();
-        $this->makeActiveWorkflow($category, [['roles' => [350 => 'Regulatory']]]);
+        $this->makeActiveWorkflow($category, [['roles' => [350 => 'Manager']]]);
         $this->fakeActiveHolders([350 => [99]]);
 
         $createResp = $this->withHeaders(['Authorization' => 'Bearer token'])
             ->postJson('/api/contracts', $this->createContractPayload());
         $contractId = $createResp->json('data.contract_db_id');
+        $createResp->assertCreated()->assertJsonPath('data.has_pending_approval_workflow', true);
+
+        $this->getJson('/api/contracts')->assertOk()->assertJsonPath('data.0.has_pending_approval_workflow', true);
+        $this->getJson('/api/contract-requests')->assertOk()->assertJsonPath('data.0.has_pending_approval_workflow', true);
+        $this->getJson("/api/contracts/{$contractId}")->assertOk()->assertJsonPath('data.has_pending_approval_workflow', true);
+        $this->getJson("/api/contracts/{$contractId}/approval-progress")->assertOk()->assertJsonCount(1, 'data.my_tasks');
 
         $response = $this->withHeaders(['Authorization' => 'Bearer token'])
             ->patchJson("/api/contracts/{$contractId}/status", ['approval_status' => 'Approved']);
@@ -606,6 +618,7 @@ class ApprovalEngineTest extends TestCase
         $createResp = $this->withHeaders(['Authorization' => 'Bearer token'])
             ->postJson('/api/contracts', $this->createContractPayload());
         $contractId = $createResp->json('data.contract_db_id');
+        $createResp->assertCreated()->assertJsonPath('data.has_pending_approval_workflow', false);
 
         $response = $this->withHeaders(['Authorization' => 'Bearer token'])
             ->patchJson("/api/contracts/{$contractId}/status", ['approval_status' => 'Rejected', 'rejection_reason' => 'test']);

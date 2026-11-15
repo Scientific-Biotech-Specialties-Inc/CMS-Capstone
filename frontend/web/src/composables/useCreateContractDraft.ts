@@ -12,6 +12,9 @@ export interface DraftForm {
   startDate:       string
   endDate:         string
   prsActivityId?:  number | ''
+  productId?:      number
+  prsInstitutionId?: number
+  prsBranchId?:    number
 }
 
 export interface GeneratedDocument {
@@ -69,7 +72,7 @@ const draft = reactive<Draft>({
 
 export function useCreateContractDraft() {
   function saveDraft(form: DraftForm, docs: UploadedDoc[], role: Draft['role']) {
-    Object.assign(draft.form, form)
+    draft.form = { ...form }
     draft.docs   = [...docs]
     draft.role   = role
     draft.active = true

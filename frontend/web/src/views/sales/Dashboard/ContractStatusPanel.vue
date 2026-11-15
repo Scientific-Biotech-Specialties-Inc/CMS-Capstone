@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Plus, FileText, AlertTriangle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/composables/useAuth'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 
 const props = defineProps<{
@@ -15,7 +16,7 @@ const router = useRouter()
 const { hasPermission } = useAuth()
 
 const expiringSoon = computed(() =>
-  props.contracts.filter(c => c.days >= 0 && c.days <= 30).slice(0, 4)
+  props.contracts.filter(c => contractLifecycle(c) === 'expiring').slice(0, 4)
 )
 </script>
 

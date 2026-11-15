@@ -44,6 +44,7 @@ export interface WorkflowProgress {
   contractId: string
   currentRun: number
   runs: WorkflowRun[] // at least one when status === 'ready'; latest last
+  executionGroups?: WorkflowGroup[]
 }
 
 // ── Live-data API shapes (Phase 6 wiring, Phase 5 backend) ──────────────
@@ -90,12 +91,24 @@ export interface ApiApprovalRun {
   groups: ApiApprovalGroup[]
 }
 
+export interface ApiExecutionStage {
+  stage: string
+  status: NodeStatus
+  is_current: boolean
+  acted_at: string | null
+  reviewer_roles: string[]
+  sub_text: string | null
+  document_id: string | null
+}
+
 export interface ApprovalProgressResponse {
   engine: boolean
   contract_id?: string
   contract_created_at?: string | null
   contract_created_by?: string | null
   runs: ApiApprovalRun[]
+  legacy_run?: ApiApprovalRun
+  execution_stages?: ApiExecutionStage[]
 }
 
 /**
@@ -113,7 +126,11 @@ export interface ApprovalProgressResponse {
  *   contract_created_* so the track matches the Phase 6 mock rhythm.
  */
 export function mapProgressResponse(contractId: string, json: ApprovalProgressResponse): WorkflowProgress {
-  const runs: WorkflowRun[] = json.runs.map((run) => {
+  const rawRuns = json.runs && json.runs.length > 0
+    ? json.runs
+    : (json.legacy_run ? [json.legacy_run] : [])
+
+  const runs: WorkflowRun[] = rawRuns.map((run) => {
     // Groups render from materialized tasks; steps with no tasks yet
     // (future steps — tasks are created only when the run reaches them)
     // render as pending/locked from the step definitions. A group with
@@ -181,10 +198,33 @@ export function mapProgressResponse(contractId: string, json: ApprovalProgressRe
     return { runNumber: run.run_number, groups }
   })
 
+  const executionGroups: WorkflowGroup[] = (json.execution_stages ?? []).map((stage, idx) => {
+    const reviewerText = stage.reviewer_roles?.length ? `Reviewers: ${stage.reviewer_roles.join(', ')}` : ''
+    const subText = stage.sub_text
+      ? (reviewerText ? `${stage.sub_text} · ${reviewerText}` : stage.sub_text)
+      : reviewerText || null
+
+    return {
+      id: `execution-stage-${idx}-${stage.stage}`,
+      mode: 'sequential',
+      nodes: [{
+        id: `execution-node-${stage.stage}`,
+        title: stage.stage,
+        status: stage.status,
+        actedAt: stage.acted_at,
+        subText,
+        delegation: null,
+        roleDeleted: false,
+        roleRenamedFrom: null,
+      }],
+    }
+  })
+
   return {
     contractId,
     currentRun: runs.length ? runs[runs.length - 1].runNumber : 0,
     runs,
+    executionGroups: executionGroups.length > 0 ? executionGroups : undefined,
   }
 }
 

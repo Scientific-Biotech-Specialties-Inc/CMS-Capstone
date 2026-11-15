@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+!.env.example
+vendor
+node_modules
+auth.json
+storage/logs/*
+*.log
+tests
+

@@ -18,6 +18,9 @@ class MongoAtlasConnectivityTest extends TestCase
     {
         // 1. Guard check: ensure we are actually hitting Atlas, not the old local URI
         $uri = env('MONGODB_URI');
+        if (empty($uri)) {
+            $this->markTestSkipped('MongoDB Atlas connectivity test skipped because MONGODB_URI is not set.');
+        }
         $this->assertStringContainsString(
             'mongodb+srv://', 
             $uri, 

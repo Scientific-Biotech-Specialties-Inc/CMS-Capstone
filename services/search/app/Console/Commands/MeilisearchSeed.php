@@ -54,6 +54,9 @@ final class MeilisearchSeed extends Command
             ->leftJoin('contract_regions', 'contracts.region_id', '=', 'contract_regions.region_id')
             ->select([
                 'contracts.contract_id',
+                'contracts.contract_code',
+                'contracts.execution_required',
+                'contracts.signed_document_id',
                 'contracts.bp_name',
                 'contract_categories.category_name as category',
                 'contract_approval_statuses.status_name as approval_status',
@@ -79,8 +82,12 @@ final class MeilisearchSeed extends Command
             $startDate = $c->start_date ? Carbon::parse($c->start_date)->toDateString() : null;
             $endDate = $c->end_date ? Carbon::parse($c->end_date)->toDateString() : null;
 
-            $lifecycleStatus = 'active';
-            if ($endDate) {
+            $lifecycleStatus = match (true) {
+                $c->approval_status !== null && $c->approval_status !== 'Approved' => 'inactive',
+                $c->execution_required && !$c->signed_document_id => 'pending_execution',
+                default => 'active',
+            };
+            if ($lifecycleStatus === 'active' && $endDate) {
                 $days = (int) Carbon::today()->diffInDays(Carbon::parse($endDate), false);
                 $lifecycleStatus = match (true) {
                     $days < 0 => 'expired',
@@ -91,7 +98,9 @@ final class MeilisearchSeed extends Command
 
             $documents[] = [
                 'id'              => (int) $c->contract_id,
-                'contract_id'     => (int) $c->contract_id,
+                'contract_id'     => $c->contract_code ?? (string) $c->contract_id,
+                'contract_db_id'  => (int) $c->contract_id,
+                'contract_code'   => $c->contract_code,
                 'bp_name'         => $decrypt($c->bp_name),
                 'category'        => $c->category,
                 'approval_status' => $c->approval_status,

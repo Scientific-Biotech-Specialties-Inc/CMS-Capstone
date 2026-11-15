@@ -94,6 +94,10 @@ workflow_status_id bigint (nullable, indexed, foreign key to contract_statuses.s
 approval_status_id bigint (nullable, foreign key to contract_approval_statuses.approval_status_id)
 region_id bigint (nullable, foreign key to contract_regions.region_id)
 prs_activity_id bigint (nullable)
+product_id bigint (nullable, foreign key to products.id)
+product_snapshot json (nullable)
+prs_institution_id bigint (nullable, PRS institution identifier)
+prs_branch_id bigint (nullable, PRS branch identifier)
 bp_name string (nullable)
 sbu_number string (nullable)
 item_code string (nullable)
@@ -107,6 +111,26 @@ created_by bigint (nullable)
 created_at timestamp
 updated_at timestamp
 
+### Table: products
+PK id bigint
+item_code string (unique)
+product_name string
+sbu_number string
+description text
+category string
+manufacturer string (nullable)
+model string (nullable)
+is_active boolean (default: true)
+created_at timestamp
+updated_at timestamp
+
+### Table: prs_closing_events
+PK event_id UUID
+prs_activity_id bigint
+revision bigint (unique per activity)
+outcome string
+created_at timestamp
+
 ### Table: contract_amendments
 PK amendment_id bigint
 contract_id bigint (indexed, foreign key to contracts.contract_id onDelete cascade)
@@ -114,6 +138,7 @@ version integer
 bp_name text
 category string
 item_code string
+product_snapshot json (nullable)
 description text
 serial_number string
 sbu_number string
@@ -137,6 +162,7 @@ version integer
 bp_name text
 category string
 item_code string
+product_snapshot json (nullable)
 description text
 serial_number string
 sbu_number string

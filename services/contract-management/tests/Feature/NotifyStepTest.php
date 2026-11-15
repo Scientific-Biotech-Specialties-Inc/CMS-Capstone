@@ -36,9 +36,11 @@ class NotifyStepTest extends TestCase
     }
 
     private array $httpFakes = [];
+    private int $authenticatedUserId = 42;
 
     private function fakeAuth(array $overrides = []): void
     {
+        $this->authenticatedUserId = $overrides['id'] ?? 42;
         $this->httpFakes['http://auth-service:8000/api/internal/verify-token'] = Http::response([
             'valid' => true,
             'user' => array_merge([
@@ -112,6 +114,7 @@ class NotifyStepTest extends TestCase
     private function createContractPayload(array $overrides = []): array
     {
         return array_merge([
+            'document_ids' => [$this->createDraftPdf($this->authenticatedUserId)],
             'bp_name' => 'Test Vendor',
             'category' => 'Service Agreement',
             'item_code' => 'ITM-ENG-' . uniqid(),

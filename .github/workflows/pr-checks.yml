@@ -1,0 +1,29 @@
+name: CMS Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "cms-pr-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: ./.github/workflows/cms-checks.yml
+
+  required:
+    name: CMS PR Checks
+    if: ${{ always() }}
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all CMS checks to pass
+        env:
+          CHECK_RESULT: ${{ needs.checks.result }}
+        run: test "$CHECK_RESULT" = success

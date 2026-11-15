@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Clock, ArrowRight } from 'lucide-vue-next'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 
 const router = useRouter()
@@ -12,7 +13,7 @@ const props = defineProps<{
 
 const expiringContracts = computed(() => {
   return props.contracts
-    .filter(c => c.approvalStatus === 'Approved' && c.days >= 0 && c.days <= 30)
+    .filter(c => contractLifecycle(c) === 'expiring')
     .sort((a, b) => a.days - b.days)
     .slice(0, 5)
 })

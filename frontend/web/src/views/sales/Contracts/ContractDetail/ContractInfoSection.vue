@@ -168,7 +168,7 @@ onClickOutside(suggestionsContainer, () => {
         </div>
 
         <!-- Workflow Status (manager or contract owner) - Only shows in Edit Mode and if Approved -->
-        <div v-if="isEditing && (isManager || isOwner) && isApproved" class="flex flex-col gap-1.5 mt-2 md:col-span-3">
+        <div v-if="!contract.executionRequired && isEditing && (isManager || isOwner) && isApproved" class="flex flex-col gap-1.5 mt-2 md:col-span-3">
           <label class="text-xs font-semibold text-black/50">Workflow Status</label>
           <select
             v-model="editForm.workflowStatus"
@@ -177,6 +177,8 @@ onClickOutside(suggestionsContainer, () => {
             <option value="">No status</option>
             <option value="SBSI Review">SBSI Review</option>
             <option value="Client Review">Client Review</option>
+            <option value="For Signing">For Signing</option>
+            <option value="Signed">Signed</option>
             <option value="Notarized PDF">Notarized PDF</option>
           </select>
         </div>
@@ -210,6 +212,24 @@ onClickOutside(suggestionsContainer, () => {
             </tr>
           </tbody>
         </table>
+        <dl v-if="contract.productSnapshot || contract.prsClosingOutcome" class="grid gap-4 px-8 py-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div v-if="contract.productSnapshot">
+            <dt class="text-sm font-semibold">Product Category</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.category }}</dd>
+          </div>
+          <div v-if="contract.productSnapshot?.manufacturer">
+            <dt class="text-sm font-semibold">Manufacturer</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.manufacturer }}</dd>
+          </div>
+          <div v-if="contract.productSnapshot?.model">
+            <dt class="text-sm font-semibold">Model</dt>
+            <dd class="font-montserrat">{{ contract.productSnapshot.model }}</dd>
+          </div>
+          <div v-if="contract.prsClosingOutcome">
+            <dt class="text-sm font-semibold">PRS Closing Outcome</dt>
+            <dd class="font-montserrat">{{ contract.prsClosingOutcome }}</dd>
+          </div>
+        </dl>
       </div>
 
       <!-- Edit mode grid -->

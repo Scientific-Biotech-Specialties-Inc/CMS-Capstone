@@ -16,7 +16,7 @@ class CheckExpiringContracts extends Command
     {
         $today = Carbon::today();
 
-        $contracts = Contract::whereDate('end_date', '>=', $today)
+        $contracts = Contract::dateMonitored()->whereDate('end_date', '>=', $today)
             ->whereDate('end_date', '<=', $today->copy()->addDays(90))
             ->get();
 

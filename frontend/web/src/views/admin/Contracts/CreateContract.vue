@@ -5,12 +5,14 @@ import { ArrowLeft, Loader2, ScanLine, Sparkles } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { readPrsContractLink, usePrsContractHandoff } from '@/composables/usePrsContractHandoff'
 import { useApiCache } from '@/composables/useApiCache'
 import DocumentUpload from '@/views/sales/Contracts/DocumentUpload.vue'
 import type { ContractRegion, UploadedDoc } from '@/types/contract'
 import type { OcrExtractedData } from '@/types/ocr'
 import { useCreateContractDraft } from '@/composables/useCreateContractDraft'
 import OcrImportDialog from '@/views/admin/Contracts/OcrImportDialog.vue'
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 import PrefixedNumberInput from '@/components/shared/PrefixedNumberInput.vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
 import { useDocumentUpload } from '@/composables/useDocumentUpload'
@@ -21,6 +23,8 @@ const canUseContractGenerator = computed(() => hasPermission('cms.ai.contract_ge
 
 const router = useRouter()
 const route  = useRoute()
+const { fetchCatalogProduct } = usePrsContractHandoff()
+const prsLink = readPrsContractLink(route.query)
 const ocrOpen = ref(false)
 const { detectType: detectOcrDocType, validate: validateOcrDoc, uploadFile: uploadOcrDoc } = useDocumentUpload()
 
@@ -114,6 +118,10 @@ const maxDate = (() => {
 const minDate = '1999-01-01'
 
 interface FormState {
+  prsActivityId?: number
+  productId?: number
+  prsInstitutionId?: number
+  prsBranchId?: number
   businessPartner: string
   category:        string
   itemCode:        string
@@ -138,6 +146,10 @@ const form = reactive<FormState>({
 })
 
 const touched = reactive<Record<keyof FormState, boolean>>({
+  prsActivityId: false,
+  productId: false,
+  prsInstitutionId: false,
+  prsBranchId: false,
   businessPartner: false,
   category:        false,
   itemCode:        false,
@@ -305,10 +317,20 @@ async function handleSubmit() {
       .filter(d => d.id && /^[0-9a-fA-F]{24}$/.test(d.id))
       .map(d => d.id as string)
 
+    const draftId = contractDocs.value.find(doc => doc.type === 'pdf' && doc.id && validDocIds.includes(doc.id))?.id
+    if (!draftId) {
+      error('Draft PDF required', 'Upload a draft PDF before submitting the contract.')
+      return
+    }
+
     const payload = {
       bp_name:       form.businessPartner,
       category:      form.category,
       item_code:     form.itemCode,
+      prs_activity_id: form.prsActivityId,
+      product_id: form.productId,
+      prs_institution_id: form.prsInstitutionId,
+      prs_branch_id: form.prsBranchId,
       description:   form.description,
       serial_number: form.serialNo,
       sbu_number:    form.sbuNumber,
@@ -316,6 +338,7 @@ async function handleSubmit() {
       start_date:    form.startDate,
       end_date:      form.endDate,
       document_ids:  validDocIds,
+      draft_document_id: draftId,
     }
 
     const res = await fetch(`${import.meta.env.VITE_CONTRACT_API_URL}/contracts`, {
@@ -412,6 +435,20 @@ onMounted(async () => {
       contractDocs.value = [...saved.docs]
     }
     draft.active = false
+  }
+  if (prsLink.businessPartner) form.businessPartner = prsLink.businessPartner
+  if (prsLink.sbuNumber) form.sbuNumber = prsLink.sbuNumber
+  if (prsLink.description) form.description = prsLink.description
+  form.prsActivityId = prsLink.prsActivityId ?? form.prsActivityId
+  form.productId = prsLink.productId ?? form.productId
+  form.prsInstitutionId = prsLink.prsInstitutionId ?? form.prsInstitutionId
+  form.prsBranchId = prsLink.prsBranchId ?? form.prsBranchId
+  if (form.productId) {
+    try {
+      Object.assign(form, await fetchCatalogProduct(form.productId))
+    } catch {
+      error('Could not load the PRS product.')
+    }
   }
 })
 
@@ -676,6 +713,7 @@ onClickOutside(suggestionsContainer, () => {
       <div class="px-6 py-5 border-b border-black/6">
         <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-1">Documents</h2>
         <p class="text-xs text-black/35 mb-4">Attach all documents. Accepted formats: PDF, DOCX · Max 10 MB per file.</p>
+        <p class="mb-4 text-sm text-slate-600">Upload the contract draft as a PDF. The first PDF will be sent for approval.</p>
         <DocumentUpload v-model="contractDocs" :on-preview="previewDocument" />
       </div>
 

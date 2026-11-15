@@ -62,6 +62,10 @@ const isNotifOpen = ref(false);
 function openNotification(n: Notification) {
   if (!n.isRead) markRead(n.id);
   isNotifOpen.value = false;
+  if (n.notifType?.startsWith('execution_confirmation_') && n.contractId) {
+    router.push({ name: 'manager-contracts-detail', params: { id: n.contractId }, query: { execution: '1' } });
+    return;
+  }
   router.push('/manager/notifications');
 }
 
@@ -81,7 +85,7 @@ const contractSubItems = computed(() => {
   if (hasPermission('cms.contracts.view')) {
     items.push({ title: "All Contracts", url: "/manager/contracts", icon: FileText });
   }
-  if (hasPermission('cms.contracts.create')) {
+  if (hasPermission('cms.contracts.approve')) {
     items.push({ title: "Contract Requests", url: "/manager/contract-requests", icon: FilePlus2 });
   }
   items.push({ title: "Amendments", url: "/manager/amendment-requests", icon: FilePenLine });

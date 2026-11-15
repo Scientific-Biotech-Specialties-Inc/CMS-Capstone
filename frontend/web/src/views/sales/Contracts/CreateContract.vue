@@ -16,6 +16,7 @@ import PrefixedNumberInput from '@/components/shared/PrefixedNumberInput.vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
 import { useDocumentUpload } from '@/composables/useDocumentUpload'
 import { useContractTypes } from '@/composables/useContractTypes'
+import { readPrsContractLink, usePrsContractHandoff } from '@/composables/usePrsContractHandoff'
 
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
@@ -27,6 +28,7 @@ const { state: cacheState, fetchContracts, invalidateContracts, invalidateReques
 const { draft, saveDraft, restoreDraft, clearDraft } = useCreateContractDraft()
 const { triggerScan } = useRiskAssessment()
 const { contractTypes, fetchContractTypes } = useContractTypes()
+const { fetchCatalogProduct } = usePrsContractHandoff()
 
 const canUseOcr = computed(() => hasPermission('cms.ai.ocr'))
 const canUseRiskAssessment = computed(() => hasPermission('cms.ai.risk_assessment'))
@@ -114,6 +116,9 @@ interface FormState {
   startDate:       string
   endDate:         string
   prsActivityId:   number | ''
+  productId?: number
+  prsInstitutionId?: number
+  prsBranchId?: number
 }
 
 const form = reactive<FormState>({
@@ -140,6 +145,9 @@ const touched = reactive<Record<keyof FormState, boolean>>({
   startDate:       false,
   endDate:         false,
   prsActivityId:   false,
+  productId:       false,
+  prsInstitutionId: false,
+  prsBranchId:     false,
 })
 
 const serverErrors = reactive({
@@ -299,6 +307,12 @@ async function confirmSubmit() {
       .filter(d => d.id && /^[0-9a-fA-F]{24}$/.test(d.id))
       .map(d => d.id as string)
 
+    const draftId = contractDocs.value.find(doc => doc.type === 'pdf' && doc.id && validDocIds.includes(doc.id))?.id
+    if (!draftId) {
+      error('Draft PDF required', 'Upload a draft PDF before submitting the contract.')
+      return
+    }
+
     const payload = {
       bp_name:       form.businessPartner,
       category:      form.category,
@@ -310,7 +324,11 @@ async function confirmSubmit() {
       start_date:    form.startDate,
       end_date:      form.endDate,
       document_ids:  validDocIds,
+      draft_document_id: draftId,
       prs_activity_id: form.prsActivityId ? Number(form.prsActivityId) : null,
+      product_id: form.productId,
+      prs_institution_id: form.prsInstitutionId,
+      prs_branch_id: form.prsBranchId,
     }
 
     const res = await fetch(`${import.meta.env.VITE_CONTRACT_API_URL}/contracts`, {
@@ -428,9 +446,9 @@ onMounted(() => {
   }
 
   // 2. Otherwise auto-populate fields from PRS integration query params
-  const prsIdParam = route.query.prs_activity_id
-  if (prsIdParam) {
-    form.prsActivityId = Number(prsIdParam)
+  const link = readPrsContractLink(route.query)
+  if (link.prsActivityId) {
+    form.prsActivityId = link.prsActivityId
     prefilledFromPrs.value = true
   }
   const partnerParam = route.query.partner
@@ -441,19 +459,34 @@ onMounted(() => {
   if (bpNameParam) {
     form.businessPartner = String(bpNameParam)
   }
-  const sbuParam = route.query.sbu
-  if (sbuParam) {
-    form.sbuNumber = String(sbuParam)
-  }
+  if (link.sbuNumber) form.sbuNumber = link.sbuNumber
   const itemCodeParam = route.query.item_code
-  if (itemCodeParam) {
+  if (typeof itemCodeParam === 'string' && /^ITM-\d{4}$/.test(itemCodeParam)) {
     form.itemCode = String(itemCodeParam)
   }
   const descParam = route.query.description
   if (descParam) {
     form.description = String(descParam)
   }
+  form.prsInstitutionId = link.prsInstitutionId ?? form.prsInstitutionId
+  form.prsBranchId = link.prsBranchId ?? form.prsBranchId
+  const productId = link.productId ?? form.productId
+  if (productId) void selectCatalogProduct(productId)
 })
+
+async function selectCatalogProduct(productId: number) {
+  form.productId = productId
+  try {
+    const product = await fetchCatalogProduct(productId)
+    if (form.productId !== productId) return
+    Object.assign(form, product)
+  } catch {
+    if (form.productId === productId) {
+      form.productId = undefined
+      error('Could not load the PRS product.')
+    }
+  }
+}
 
 function previewDocument(doc: UploadedDoc) {
   if (!doc.id) return
@@ -502,7 +535,9 @@ interface PrsActivityOption {
   sbu: string | null
   description: string | null
   activity_date: string | null
-  product_name: string | null
+  cms_product_id: number | null
+  institution_id: number | null
+  branch_id: number | null
   status: string
 }
 
@@ -528,7 +563,9 @@ async function fetchPrsActivities() {
         sbu: item.sbu,
         description: item.description,
         activity_date: item.activity_date,
-        product_name: item.product_name || (item.demo_submissions?.[0]?.product?.product_name) || null,
+        cms_product_id: item.cms_product_id ?? item.demo_submissions?.[0]?.product?.cms_product_id ?? null,
+        institution_id: item.institution_id ?? null,
+        branch_id: item.branch_id ?? null,
         status: item.status
       }))
     }
@@ -541,17 +578,22 @@ async function fetchPrsActivities() {
 
 function selectPrsActivity(activity: PrsActivityOption) {
   form.prsActivityId = activity.id
+  form.productId = undefined
+  form.itemCode = ''
+  form.prsInstitutionId = activity.institution_id ?? undefined
+  form.prsBranchId = activity.branch_id ?? undefined
   if (activity.institution) {
     form.businessPartner = String(activity.institution)
   }
   if (activity.sbu) {
-    form.sbuNumber = String(activity.sbu)
+    const number = String(activity.sbu).replace(/^SBU-/i, '')
+    form.sbuNumber = /^\d{1,3}$/.test(number) ? `SBU-${number.padStart(3, '0')}` : ''
   }
   if (activity.description) {
     form.description = String(activity.description)
   }
-  if (activity.product_name) {
-    form.itemCode = String(activity.product_name)
+  if (activity.cms_product_id) {
+    void selectCatalogProduct(activity.cms_product_id)
   }
   showPrsDropdown.value = false
 }
@@ -820,6 +862,7 @@ onClickOutside(prsContainer, () => {
       <div class="px-6 py-5 border-b border-black/6">
         <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-1">Documents</h2>
         <p class="text-xs text-black/35 mb-4">Attach all documents. Accepted formats: PDF, DOCX · Max 10 MB per file.</p>
+        <p class="mb-4 text-sm text-slate-600">Upload the contract draft as a PDF. The first PDF will be sent for approval.</p>
         <DocumentUpload v-model="contractDocs" :on-preview="previewDocument" />
       </div>
 

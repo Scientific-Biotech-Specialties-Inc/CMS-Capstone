@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { FileX, FileType2, UploadCloud, X, AlertCircle, Download } from 'lucide-vue-next'
 import type { UploadedDoc } from '@/types/contract'
@@ -21,6 +21,8 @@ const contractId = route.params.id as string
 const fileInput = ref<HTMLInputElement | null>(null)
 const dragOver  = ref(false)
 const fileError = ref('')
+const previousDrafts = computed(() => props.docs.filter(doc => doc.category === 'draft' && !doc.isCurrentDraft))
+const currentDocuments = computed(() => props.docs.filter(doc => doc.category !== 'draft' || doc.isCurrentDraft))
 
 function viewDocument(doc: UploadedDoc) {
   if (doc.uploadStatus && doc.uploadStatus !== 'success') return
@@ -171,7 +173,7 @@ function fmtSize(bytes: number) {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-black/[0.08] p-8 shadow-sm">
+  <div class="bg-white rounded-xl border border-black/[0.08] p-4 sm:p-6 shadow-sm">
 
     <!-- Section header -->
     <div class="flex items-center gap-3 mb-6">
@@ -188,16 +190,23 @@ function fmtSize(bytes: number) {
 
     <!-- View mode document cards -->
     <div v-else-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="doc in docs" :key="doc.id" @click="viewDocument(doc)" 
-        class="group border border-black/10 rounded-lg p-4 flex items-center gap-4 hover:border-brand-blue transition-all cursor-pointer bg-white shadow-sm">
+      <div v-for="doc in currentDocuments" :key="doc.id" class="flex min-w-0 flex-col gap-2">
+        <p v-if="doc.isPrimary && doc.signerName" class="text-sm text-slate-700">
+          <strong>Signed by:</strong> {{ doc.signerName }}
+        </p>
+        <button type="button" @click="viewDocument(doc)"
+          class="group border border-black/10 rounded-lg p-4 flex w-full items-center gap-4 text-left hover:border-brand-blue transition-all cursor-pointer bg-white shadow-sm">
         <div class="w-12 h-12 bg-black/[0.04] flex items-center justify-center rounded-lg text-black/40 group-hover:bg-brand-blue group-hover:text-white transition-colors shrink-0">
           <FileType2 class="w-6 h-6" />
         </div>
         <div class="flex-1 overflow-hidden min-w-0">
           <p class="text-[15px] text-black font-semibold truncate">{{ doc.name }}</p>
           <p class="text-xs text-black/50">{{ fmtSize(doc.size) }} • {{ doc.type.toUpperCase() }}</p>
+          <p v-if="doc.isPrimary" class="mt-2 text-xs font-semibold text-emerald-700">Primary Signed PDF</p>
+          <p v-else-if="doc.isCurrentDraft" class="mt-2 text-xs font-semibold text-brand-navy">Current Draft</p>
         </div>
         <Download class="w-5 h-5 text-black/30 group-hover:text-brand-navy shrink-0" />
+        </button>
       </div>
     </div>
 
@@ -209,7 +218,7 @@ function fmtSize(bytes: number) {
           class="relative w-36 rounded-lg border border-black/8 overflow-hidden shadow-sm bg-white flex flex-col group">
 
           <!-- Remove button -->
-          <button @click="removeDoc(i)"
+          <button v-if="!doc.category" type="button" :aria-label="`Remove ${doc.name}`" @click="removeDoc(i)"
             class="absolute top-1.5 right-1.5 z-30 w-5 h-5 rounded-full bg-black/50 hover:bg-red-500 text-white flex items-center justify-center transition">
             <X class="w-3 h-3" />
           </button>
@@ -291,5 +300,13 @@ function fmtSize(bytes: number) {
       </div>
     </div>
 
+    <details v-if="!isEditing && previousDrafts.length" class="mt-4 border-t border-slate-200 pt-4">
+      <summary class="cursor-pointer text-sm font-semibold text-brand-navy">Previous Drafts</summary>
+      <ul class="mt-2 space-y-2">
+        <li v-for="doc in previousDrafts" :key="doc.id">
+          <button type="button" class="text-sm text-brand-navy underline" @click="viewDocument(doc)">{{ doc.name }}</button>
+        </li>
+      </ul>
+    </details>
   </div>
 </template>

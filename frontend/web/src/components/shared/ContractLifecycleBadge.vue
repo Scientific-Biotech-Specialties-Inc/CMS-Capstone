@@ -16,6 +16,8 @@ const props = withDefaults(
 
 const config = computed(() => {
   switch (props.status) {
+    case 'pending_execution':
+      return { icon: Clock, classes: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Pending Execution' }
     case 'inactive':
       return {
         icon: Clock,

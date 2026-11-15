@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'prs' => [
+        'inbound_key' => env('PRS_TO_CMS_INTEGRATION_KEY'),
+        'catalog_networks' => env('PRS_CATALOG_ALLOWED_NETWORKS', ''),
+        'catalog_public_read' => env('PRS_CATALOG_PUBLIC_READ', false),
+        'institutions_url' => env('PRS_INSTITUTIONS_URL'),
+        'institution_partners' => json_decode((string) env('PRS_INSTITUTION_PARTNERS', '{}'), true) ?: [],
+    ],
 
     /*
     |--------------------------------------------------------------------------

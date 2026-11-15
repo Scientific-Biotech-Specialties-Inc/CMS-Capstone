@@ -216,7 +216,7 @@ class AccessControlHardeningTest extends TestCase
                 'region' => 'Luzon',
                 'startDate' => '2026-01-01',
                 'endDate' => '2026-12-31',
-                'document_ids' => [$docAId],
+                'document_ids' => [$docAId, $this->createDraftPdf()],
             ]);
 
         $resCreate->assertStatus(201);

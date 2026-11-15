@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MongoDB\Laravel\Eloquent\HybridRelations;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
 class Contract extends Model
@@ -38,8 +39,18 @@ class Contract extends Model
         'source_system',
         'source_reference_id',
         'supporting_expense_summary',
+        'product_id',
+        'product_snapshot',
+        'prs_institution_id',
+        'prs_branch_id',
         'notify_manager_count',
         'rejection_reason',
+        'execution_required',
+        'execution_draft_id',
+        'signed_document_id',
+        'notarized_document_id',
+        'revision_paused_at',
+        'internal_approved_at',
     ];
 
     protected $casts = [
@@ -49,6 +60,10 @@ class Contract extends Model
         'end_date' => 'date',
         'contract_value' => 'decimal:2',
         'prs_activity_id' => 'integer',
+        'product_snapshot' => 'array',
+        'execution_required' => 'boolean',
+        'revision_paused_at' => 'datetime',
+        'internal_approved_at' => 'datetime',
         'supporting_expense_summary' => 'array',
     ];
 
@@ -120,6 +135,34 @@ class Contract extends Model
         return $this->hasMany(Document::class, 'contract_id', 'contract_id');
     }
 
+    public function executionEvents(): HasMany
+    {
+        return $this->hasMany(ContractExecutionEvent::class, 'contract_id', 'contract_id');
+    }
+
+    public function approvalInstances(): HasMany
+    {
+        return $this->hasMany(ApprovalInstance::class, 'contract_id', 'contract_id');
+    }
+
+    public function pendingApprovalInstances(): HasMany
+    {
+        return $this->approvalInstances()->awaitingOutcome();
+    }
+
+    public function scopeDateMonitored(Builder $query): Builder
+    {
+        return $query->where('approval_status_id', 2)->where(function (Builder $query): void {
+            $query->where('execution_required', false)->orWhereNotNull('signed_document_id');
+        });
+    }
+
+    public function scopePendingExecution(Builder $query): Builder
+    {
+        return $query->where('approval_status_id', 2)
+            ->where('execution_required', true)->whereNull('signed_document_id');
+    }
+
     /**
      * Get the contract's lifecycle status.
      *
@@ -131,6 +174,9 @@ class Contract extends Model
     {
         return Attribute::make(
             get: function (): string {
+                if ($this->execution_required && (int) $this->approval_status_id === 2 && !$this->signed_document_id) {
+                    return 'pending_execution';
+                }
                 if ($this->approval_status_id !== null && (int)$this->approval_status_id !== 2) {
                     return 'inactive';
                 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 import type { ContractRequest } from '@/types/contractRequest'
 import TimeFilterBar from '@/components/shared/TimeFilterBar.vue'
@@ -52,7 +53,7 @@ const recentRequests = computed(() => props.requests.slice(0, 6))
 const statCards = computed(() => [
   { label: 'My Contracts',    value: scopedContracts.value.filter(c => c.approvalStatus === 'Approved').length },
   { label: 'Pending',         value: scopedRequests.value.filter(r => r.status === 'Pending' || r.status === 'Under Review').length },
-  { label: 'Expiring Soon',   value: scopedContracts.value.filter(c => c.approvalStatus === 'Approved' && c.days >= 0 && c.days <= 30).length },
+  { label: 'Expiring Soon',   value: scopedContracts.value.filter(c => contractLifecycle(c) === 'expiring').length },
   { label: 'Approved',        value: scopedRequests.value.filter(r => r.status === 'Approved').length },
 ])
 </script>

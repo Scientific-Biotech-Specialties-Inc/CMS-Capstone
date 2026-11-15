@@ -6,6 +6,8 @@
 export type WorkflowStatus = 'draft' | 'active'
 export type WorkflowStepMode = 'sequential' | 'parallel'
 export type ResubmitMode = 'restart' | 'resume_at_rejected'
+export type ExecutionReviewStage = 'SBSI Review' | 'Client Review' | 'For Signing' | 'Signed'
+export type ExecutionReviewers = Partial<Record<ExecutionReviewStage, WorkflowStepRole[]>>
 
 export interface WorkflowStepRole {
   id?: number
@@ -25,7 +27,9 @@ export interface Workflow {
   contract_type_id: number
   name: string
   status: WorkflowStatus
+  has_runs: boolean
   resubmit_mode: ResubmitMode
+  execution_reviewers?: ExecutionReviewers | null
   steps: WorkflowStep[]
 }
 
@@ -60,6 +64,9 @@ export interface WorkflowSavePayload {
   contract_type_id: number
   name: string
   status: WorkflowStatus
+  replace_active_workflow_id?: number
+  replace_draft_workflow_id?: number
   resubmit_mode: ResubmitMode
+  execution_reviewers?: ExecutionReviewers
   steps: WorkflowStep[]
 }

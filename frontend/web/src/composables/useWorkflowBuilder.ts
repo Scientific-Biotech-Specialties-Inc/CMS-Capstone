@@ -18,7 +18,6 @@ export function useWorkflowBuilder() {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const contractTypes = ref<ContractTypeWithWorkflow[]>([])
-  const assignableRoles = ref<AssignableRole[]>([])
 
   function authHeaders(): HeadersInit {
     return {
@@ -67,16 +66,15 @@ export function useWorkflowBuilder() {
     return json.data as ContractTypeWithWorkflow
   }
 
-  async function fetchAssignableRoles(): Promise<AssignableRole[]> {
+  async function fetchAssignableRoles(): Promise<AssignableRole[] | null> {
     try {
       const res = await fetch(`${apiBase()}/workflows/assignable-roles`, { headers: authHeaders() })
       if (!res.ok) throw new Error('Failed to load roles.')
       const json = await res.json()
-      assignableRoles.value = json.data || []
-      return assignableRoles.value
+      return json.data || []
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load roles.'
-      return []
+      return null
     }
   }
 
@@ -151,7 +149,6 @@ export function useWorkflowBuilder() {
     loading,
     error,
     contractTypes,
-    assignableRoles,
     fetchContractTypesWithWorkflows,
     createContractType,
     fetchAssignableRoles,

@@ -6,6 +6,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   base: '/cms/',
   plugins: [vue(), tailwindcss()],
+  optimizeDeps: { include: ['pdf-lib'] },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

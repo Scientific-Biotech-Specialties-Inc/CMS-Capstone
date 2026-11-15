@@ -2,6 +2,7 @@
 import { BRAND_HEX } from '@/constants/theme'
 import { computed } from 'vue'
 import { VisXYContainer, VisStackedBar, VisAxis } from '@unovis/vue'
+import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
 
 const props = defineProps<{
@@ -11,10 +12,10 @@ const props = defineProps<{
 type PipelineItem = { horizon: string; count: number; color: string }
 
 const data = computed<PipelineItem[]>(() => {
-  const expired = props.contracts.filter(c => c.days < 0).length
-  const urgent = props.contracts.filter(c => c.days >= 0 && c.days <= 30).length
-  const soon = props.contracts.filter(c => c.days > 30 && c.days <= 90).length
-  const safe = props.contracts.filter(c => c.days > 90).length
+  const expired = props.contracts.filter(c => contractLifecycle(c) === 'expired').length
+  const urgent = props.contracts.filter(c => contractLifecycle(c) === 'expiring').length
+  const soon = props.contracts.filter(c => contractLifecycle(c) === 'active' && c.days <= 90).length
+  const safe = props.contracts.filter(c => contractLifecycle(c) === 'active' && c.days > 90).length
 
   return [
     { horizon: 'Expired',       count: expired, color: BRAND_HEX.dark },
