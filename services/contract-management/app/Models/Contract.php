@@ -134,6 +134,11 @@ class Contract extends Model
         return $this->belongsTo(ContractRegion::class, 'region_id', 'region_id');
     }
 
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class, 'contract_id', 'contract_id');

@@ -1,6 +1,7 @@
 export type TabKey = 'partners' | 'suppliers'
 export type Region = 'Luzon' | 'Visayas' | 'Mindanao'
 export type Status = 'Active' | 'Inactive' | 'Suspended'
+export type PartnerClassTier = 'Class A' | 'Class B' | 'Class C'
 
 export interface Partner {
   id: string
@@ -8,6 +9,7 @@ export interface Partner {
   name: string
   industry: string
   region: Region | null
+  classTier?: PartnerClassTier | null
   status: Status
   contactPerson: string
   email: string
@@ -29,6 +31,7 @@ export interface AddPartnerForm {
   name: string
   industry: string
   region: Region | ''
+  classTier: PartnerClassTier | ''
   status: Status
   contactPerson: string
   email: string

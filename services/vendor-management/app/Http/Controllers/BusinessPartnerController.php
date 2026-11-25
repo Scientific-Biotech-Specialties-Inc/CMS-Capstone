@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessPartner;
+use App\Models\PartnerBranch;
 use App\Services\AuditLogService;
 use App\Services\DuplicateDetectionService;
 use Illuminate\Http\Request;
@@ -21,10 +22,15 @@ class BusinessPartnerController extends Controller
 
     public function index(Request $request)
     {
-        $query = BusinessPartner::query()->withCount('associations');
+        $query = BusinessPartner::query()->with('branches')->withCount('associations');
 
         if ($request->filled('region') && $request->region !== 'All') {
             $query->where('region', $request->region);
+        }
+
+        if ($request->filled('class_tier') && $request->class_tier !== 'All') {
+            $normalizedTier = BusinessPartner::normalizeClassTier((string) $request->class_tier) ?? (string) $request->class_tier;
+            $query->where('class_tier', $normalizedTier);
         }
 
         if ($request->filled('search')) {
@@ -72,15 +78,24 @@ class BusinessPartnerController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+        if (isset($input['class_tier'])) {
+            $normalizedTier = BusinessPartner::normalizeClassTier((string) $input['class_tier']);
+            if ($normalizedTier !== null) {
+                $input['class_tier'] = $normalizedTier;
+            }
+        }
+
+        $validator = Validator::make($input, [
             'bp_code'        => 'required|string|max:100',
             'partner_name'   => 'required|string|max:255',
             'industry'       => 'nullable|string|max:100',
             'contact_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string',
             'email'          => 'required|email|max:255',
-            'address'        => 'nullable|string',
+            'address'        => 'required|string|max:255',
             'region'         => 'nullable|string|max:100',
+            'class_tier'     => 'required|string|in:Class A,Class B,Class C',
             'status'         => 'nullable|string|in:Active,Inactive,Suspended',
         ]);
 
@@ -89,6 +104,7 @@ class BusinessPartnerController extends Controller
         }
 
         $data = $validator->validated();
+        $data['address'] = trim((string) $data['address']);
 
         // Normalise the industry so " Healthcare " cannot create a duplicate
         // entry in the Industry filter.
@@ -117,6 +133,7 @@ class BusinessPartnerController extends Controller
         }
 
         $partner = BusinessPartner::create($data);
+        $this->syncPrimaryBranch($partner);
 
         // Audit Log
         $userId = $request->get('auth_id');
@@ -183,15 +200,24 @@ class BusinessPartnerController extends Controller
             return response()->json(['message' => 'Business partner not found.'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+        if (isset($input['class_tier'])) {
+            $normalizedTier = BusinessPartner::normalizeClassTier((string) $input['class_tier']);
+            if ($normalizedTier !== null) {
+                $input['class_tier'] = $normalizedTier;
+            }
+        }
+
+        $validator = Validator::make($input, [
             'bp_code'        => 'required|string|max:100',
             'partner_name'   => 'required|string|max:255',
             'industry'       => 'nullable|string|max:100',
             'contact_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string',
             'email'          => 'required|email|max:255',
-            'address'        => 'nullable|string',
+            'address'        => 'required|string|max:255',
             'region'         => 'nullable|string|max:100',
+            'class_tier'     => 'required|string|in:Class A,Class B,Class C',
             'status'         => 'nullable|string|in:Active,Inactive,Suspended',
         ]);
 
@@ -200,6 +226,7 @@ class BusinessPartnerController extends Controller
         }
 
         $data = $validator->validated();
+        $data['address'] = trim((string) $data['address']);
 
         // Normalise the industry so " Healthcare " cannot create a duplicate
         // entry in the Industry filter.
@@ -227,6 +254,7 @@ class BusinessPartnerController extends Controller
 
         $oldData = $partner->toArray();
         $partner->update($data);
+        $this->syncPrimaryBranch($partner);
 
         // Audit Log
         $userId = $request->get('auth_id');
@@ -290,5 +318,32 @@ class BusinessPartnerController extends Controller
             ->get();
 
         return response()->json($partners);
+    }
+
+    private function syncPrimaryBranch(BusinessPartner $partner): void
+    {
+        $branch = PartnerBranch::where('partner_id', $partner->partner_id)
+            ->where('is_primary', true)
+            ->first();
+
+        if ($branch) {
+            $branch->update([
+                'address'   => $partner->address,
+                'region'    => $partner->region,
+                'is_active' => ($partner->status ?? 'Active') === 'Active',
+            ]);
+            return;
+        }
+
+        PartnerBranch::create([
+            'location_uid' => 'LOC-' . str_pad((string) $partner->partner_id, 4, '0', STR_PAD_LEFT),
+            'partner_id'   => $partner->partner_id,
+            'branch_name'  => 'Main Branch',
+            'address'      => $partner->address,
+            'region'       => $partner->region,
+            'sbsi_branch'  => 'Main Office',
+            'is_primary'   => true,
+            'is_active'    => ($partner->status ?? 'Active') === 'Active',
+        ]);
     }
 }

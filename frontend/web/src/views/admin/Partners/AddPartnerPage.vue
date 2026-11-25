@@ -20,12 +20,12 @@ const basePath = computed(() => {
 })
 
 const form = reactive<AddPartnerForm>({
-  name: '', industry: '', region: '', status: 'Active',
+  name: '', industry: '', region: '', classTier: 'Class C', status: 'Active',
   contactPerson: '', email: '', phone: '', address: '', tinNumber: '',
 })
 
 const touched = reactive({
-  name: false, industry: false, region: false,
+  name: false, industry: false, region: false, classTier: false,
   contactPerson: false, email: false, phone: false, address: false, tinNumber: false,
 })
 
@@ -84,7 +84,7 @@ const isSaving = ref(false)
 async function handleSubmit() {
   Object.keys(touched).forEach(k => ((touched as Record<string, boolean>)[k] = true))
   
-  if (!form.name || form.name.trim().length < 2 || isDuplicate.value || !form.industry || !form.region || !form.contactPerson || !emailValid.value || !phoneValid.value || !form.address || (activeTab.value === 'suppliers' && !tinValid.value)) {
+  if (!form.name || form.name.trim().length < 2 || isDuplicate.value || !form.industry || !form.region || (activeTab.value === 'partners' && !form.classTier) || !form.contactPerson || !emailValid.value || !phoneValid.value || !form.address.trim() || (activeTab.value === 'suppliers' && !tinValid.value)) {
     return
   }
 
@@ -176,15 +176,28 @@ async function handleSubmit() {
             <p v-if="touched.region && !form.region" class="text-xs text-red-500">Required.</p>
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Status <span class="text-red-500">*</span></label>
-            <select v-model="form.status"
-              class="h-9 rounded-md border border-black/12 bg-white px-3 text-sm text-black focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-          </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Status <span class="text-red-500">*</span></label>
+              <select v-model="form.status"
+                class="h-9 rounded-md border border-black/12 bg-white px-3 text-sm text-black focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div v-if="activeTab === 'partners'" class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Class Tier <span class="text-red-500">*</span></label>
+              <select v-model="form.classTier" @blur="touched.classTier = true"
+                class="h-9 rounded-md border px-3 text-sm bg-white focus:outline-none focus:ring-2 transition"
+                :class="[!form.classTier ? 'text-black/30' : 'text-black', touched.classTier && !form.classTier ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15']">
+                <option value="" disabled>Select class tier</option>
+                <option value="Class A">Class A</option>
+                <option value="Class B">Class B</option>
+                <option value="Class C">Class C</option>
+              </select>
+              <p v-if="touched.classTier && !form.classTier" class="text-xs text-red-500">Class tier is required.</p>
+            </div>
 
         </div>
       </div>

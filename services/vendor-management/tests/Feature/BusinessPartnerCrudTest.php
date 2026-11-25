@@ -38,12 +38,14 @@ class BusinessPartnerCrudTest extends TestCase
             'partner_name' => 'Acme Partner',
             'contact_number' => '12345678',
             'email' => 'acme_partner@test.com',
-            'address' => '123 Acme St',
-            'region' => 'Metro Manila'
+            'address' => '123 Acme St, Makati City',
+            'region' => 'Luzon',
+            'class_tier' => 'Class A',
         ]);
 
         $response->assertStatus(201);
         $response->assertJsonPath('data.partner_name', 'Acme Partner');
+        $response->assertJsonPath('data.class_tier', 'Class A');
 
         $this->assertDatabaseHas('business_partners', [
             'partner_name' => 'Acme Partner',
@@ -87,6 +89,8 @@ class BusinessPartnerCrudTest extends TestCase
             'bp_code' => 'BP-999',
             'partner_name' => 'Acme Duplicate',
             'email' => 'acme_dup@test.com',
+            'address' => '123 Acme St, Makati City',
+            'class_tier' => 'Class B',
         ]);
 
         $response->assertStatus(409); // Conflict
@@ -110,6 +114,8 @@ class BusinessPartnerCrudTest extends TestCase
             'bp_code' => 'BP-888',
             'partner_name' => 'Acme Corp',
             'email' => 'acme_corp@test.com',
+            'address' => '456 Acme Ave, Taguig City',
+            'class_tier' => 'Class C',
         ]);
 
         $response->assertStatus(201);
@@ -141,6 +147,8 @@ class BusinessPartnerCrudTest extends TestCase
             'bp_code' => 'BP-999', // same BP code is allowed for self
             'partner_name' => 'New Name',
             'email' => 'updated_partner@test.com',
+            'address' => '789 Updated St, Pasig City',
+            'class_tier' => 'Class B',
         ]);
 
         $response->assertStatus(200);

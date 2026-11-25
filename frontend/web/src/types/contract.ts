@@ -1,5 +1,5 @@
 export type ContractWorkflowStatus = 'SBSI Review' | 'Client Review' | 'For Signing' | 'Signed' | 'Notarized PDF'
-export type ContractApprovalStatus  = 'Pending' | 'Approved' | 'Rejected'
+export type ContractApprovalStatus  = 'Draft' | 'Pending' | 'Approved' | 'Rejected'
 
 export interface UploadedDoc {
   file?:       File
@@ -17,7 +17,7 @@ export interface UploadedDoc {
   signerName?: string | null
 }
 export type ContractRegion = 'Luzon' | 'Visayas' | 'Mindanao'
-export type FilterTab = 'all' | ContractLifecycleStatus
+export type FilterTab = 'all' | 'draft' | ContractLifecycleStatus
 export type StatusFilter   = '' | ContractApprovalStatus | ContractWorkflowStatus
 
 export interface Contract {
@@ -78,6 +78,7 @@ export interface SupportingExpenseSummary {
 export type ContractWithDays = Contract & { days: number }
 
 export const approvalStatusBadge: Record<ContractApprovalStatus, string> = {
+  'Draft':    'bg-slate-100 text-slate-700 border-slate-300',
   'Pending':  'bg-black/5 text-black/50 border-black/10',
   'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'Rejected': 'bg-red-50 text-red-600 border-red-200',

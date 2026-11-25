@@ -5,7 +5,7 @@ import type { Contract } from '@/types/contract'
 import type { ContractRequest } from '@/types/contractRequest'
 import TimeFilterBar from '@/components/shared/TimeFilterBar.vue'
 import YearFilterSelect from '@/components/shared/YearFilterSelect.vue'
-import { useTimeFilter, isWithinRange, dateRangeFor } from '@/composables/useTimeFilter'
+import { useTimeFilter, isWithinRange, dateRangeFor, yearRange, parseLocalDate } from '@/composables/useTimeFilter'
 import RecentRequestsTable from './RecentRequestsTable.vue'
 import ContractStatusPanel from './ContractStatusPanel.vue'
 import SalesTrendChart from './SalesTrendChart.vue'
@@ -17,7 +17,7 @@ const props = defineProps<{
   requests: ContractRequest[]
 }>()
 
-const { filter, setFilter } = useTimeFilter('month')
+const { filter, setFilter } = useTimeFilter('all')
 const selectedYear = ref<number | null>(null)
 
 function handleFilterChange(option: typeof filter.value) {
@@ -32,18 +32,32 @@ function handleYearChange(year: number | null) {
 const availableYears = computed(() => {
   const years = new Set<number>()
   props.contracts.forEach(c => {
-    if (!c.startDate) return
-    years.add(new Date(c.startDate).getFullYear())
+    const d = parseLocalDate(c.startDate)
+    if (d) years.add(d.getFullYear())
   })
   return Array.from(years).sort((a, b) => b - a)
 })
 
 const scopedContracts = computed(() => {
+  if (selectedYear.value !== null) {
+    const range = yearRange(selectedYear.value)
+    return props.contracts.filter(c => isWithinRange(c.startDate, range))
+  }
+  if (filter.value === 'all') {
+    return props.contracts
+  }
   const range = dateRangeFor(filter.value)
   return props.contracts.filter(c => isWithinRange(c.startDate, range))
 })
 
 const scopedRequests = computed(() => {
+  if (selectedYear.value !== null) {
+    const range = yearRange(selectedYear.value)
+    return props.requests.filter(r => isWithinRange(r.requestDate, range))
+  }
+  if (filter.value === 'all') {
+    return props.requests
+  }
   const range = dateRangeFor(filter.value)
   return props.requests.filter(r => isWithinRange(r.requestDate, range))
 })
@@ -64,7 +78,7 @@ const statCards = computed(() => [
     <div class="flex items-center justify-between flex-wrap gap-3">
       <p class="text-sm text-black/40">An overview of your own contracts and requests.</p>
       <div class="flex items-center gap-2.5">
-        <TimeFilterBar :model-value="filter" @update:model-value="handleFilterChange" />
+        <TimeFilterBar :model-value="selectedYear !== null ? null : filter" @update:model-value="handleFilterChange" />
         <YearFilterSelect :model-value="selectedYear" :available-years="availableYears" @update:model-value="handleYearChange" />
       </div>
     </div>

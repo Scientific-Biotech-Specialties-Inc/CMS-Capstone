@@ -5,7 +5,8 @@ import { ArrowLeft, Loader2, ScanLine, Sparkles } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
-import { readPrsContractLink, usePrsContractHandoff } from '@/composables/usePrsContractHandoff'
+import { readPrsContractLink, usePrsContractHandoff, type CatalogProduct } from '@/composables/usePrsContractHandoff'
+import ProductCatalogSelect from '@/components/shared/ProductCatalogSelect.vue'
 import { useApiCache } from '@/composables/useApiCache'
 import { useRiskAssessment } from '@/composables/useRiskAssessment'
 import DocumentUpload from '@/views/sales/Contracts/DocumentUpload.vue'
@@ -609,6 +610,11 @@ onClickOutside(suggestionsContainer, () => {
       <!-- Section: Item Details -->
       <div class="px-6 py-5 border-b border-black/6">
         <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4">Item Details</h2>
+        <ProductCatalogSelect
+          :selected-product-id="form.productId"
+          @select="(p: CatalogProduct) => { form.productId = p.productId; form.itemCode = p.productCode; form.sbuNumber = p.sbuNumber; form.description = p.description || p.productName; form.equipmentName = p.productName; if (p.serialNumber) form.serialNo = p.serialNumber; if (p.brand || p.manufacturer) form.brand = p.brand ?? p.manufacturer ?? ''; if (p.model) form.model = p.model }"
+          @clear="form.productId = undefined"
+        />
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
           <!-- Item Code -->

@@ -75,6 +75,7 @@ class InternalVendorEndpointsTest extends TestCase
             'industry'       => 'Diagnostics',
             'region'         => 'Luzon',
             'email'          => 'contact@aisupplier.ph',
+            'address'        => '101 Diagnostic Way, Quezon City',
             'decided_by'     => 5,
         ]);
 
@@ -90,6 +91,7 @@ class InternalVendorEndpointsTest extends TestCase
             'bp_code'      => 'BP-AI-TEST',
             'partner_name' => 'AI Suggested Partner',
             'email'        => 'contact@aipartner.ph',
+            'address'      => '202 Partner Blvd, Davao City',
             'region'       => 'Mindanao',
             'decided_by'   => 5,
         ]);
@@ -114,6 +116,7 @@ class InternalVendorEndpointsTest extends TestCase
             'supplier_name' => 'Different Name Co.',
             'tin_number'    => '999-999-999',
             'email'         => 'different@existing.test',
+            'address'       => '999 Duplicate St, Makati City',
         ]);
 
         $response->assertStatus(409);

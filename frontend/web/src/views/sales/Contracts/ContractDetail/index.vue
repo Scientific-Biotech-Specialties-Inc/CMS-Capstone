@@ -7,9 +7,10 @@ import { setBreadcrumbTitle } from '@/composables/useBreadcrumbs'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
-import { useApiCache } from '@/composables/useApiCache'
+import { useApiCache, resolveCreatorName } from '@/composables/useApiCache'
 import { useHighRiskApproval } from '@/composables/useHighRiskApproval'
 import { useEmailPreferences } from '@/composables/useEmailPreferences'
+import { useCreateContractDraft } from '@/composables/useCreateContractDraft'
 import { remainingDays } from '@/types/contract'
 import type { ContractApprovalStatus, ContractWorkflowStatus, ContractRegion, UploadedDoc, SupportingExpenseSummary } from '@/types/contract'
 import type { StoredContract } from '@/composables/useContractStore'
@@ -33,11 +34,13 @@ import { AlertCircle } from 'lucide-vue-next'
 
 const route  = useRoute()
 const router = useRouter()
-const { state: authState, role } = useAuth()
+const { state: authState, role, hasPermission } = useAuth()
 const isManager = computed(() => role.value === 'Manager' || role.value === 'Admin')
-const isOwner   = computed(() => !!contract.value && !contract.value.createdBy.startsWith('User #'))
+const isOwner   = computed(() => !!contract.value && (contract.value.approvalStatus === 'Draft' || !contract.value.createdBy.startsWith('User #')))
+const canUseContractGenerator = computed(() => hasPermission('cms.ai.contract_generator'))
 const { success, error } = useToast()
-const { state: cacheState, fetchContracts, updateContractInCache, invalidateRequests } = useApiCache()
+const { state: cacheState, fetchContracts, updateContractInCache, invalidateContracts, invalidateRequests } = useApiCache()
+const { draft, saveDraft, setGeneratedDoc } = useCreateContractDraft()
 
 const id = route.params.id as string
 
@@ -51,7 +54,7 @@ const savingEdit      = ref(false)
 // `?workflowMock=A..E` scenarios below are a dev-only override for
 // exercising every visual state without seeded engine data — they apply
 // only when the query param is explicitly present.
-const { workflow: liveWorkflow, status: liveTrackerStatus, currentStepRoles, myTasks, decide, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
+const { workflow: liveWorkflow, status: liveTrackerStatus, isEngine, currentStepRoles, myTasks, decide, fetchProgress: fetchWorkflowProgress, retry: retryWorkflow } = useApprovalProgress()
 const mockExecutionGroups: WorkflowGroup[] = [
   { id: 'eg1', mode: 'sequential', nodes: [{ id: 'en1', title: 'SBSI Review', status: 'completed', actedAt: '2026-09-26T09:00:00Z', subText: 'Confirmed · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
   { id: 'eg2', mode: 'sequential', nodes: [{ id: 'en2', title: 'Client Review', status: 'active', actedAt: null, subText: 'In progress · Reviewers: Manager', delegation: null, roleDeleted: false, roleRenamedFrom: null }] },
@@ -163,7 +166,7 @@ function handleWorkflowRetry() {
 // to the historic manager-targeted endpoint. The button label derives
 // from the progress response, not the tracker nodes.
 const nudgeLabel = computed(() => nudgeLabelFor(currentStepRoles.value))
-const isEngineRouted = computed(() => contract.value?.hasPendingApprovalWorkflow === true || currentStepRoles.value.length > 0)
+const isEngineRouted = computed(() => contract.value?.hasPendingApprovalWorkflow === true || isEngine.value)
 const showWorkflowTracker = ref(false)
 watch(() => route.query.execution, value => {
   if (value === '1') showWorkflowTracker.value = true
@@ -231,9 +234,7 @@ function mapApiToContract(data: any): StoredContract {
   const user = authState.user
   const firstName = (user as any)?.profile?.first_name || user?.first_name
   const lastName = (user as any)?.profile?.last_name || user?.last_name
-  const createdBy = (user && data.created_by === user.id)
-    ? `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
-    : `User #${data.created_by}`
+  const createdBy = resolveCreatorName(data, user?.id ?? null, firstName, lastName)
 
   return {
     id:              String(data.contract_code || data.contract_id),
@@ -319,13 +320,16 @@ async function loadContract(force = false) {
   }
 
   try {
-    const isAdmin = route.path.startsWith('/admin')
-    const isManager = route.path.startsWith('/manager')
-    const userId = (isAdmin || isManager) ? undefined : authState.user?.id
-    await fetchContracts(userId)
-    loadLocalContract()
+    // Only fetch the full list if cache is empty; otherwise fetch this single contract directly
+    if (!contract.value) {
+      const isAdmin = route.path.startsWith('/admin')
+      const isManager = route.path.startsWith('/manager')
+      const userId = (isAdmin || isManager) ? undefined : authState.user?.id
+      await fetchContracts(userId).catch(() => {})
+      loadLocalContract()
+    }
 
-    // If contract not found or docs are empty, fetch from direct backend endpoint with documents relation
+    // Fetch single contract detail directly when forced, missing, or documents aren't hydrated yet
     if (force || !contract.value || (contract.value.docs && contract.value.docs.length === 0)) {
       const res = await fetch(`${apiBase}/contracts/${id}`, {
         headers: {
@@ -337,7 +341,7 @@ async function loadContract(force = false) {
         const json = await res.json()
         if (json.data) {
           contract.value = mapApiToContract(json.data)
-          if (force) updateContractInCache(contract.value.id, contract.value)
+          updateContractInCache(contract.value.id, contract.value)
         }
       }
     }
@@ -393,7 +397,8 @@ function documentUrl(documentId?: string | null) {
 
 async function refreshExecution() {
   invalidateRequests()
-  await Promise.all([loadContract(true), fetchWorkflowProgress(id), loadExecution()])
+  await loadExecution()
+  await Promise.all([loadContract(true), fetchWorkflowProgress(id)])
 }
 
 const showRejectionModal = ref(false)
@@ -411,18 +416,22 @@ const showHighRiskModal = ref(false)
 const aiRiskAssessmentVisible = computed(() => aiPreferences.value.aiRiskAssessmentEnabled ?? true)
 
 onMounted(async () => {
-  await loadContract()
-  await loadExecution()
   if (route.query.execution === '1') showWorkflowTracker.value = true
-  if (!route.query.workflowMock) {
-    await fetchWorkflowProgress(id)
+  const returningFromEditor = draft.active && draft.targetContractId === id
+  if (returningFromEditor && !draft.returnEditMode) {
+    invalidateContracts()
   }
-  await fetchAiPreferences()
+  await Promise.all([
+    loadContract(returningFromEditor && !draft.returnEditMode),
+    loadExecution(),
+    route.query.workflowMock ? Promise.resolve() : fetchWorkflowProgress(id),
+    fetchAiPreferences(),
+  ])
   if (contract.value) {
-    await amendmentStore.fetchVersionHistory(contract.value.id, true)
-    if (aiRiskAssessmentVisible.value) {
-      await fetchGateState(contract.value.id)
-    }
+    await Promise.all([
+      amendmentStore.fetchVersionHistory(contract.value.id, true),
+      aiRiskAssessmentVisible.value ? fetchGateState(contract.value.id) : Promise.resolve(),
+    ])
   }
   if (route.query.snapshotVersion && contract.value) {
     const snaps = amendmentStore.versionHistory.value[contract.value.id] || []
@@ -436,8 +445,32 @@ onMounted(async () => {
   if (contract.value && contract.value.approvalStatus === 'Rejected') {
     showRejectionModal.value = true
   }
-  if (route.query.edit === '1' && contract.value) {
+  if (returningFromEditor && draft.returnEditMode && contract.value) {
     startEdit()
+    Object.assign(editForm, {
+      businessPartner: draft.form.businessPartner,
+      category:        draft.form.category,
+      itemCode:        draft.form.itemCode,
+      description:     draft.form.description,
+      serialNo:        draft.form.serialNo,
+      sbuNumber:       draft.form.sbuNumber,
+      sbsiBranch:      draft.form.sbsiBranch,
+      equipmentName:   draft.form.equipmentName,
+      brand:           draft.form.brand,
+      model:           draft.form.model,
+      region:          draft.form.region,
+      startDate:       draft.form.startDate,
+      endDate:         draft.form.endDate,
+    })
+    contractDocs.value = [...draft.docs]
+    draft.active = false
+  } else {
+    if (returningFromEditor) {
+      draft.active = false
+    }
+    if (route.query.edit === '1' && contract.value) {
+      startEdit()
+    }
   }
 })
 
@@ -498,11 +531,100 @@ function triggerReject() {
   showConfirm.value = true
 }
 
+const hasPdfDoc = computed(() =>
+  isEditing.value
+    ? contractDocs.value.some(d => d.type === 'pdf' && !!d.id && d.uploadStatus !== 'error')
+    : (contract.value?.docs ?? []).some(d => d.type === 'pdf' && d.uploadStatus !== 'error')
+)
+
+function handleGenerateFromDraft() {
+  if (!contract.value) return
+  const source = isEditing.value ? editForm : contract.value
+  const docs = isEditing.value ? contractDocs.value : contract.value.docs
+  const draftRole = route.path.startsWith('/admin') ? 'admin' : route.path.startsWith('/manager') ? 'manager' : 'sales'
+  if (draft.targetContractId !== id) {
+    setGeneratedDoc(null)
+  }
+  saveDraft(
+    {
+      businessPartner: source.businessPartner,
+      category:        source.category,
+      itemCode:        source.itemCode,
+      description:     source.description,
+      serialNo:        source.serialNo,
+      sbuNumber:       source.sbuNumber ?? '',
+      sbsiBranch:      source.sbsiBranch ?? '',
+      equipmentName:   source.equipmentName ?? '',
+      brand:           source.brand ?? '',
+      model:           source.model ?? '',
+      region:          source.region,
+      startDate:       source.startDate,
+      endDate:         source.endDate,
+    },
+    docs,
+    draftRole,
+    {
+      targetContractId: id,
+      targetContractDbId: contract.value.contractDbId,
+      returnPath: route.path,
+      returnEditMode: isEditing.value,
+    },
+  )
+  router.push(`/${draftRole}/contracts/editor`)
+}
+
+function triggerSubmitDraft() {
+  if (!hasPdfDoc.value) {
+    error('Draft PDF required', 'Upload or generate a contract PDF before submitting this draft.')
+    return
+  }
+  confirmTitle.value = 'Submit Draft for Approval'
+  confirmDesc.value = 'Ready to submit this draft? It will move to Pending and route through the contract approval workflow.'
+  confirmAction.value = handleSubmitDraft
+  showConfirm.value = true
+}
+
+async function handleSubmitDraft() {
+  if (!contract.value || actionInProgress.value) return
+  showConfirm.value = false
+  actionInProgress.value = true
+  try {
+    const res = await fetch(`${apiBase}/contracts/${id}/submit-draft`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${authState.token}`,
+      },
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      error('Failed to submit draft', data.message ?? 'Something went wrong.')
+      return
+    }
+    const updated = mapApiToContract(data.data)
+    contract.value = updated
+    updateContractInCache(id, updated)
+    success('Draft submitted', `${updated.businessPartner}'s contract is now Pending approval.`)
+    await refreshExecution()
+  } catch {
+    error('Network error', 'Could not reach the server. Please try again.')
+  } finally {
+    actionInProgress.value = false
+  }
+}
+
 async function handleApprove() {
   if (!contract.value || actionInProgress.value) return
   showConfirm.value = false
   actionInProgress.value = true
   try {
+    if (myTasks.value.length === 1) {
+      await decide(id, myTasks.value[0].id, 'approved')
+      success('Contract approved', `${contract.value.businessPartner}'s contract approval has been recorded.`)
+      await refreshExecution()
+      return
+    }
+
     const res = await fetch(`${apiBase}/contracts/${id}/status`, {
       method: 'PATCH',
       headers: {
@@ -530,8 +652,8 @@ async function handleApprove() {
     updateContractInCache(id, mapApiToContract(data.data))
     success('Contract approved', `${contract.value.businessPartner}'s contract has been approved.`)
     loadLocalContract()
-  } catch {
-    error('Network error', 'Could not reach the server. Please try again.')
+  } catch (err) {
+    error('Failed to approve', err instanceof Error ? err.message : 'Could not reach the server. Please try again.')
   } finally {
     actionInProgress.value = false
   }
@@ -547,6 +669,15 @@ async function confirmReject() {
   showConfirm.value = false
   actionInProgress.value = true
   try {
+    if (myTasks.value.length === 1) {
+      await decide(id, myTasks.value[0].id, 'rejected', rejectReason.value.trim())
+      success('Contract rejected', `${contract.value.businessPartner}'s contract has been rejected.`)
+      showRejectInput.value = false
+      rejectReason.value = ''
+      await refreshExecution()
+      return
+    }
+
     const res = await fetch(`${apiBase}/contracts/${id}/status`, {
       method: 'PATCH',
       headers: {
@@ -564,8 +695,8 @@ async function confirmReject() {
     showRejectInput.value = false
     rejectReason.value = ''
     loadLocalContract()
-  } catch {
-    error('Network error', 'Could not reach the server. Please try again.')
+  } catch (err) {
+    error('Failed to reject', err instanceof Error ? err.message : 'Could not reach the server. Please try again.')
   } finally {
     actionInProgress.value = false
   }
@@ -662,6 +793,10 @@ function cancelEdit() {
 function triggerSaveEdit() {
   Object.keys(touched).forEach(k => (touched[k] = true))
   if (!isFormValid.value) return
+  if (contract.value?.approvalStatus === 'Draft' && !hasPdfDoc.value) {
+    error('Draft PDF required', 'Upload or generate a contract PDF before saving this draft.')
+    return
+  }
   confirmTitle.value = 'Save Contract Changes'
   confirmDesc.value = 'Are you sure you want to apply these changes to the contract? This action will update the contract details in the system.'
   confirmAction.value = confirmSaveEdit
@@ -977,8 +1112,10 @@ const activeSnapForDiff = computed(() => {
         :approval-locked="false"
         :nudge-label="nudgeLabel"
         :is-engine-routed="isEngineRouted"
+        :has-actionable-task="myTasks.length === 1"
         :execution-state="currentExecution"
         :execution-submit-label="executionSubmitLabel"
+        :can-generate-contract="canUseContractGenerator"
         @back="router.push(backPath)"
         @edit="handleEditClick"
         @execution-action="handleExecutionAction"
@@ -986,6 +1123,8 @@ const activeSnapForDiff = computed(() => {
         @save="triggerSaveEdit"
         @cancel="cancelEdit"
         @notify-step="handleNotifyStep"
+        @submit-draft="triggerSubmitDraft"
+        @generate-contract="handleGenerateFromDraft"
         @approve="triggerApprove"
         @toggle-reject="handleToggleReject"
         @confirm-reject="triggerReject"
@@ -1018,7 +1157,7 @@ const activeSnapForDiff = computed(() => {
         </Button>
       </div>
 
-      <InternalApprovalActions v-if="!viewingSnapshotVersion && !isEditing && myTasks.length" :tasks="myTasks"
+      <InternalApprovalActions v-if="!viewingSnapshotVersion && !isEditing && myTasks.length > 1" :tasks="myTasks"
         :save="(task, outcome, reason) => decide(id, task, outcome, reason)" @changed="refreshExecution" />
 
       <ContractInfoSection
@@ -1043,6 +1182,8 @@ const activeSnapForDiff = computed(() => {
         :docs="isEditing ? contractDocs : displayedContract.docs"
         :is-editing="isEditing"
         :snapshot-version="viewingSnapshotVersion"
+        :contract-db-id="displayedContract.contractDbId"
+        :is-draft="displayedContract.approvalStatus === 'Draft' && !viewingSnapshotVersion"
         @update:docs="contractDocs = $event"
       />
     </template>

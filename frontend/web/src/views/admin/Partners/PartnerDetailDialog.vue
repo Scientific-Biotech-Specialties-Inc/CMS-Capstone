@@ -46,6 +46,9 @@ const statusClass = computed(() => {
               <DialogDescription class="text-xs text-black/45 mt-0.5 truncate">{{ partner.industry }}</DialogDescription>
               <div class="flex items-center gap-2 mt-1.5">
                 <span class="text-[10px] font-mono text-black/30 bg-black/4 px-1.5 py-0.5 rounded">{{ displayId }}</span>
+                <span v-if="activeTab === 'partners'" class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-[#EFF6FF] text-[#252578] border-[#2E85D8]/25">
+                  {{ partner.classTier || 'Class C' }}
+                </span>
                 <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border" :class="statusClass">
                   {{ partner.status }}
                 </span>

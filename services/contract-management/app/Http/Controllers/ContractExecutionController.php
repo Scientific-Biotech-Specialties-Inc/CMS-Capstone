@@ -21,7 +21,7 @@ final class ContractExecutionController extends Controller
 {
     public function show(Request $request, string $id, ApplyExecutionAction $action, ContractExecutionPolicy $policy, ApprovalEngineService $approval, AuthService $auth): JsonResponse
     {
-        $contract = $this->contract($request, $id, $policy);
+        $contract = $this->contract($request, $id, $policy, true);
         $action->autoHeal($contract);
         $stage = $contract->workflowStatus?->status_name;
         $isApproved = $contract->approvalStatus?->status_name === 'Approved';
@@ -79,11 +79,14 @@ final class ContractExecutionController extends Controller
         return response()->json(['data' => $this->event($event)]);
     }
 
-    private function contract(Request $request, string $id, ContractExecutionPolicy $policy): Contract
+    private function contract(Request $request, string $id, ContractExecutionPolicy $policy, bool $allowUnassignedDraft = false): Contract
     {
         $contract = Contract::with(['workflowStatus', 'approvalStatus'])->where('contract_code', $id)
             ->orWhere('contract_id', ctype_digit($id) ? (int) $id : 0)->firstOrFail();
-        abort_if(in_array($request->input('auth_role'), ['Sales', 'Employee'], true) && !$policy->owns($request, $contract), 403);
+        $unassignedDraft = $allowUnassignedDraft
+            && $contract->approvalStatus?->status_name === 'Draft'
+            && ($contract->created_by === null || in_array($contract->source_system, ['PRS', 'SERMS'], true));
+        abort_if(in_array($request->input('auth_role'), ['Sales', 'Employee'], true) && !$policy->owns($request, $contract) && !$unassignedDraft, 403);
 
         return $contract;
     }

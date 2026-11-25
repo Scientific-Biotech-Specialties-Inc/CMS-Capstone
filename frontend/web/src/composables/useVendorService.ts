@@ -1,5 +1,5 @@
 import { useAuth } from './useAuth'
-import type { Partner, AddPartnerForm, SuggestedVendor } from '@/types/partner'
+import type { Partner, AddPartnerForm, SuggestedVendor, PartnerClassTier } from '@/types/partner'
 
 const BASE_URL = import.meta.env.VITE_VENDOR_API_URL as string
 
@@ -21,6 +21,7 @@ function mapPartner(d: any): Partner {
     name:          d.partner_name   ?? '',
     industry:      d.industry       ?? '',
     region:        (d.region        ?? null) as Partner['region'],
+    classTier:     (d.class_tier    ?? 'Class C') as PartnerClassTier,
     status:        (d.status        ?? 'Active') as Partner['status'],
     contactPerson: d.contact_person ?? '',
     email:         d.email          ?? '',
@@ -38,6 +39,7 @@ function mapSupplier(d: any): Partner {
     name:          d.supplier_name  ?? '',
     industry:      d.industry       ?? '',
     region:        (d.region        ?? null) as Partner['region'],
+    classTier:     (d.class_tier    ?? 'Class C') as PartnerClassTier,
     status:        (d.status        ?? 'Active') as Partner['status'],
     contactPerson: d.contact_person ?? '',
     email:         d.email          ?? '',
@@ -99,6 +101,7 @@ async function createPartner(form: AddPartnerForm): Promise<{ partner: Partner; 
       email:          form.email,
       address:        form.address,
       region:         form.region || null,
+      class_tier:     form.classTier || 'Class C',
       status:         form.status,
     }),
   })
@@ -120,6 +123,7 @@ async function updatePartner(id: number, form: AddPartnerForm, bpCode: string | 
       email:          form.email,
       address:        form.address,
       region:         form.region || null,
+      class_tier:     form.classTier || 'Class C',
       status:         form.status,
     }),
   })
@@ -167,6 +171,7 @@ async function createSupplier(form: AddPartnerForm): Promise<{ partner: Partner;
       email:          form.email,
       address:        form.address,
       region:         form.region || null,
+      class_tier:     form.classTier || 'Class C',
       status:         form.status,
     }),
   })
@@ -188,6 +193,7 @@ async function updateSupplier(id: number, form: AddPartnerForm): Promise<{ partn
       email:          form.email,
       address:        form.address,
       region:         form.region || null,
+      class_tier:     form.classTier || 'Class C',
       status:         form.status,
     }),
   })

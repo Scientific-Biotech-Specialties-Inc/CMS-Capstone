@@ -8,21 +8,37 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('/integrations/v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'index']);
     Route::post('/prs/closing-outcomes', \App\Http\Controllers\Api\V1\PrsClosingOutcomeController::class);
+    Route::post('/prs/contract-status', \App\Http\Controllers\Api\V1\PrsClosingOutcomeController::class);
+
+    Route::prefix('/prs')->middleware('prs.auth:strict')->group(function () {
+        Route::get('/ping', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'ping']);
+        Route::get('/products', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'products']);
+        Route::post('/products/sync', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'syncProducts']);
+        Route::get('/institutions', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'institutions']);
+        Route::get('/locations', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'locations']);
+        Route::post('/institutions/sync', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'syncInstitutions']);
+    });
 
     Route::prefix('/ts')->group(function () {
+        Route::get('/ping', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'ping']);
         Route::get('/sync', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'sync']);
         Route::get('/equipment', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'equipment']);
+        Route::get('/equipment/{equipmentUid}', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'showEquipment']);
         Route::get('/customers', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'customers']);
+        Route::get('/customers/{customerUid}', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'showCustomer']);
         Route::get('/vendors', [\App\Http\Controllers\Api\V1\TsIntegrationController::class, 'customers']);
     });
 });
 
 Route::middleware(['auth.internal'])->group(function () {
+    Route::get('/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'listForUi'])
+        ->middleware('permission:cms.contracts.view|cms.contracts.create');
     Route::get('/products/{product}', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'show'])
         ->middleware('permission:cms.contracts.create');
     Route::middleware('role:Admin')->group(function () {
         Route::post('/integrations/v1/products', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'store']);
         Route::patch('/integrations/v1/products/{product}', [\App\Http\Controllers\Api\V1\IntegrationProductController::class, 'update']);
+        Route::post('/integrations/v1/prs/products/pull', [\App\Http\Controllers\Api\V1\PrsIntegrationController::class, 'pullProducts']);
     });
 
     Route::get('/lookups/{type}', [LookupController::class, 'show']);
@@ -35,6 +51,10 @@ Route::middleware(['auth.internal'])->group(function () {
         ->middleware('permission:cms.contracts.create');
     Route::put('/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update'])
         ->middleware('permission:cms.contracts.edit');
+    Route::post('/contracts/{id}/draft-document', [\App\Http\Controllers\ContractController::class, 'attachDraftDocument'])
+        ->middleware('permission:cms.contracts.create|cms.contracts.edit');
+    Route::post('/contracts/{id}/submit-draft', [\App\Http\Controllers\ContractController::class, 'submitDraft'])
+        ->middleware('permission:cms.contracts.create|cms.contracts.edit');
     Route::delete('/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy'])
         ->middleware('permission:cms.contracts.delete');
     Route::get('/contract-requests',  [ContractController::class, 'indexRequests']);

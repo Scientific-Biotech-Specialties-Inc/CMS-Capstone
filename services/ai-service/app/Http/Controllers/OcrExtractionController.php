@@ -108,7 +108,7 @@ class OcrExtractionController extends Controller
             $systemInstruction = "You are an AI assistant specialized in analyzing contract text. Extract metadata fields from the provided text and format them into the requested JSON schema.
 For fields that are not mentioned or found in the text, return an empty string (\"\").
 For dates (start_date, end_date), return them in YYYY-MM-DD format if possible.
-For the category, match one of the allowed values: 'Service Agreement', 'Partnership Agreement', 'Supply Contract', 'Equipment Lease', 'Equipment Maintenance'. If it does not match exactly, select the closest category.
+For the category, match one of the system contract categories (e.g., 'Service Agreement', 'Partnership Agreement', 'Supply Contract', 'Equipment Lease', 'Equipment Maintenance', 'Field Service'). If it does not match exactly, select the closest category.
 For the region, match one of: 'Luzon', 'Visayas', 'Mindanao'. If not mentioned, return an empty string (\"\").";
 
             $userPrompt = "Here is the contract text:\n\n" . $text;
@@ -127,7 +127,7 @@ For the region, match one of: 'Luzon', 'Visayas', 'Mindanao'. If not mentioned, 
                     ],
                     'category' => [
                         'type' => 'STRING',
-                        'enum' => ['Service Agreement', 'Partnership Agreement', 'Supply Contract', 'Equipment Lease', 'Equipment Maintenance'],
+                        'enum' => ['Service Agreement', 'Partnership Agreement', 'Supply Contract', 'Equipment Lease', 'Equipment Maintenance', 'Field Service'],
                         'description' => 'The contract category matching the allowed options.'
                     ],
                     'item_code' => [

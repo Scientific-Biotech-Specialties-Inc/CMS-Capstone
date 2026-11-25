@@ -34,8 +34,10 @@ const activeTab      = ref<TabKey>('partners')
 const viewMode       = ref<'card' | 'table'>('card')
 const search         = ref('')
 const regionFilter   = ref('All')
+const classFilter    = ref('All')
 const statusFilter   = ref('All')
 const regions        = ['All', 'Luzon', 'Visayas', 'Mindanao']
+const classTiers     = ['All', 'Class A', 'Class B', 'Class C']
 const statusOptions  = ['All', 'Active', 'Inactive', 'Suspended'] as const
 
 const partnersCount = ref(0)
@@ -48,18 +50,19 @@ const filtered = computed(() => partners.value)
 const currentPage  = ref(1)
 const itemsPerPage = 15
 
-watch([search, regionFilter, statusFilter], () => { currentPage.value = 1 })
+watch([search, regionFilter, classFilter, statusFilter], () => { currentPage.value = 1 })
 watch(activeTab, () => {
   search.value         = ''
   regionFilter.value   = 'All'
+  classFilter.value    = 'All'
   statusFilter.value   = 'All'
   currentPage.value    = 1
 })
 
 watch(
-  [activeTab, currentPage, search, regionFilter, statusFilter],
-  async ([tab, page, q, region, status]) => {
-    await fetchPartners(tab, page, itemsPerPage, q, region, status)
+  [activeTab, currentPage, search, regionFilter, classFilter, statusFilter],
+  async ([tab, page, q, region, classTier, status]) => {
+    await fetchPartners(tab, page, itemsPerPage, q, region, status, 'All', classTier)
   }
 )
 
@@ -162,7 +165,7 @@ async function executeExport() {
     'Phone':          p.phone,
     'Email':          p.email,
     'Address':        p.address,
-    ...(activeTab.value === 'partners' ? { 'BP Code': p.bpCode ?? '' } : { 'TIN': p.tinNumber ?? '' }),
+    ...(activeTab.value === 'partners' ? { 'BP Code': p.bpCode ?? '', 'Class Tier': p.classTier ?? 'Class C' } : { 'TIN': p.tinNumber ?? '' }),
   }))
   await exportToExcel(`sbsi-${activeTab.value}.xlsx`, type === 'Business Partner' ? 'Partners' : 'Suppliers', rows)
   success('Export complete', `${filtered.value.length} records exported.`)
@@ -231,6 +234,10 @@ async function executeExport() {
         <input v-model="search" type="text" :placeholder="`Search ${activeTab === 'partners' ? 'partners' : 'suppliers'}...`"
           class="w-full h-9 rounded-lg border border-black/10 bg-white pl-8.5 pr-3 text-sm placeholder:text-black/25 focus:border-brand-blue focus:outline-none transition" />
       </div>
+      <select v-if="activeTab === 'partners'" v-model="classFilter"
+        class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
+        <option v-for="c in classTiers" :key="c" :value="c">{{ c === 'All' ? 'All Classes' : c }}</option>
+      </select>
       <select v-model="regionFilter"
         class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
         <option v-for="r in regions" :key="r" :value="r">{{ r === 'All' ? 'All Regions' : r }}</option>

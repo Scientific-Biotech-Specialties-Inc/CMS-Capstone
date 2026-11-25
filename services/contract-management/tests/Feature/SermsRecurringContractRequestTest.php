@@ -30,7 +30,7 @@ class SermsRecurringContractRequestTest extends TestCase
         $this->postJson('/api/internal/contract-requests/from-serms', [])->assertStatus(401);
     }
 
-    public function test_creates_pending_contract_request_from_serms_purchase_history(): void
+    public function test_creates_draft_contract_request_from_serms_purchase_history(): void
     {
         $response = $this->withHeaders($this->secretHeader())
             ->postJson('/api/internal/contract-requests/from-serms', [
@@ -52,9 +52,19 @@ class SermsRecurringContractRequestTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.source_system', 'SERMS')
-            ->assertJsonPath('data.approval_status', 'Pending')
+            ->assertJsonPath('data.approval_status', 'Draft')
             ->assertJsonPath('data.workflow_status', null)
             ->assertJsonPath('data.supporting_expense_summary.forwarded_by_name', 'Maria Santos')
             ->assertJsonPath('data.supporting_expense_summary.occurrence_count', 4);
+
+        $contractId = $response->json('data.contract_id');
+        $this->assertDatabaseHas('contracts', [
+            'contract_id'        => $contractId,
+            'source_system'      => 'SERMS',
+            'execution_required' => true,
+        ]);
+        $this->assertDatabaseMissing('approval_instances', [
+            'contract_id' => $contractId,
+        ]);
     }
 }

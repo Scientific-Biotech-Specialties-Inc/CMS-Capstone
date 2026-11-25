@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { BRAND_HEX } from '@/constants/theme'
 import { computed } from 'vue'
-import { VisXYContainer, VisLine, VisAxis, VisTooltip, VisCrosshair } from '@unovis/vue'
+import { VisXYContainer, VisLine, VisArea, VisScatter, VisAxis, VisTooltip, VisCrosshair } from '@unovis/vue'
 import type { Contract } from '@/types/contract'
 import type { TimeFilterOption } from '@/composables/useTimeFilter'
-import { TIME_FILTER_LABELS } from '@/composables/useTimeFilter'
+import { TIME_FILTER_LABELS, localDateKey, parseLocalDate } from '@/composables/useTimeFilter'
 
 // Pure display component: the Today/This Week/Last Month filter and the
 // Year override both live in the parent Overview tab (single filter row,
@@ -26,8 +26,8 @@ type Bucket = { label: string; key: string; count: number }
 const today = new Date()
 
 const buckets = computed<Bucket[]>(() => {
-  if (props.year !== null) {
-    const yr = props.year
+  if (props.year !== null || props.timeFilter === 'all') {
+    const yr = props.year ?? today.getFullYear()
     return Array.from({ length: 12 }, (_, m) => {
       const d = new Date(yr, m, 1)
       return {
@@ -39,9 +39,10 @@ const buckets = computed<Bucket[]>(() => {
   }
 
   if (props.timeFilter === 'today') {
+    const todayKey = localDateKey(today)
     return Array.from({ length: 24 }, (_, h) => ({
       label: h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`,
-      key: `${today.toISOString().split('T')[0]}-${String(h).padStart(2, '0')}`,
+      key: `${todayKey}-${String(h).padStart(2, '0')}`,
       count: 0,
     }))
   }
@@ -56,7 +57,7 @@ const buckets = computed<Bucket[]>(() => {
       d.setDate(monday.getDate() + i)
       return {
         label: d.toLocaleString('en-US', { weekday: 'short' }),
-        key: d.toISOString().split('T')[0],
+        key: localDateKey(d),
         count: 0,
       }
     })
@@ -70,28 +71,27 @@ const buckets = computed<Bucket[]>(() => {
     const d = new Date(firstOfLastMonth.getFullYear(), firstOfLastMonth.getMonth(), i + 1)
     return {
       label: String(d.getDate()),
-      key: d.toISOString().split('T')[0],
+      key: localDateKey(d),
       count: 0,
     }
   })
 })
 
 function bucketKeyFor(date: Date): string {
-  if (props.year !== null) {
+  if (props.year !== null || props.timeFilter === 'all') {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
   }
   if (props.timeFilter === 'today') {
-    return `${date.toISOString().split('T')[0]}-${String(date.getHours()).padStart(2, '0')}`
+    return `${localDateKey(date)}-${String(date.getHours()).padStart(2, '0')}`
   }
-  return date.toISOString().split('T')[0]
+  return localDateKey(date)
 }
 
 const trendData = computed(() => {
   const filled = buckets.value.map(b => ({ ...b }))
   props.contracts.forEach(c => {
-    if (!c.startDate) return
-    const d = new Date(c.startDate)
-    if (isNaN(d.getTime())) return
+    const d = parseLocalDate(c.startDate)
+    if (!d) return
     const key = bucketKeyFor(d)
     const found = filled.find(b => b.key === key)
     if (found) found.count++
@@ -101,6 +101,7 @@ const trendData = computed(() => {
 
 const chartSubtitle = computed(() => {
   if (props.year !== null) return `Monthly trend for year ${props.year}`
+  if (props.timeFilter === 'all') return `Monthly trend for year ${today.getFullYear()} (All Time)`
   return `Trend for: ${TIME_FILTER_LABELS[props.timeFilter]}`
 })
 
@@ -155,7 +156,9 @@ const tooltipTemplate = (d: any) =>
           '--vis-font-family': 'inherit',
         }"
       >
-        <VisLine :x="x" :y="y" :color="BRAND_HEX.blue" />
+        <VisArea :x="x" :y="y" :color="BRAND_HEX.blue" :opacity="0.08" curve-type="linear" />
+        <VisLine :x="x" :y="y" :color="BRAND_HEX.blue" curve-type="linear" />
+        <VisScatter :x="x" :y="y" :color="BRAND_HEX.blue" :size="5" />
         <VisAxis type="x" :tick-format="xTickFormat" :tickValues="trendData.map((_, i) => i)" />
         <VisAxis type="y" :tickValues="yTickValues" :tickFormat="(v: number) => String(Math.round(v))" />
         <VisTooltip :horizontal-shift="20" />

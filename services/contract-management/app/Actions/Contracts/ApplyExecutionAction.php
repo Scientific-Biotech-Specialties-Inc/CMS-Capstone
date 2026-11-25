@@ -197,7 +197,8 @@ final readonly class ApplyExecutionAction
             if (empty($contract->execution_draft_id)) {
                 $pdfDoc = Document::where('contract_id', (int) $contract->getKey())
                     ->where('file_type', 'pdf')
-                    ->latest('_id')
+                    ->get()
+                    ->sortByDesc(fn ($d) => (string) $d->getKey())
                     ->first();
                 if ($pdfDoc) {
                     $updates['execution_draft_id'] = (string) $pdfDoc->getKey();

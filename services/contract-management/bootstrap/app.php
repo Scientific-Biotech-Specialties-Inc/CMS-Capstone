@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'      => \App\Http\Middleware\HasPermission::class,
             'role'            => \App\Http\Middleware\HasRole::class,
             'internal.secret' => \App\Http\Middleware\ValidateInternalSecret::class,
+            'prs.auth'        => \App\Http\Middleware\AuthenticatePrsIntegration::class,
         ]);
         $middleware->encryptCookies(except: [
             'session_id',

@@ -102,12 +102,16 @@ export function useContractGenerator() {
   }
 
   function buildServiceFallback(params: GenerateContractParams): GeneratedContractData {
-    const title = 'COMMERCIAL SERVICES AGREEMENT'
+    const categoryLabel = (params.category || '').trim() || 'Service Agreement'
+    const normalized = categoryLabel.toLowerCase()
+    const title = (normalized === '' || normalized === 'service agreement')
+      ? 'COMMERCIAL SERVICES AGREEMENT'
+      : `${categoryLabel.toUpperCase()}${/\b(agreement|contract)$/i.test(categoryLabel) ? '' : ' AGREEMENT'}`
     const html = `
 <h1 style="text-align: center;"><strong>${title}</strong></h1>
 <p style="text-align: center; color: #555555;"><strong>CONTRACT NO. SBSI-${params.sbuNumber}-${params.itemCode}</strong></p>
 <hr />
-<p>This <strong>Service Agreement</strong> (the &ldquo;Agreement&rdquo;) is entered into and made effective as of <strong>${params.startDate}</strong>, by and between:</p>
+<p>This <strong>${categoryLabel}</strong> (the &ldquo;Agreement&rdquo;) is entered into and made effective as of <strong>${params.startDate}</strong>, by and between:</p>
 
 <p><strong>SBSI CORPORATION</strong>, a corporation organized and existing under the laws of the Republic of the Philippines, having its principal office at Metro Manila, Philippines (hereinafter referred to as the &ldquo;First Party&rdquo; or &ldquo;Client&rdquo;);</p>
 

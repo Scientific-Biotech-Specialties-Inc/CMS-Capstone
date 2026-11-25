@@ -16,15 +16,10 @@ use Illuminate\Support\Facades\Validator;
 
 /**
  * SERMS Integration (1.3): Converts a recurring-expense purchase history
- * summary forwarded by SERMS Accounting into a pending CMS Contract Request.
+ * summary forwarded by SERMS Accounting into an editable CMS Draft contract.
  */
 final class RecurringExpenseContractRequestController extends Controller
 {
-    public function __construct(
-        private readonly ApprovalEngineService $approvalEngine,
-    ) {
-    }
-
     public function __invoke(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -54,7 +49,7 @@ final class RecurringExpenseContractRequestController extends Controller
             ->first()
             ?? ContractCategory::firstOrCreate(['category_name' => $data['category'] ?? 'Service Agreement']);
 
-        $pendingApproval = ContractApprovalStatus::firstOrCreate(['status_name' => 'Pending']);
+        $draftApproval = ContractApprovalStatus::firstOrCreate(['status_name' => 'Draft']);
 
         $regionName = $data['region'] ?? 'Luzon';
         $regionId = DB::table('contract_regions')->where('region_name', $regionName)->value('region_id')
@@ -73,9 +68,10 @@ final class RecurringExpenseContractRequestController extends Controller
 
         $contract = Contract::create([
             'category_id'                => $category->category_id,
-            'approval_status_id'         => $pendingApproval->approval_status_id,
+            'approval_status_id'         => $draftApproval->approval_status_id,
             'workflow_status_id'         => null,
             'region_id'                  => $regionId,
+            'execution_required'         => true,
             'bp_name'                    => $data['vendor_name'],
             'item_code'                  => 'SERMS-REC',
             'sbu_number'                 => 'SERMS',
@@ -90,13 +86,6 @@ final class RecurringExpenseContractRequestController extends Controller
             'supporting_expense_summary' => $summary,
         ]);
 
-        if ($this->approvalEngine->isEnabled()) {
-            $activeWorkflow = $this->approvalEngine->resolveActiveWorkflow((int) $category->category_id);
-            if ($activeWorkflow) {
-                $this->approvalEngine->startInstance($contract, $activeWorkflow);
-            }
-        }
-
         return response()->json([
             'data' => [
                 'contract_id'                => $contract->contract_id,
@@ -106,7 +95,8 @@ final class RecurringExpenseContractRequestController extends Controller
                 'source_system'              => $contract->source_system,
                 'source_reference_id'        => $contract->source_reference_id,
                 'supporting_expense_summary' => $contract->supporting_expense_summary,
-                'approval_status'            => $pendingApproval->status_name,
+                'approval_status'            => $draftApproval->status_name,
+                'workflow_status'            => null,
             ],
         ], 201);
     }

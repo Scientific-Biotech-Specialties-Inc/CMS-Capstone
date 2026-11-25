@@ -3,6 +3,7 @@
 use App\Console\Commands\CheckExpiringContracts;
 use App\Console\Commands\CheckHighRiskApprovalSla;
 use App\Console\Commands\PruneAuditLogs;
+use App\Console\Commands\SyncPrsProductsCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -19,4 +20,7 @@ Schedule::command(CheckHighRiskApprovalSla::class)->everyFifteenMinutes();
 
 // Prune audit logs older than retention threshold (default: 90 days) daily at midnight
 Schedule::command(PruneAuditLogs::class)->dailyAt('00:00');
+
+// Hourly pull fallback for PRS product catalog webhook sync
+Schedule::command(SyncPrsProductsCommand::class)->hourly();
 

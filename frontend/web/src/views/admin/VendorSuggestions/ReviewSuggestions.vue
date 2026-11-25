@@ -48,6 +48,7 @@ onMounted(async () => {
       name:          candidate.name,
       industry:      candidate.industry ?? '',
       region:        candidate.region ?? '',
+      classTier:     'Class C',
       contactPerson: '',
       email:         candidate.contactEmail ?? '',
       phone:         candidate.contactNumber ?? '',
@@ -75,7 +76,8 @@ const emailValid = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(activeForm.v
 const isFormValid = computed(() => {
   const f = activeForm.value
   if (!f) return false
-  if (!f.name.trim() || !f.industry || !f.region || !f.email.trim()) return false
+  if (!f.name.trim() || !f.industry || !f.region || !f.email.trim() || !f.address.trim()) return false
+  if (f.vendorType === 'partner' && !f.classTier) return false
   if (f.vendorType === 'supplier' && !f.tinNumber.trim()) return false
   return emailValid.value
 })
@@ -94,6 +96,7 @@ async function saveActiveTab() {
       email:          f.email,
       phone:          f.phone,
       address:        f.address,
+      class_tier:     f.classTier,
       tin_number:     f.tinNumber,
       bp_code:        f.bpCode,
     })
@@ -216,9 +219,20 @@ async function saveActiveTab() {
           <p v-else-if="!emailValid" class="text-xs text-red-500">Enter a valid email address.</p>
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Address</label>
-          <input v-model="activeForm.address" type="text" maxlength="200"
+          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Address <span class="text-red-500">*</span></label>
+          <input v-model="activeForm.address" type="text" maxlength="255" placeholder="Street, City"
             class="w-full h-9 rounded-md border border-black/12 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition" />
+        </div>
+        <div v-if="activeForm.vendorType === 'partner'" class="flex flex-col gap-1.5 mt-4 max-w-xs">
+          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Class Tier <span class="text-red-500">*</span></label>
+          <Select v-model="activeForm.classTier">
+            <SelectTrigger class="h-9 rounded-md text-sm border-black/12"><SelectValue placeholder="Select class tier" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Class A">Class A</SelectItem>
+              <SelectItem value="Class B">Class B</SelectItem>
+              <SelectItem value="Class C">Class C</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

@@ -197,7 +197,7 @@ class ApprovalEngineService
 
     public function canActOn(ApprovalTask $task, int $actor): bool
     {
-        return $task->isPending() && $this->findHolderInfo((int) $task->auth_role_id, $actor) !== null;
+        return $task->isPending() && $this->findHolderInfo((int) $task->auth_role_id, $actor, true) !== null;
     }
 
     // ── Internal step/task mechanics ───────────────────────────────────
@@ -299,7 +299,9 @@ class ApprovalEngineService
         $statusRow = ContractApprovalStatus::firstOrCreate(['status_name' => $outcome]);
 
         $updates = ['approval_status_id' => $statusRow->approval_status_id];
-        if ($contract->execution_required) {
+        $usesExecution = $contract->execution_required || ($outcome === 'Approved' && !$contract->workflow_status_id);
+        if ($usesExecution) {
+            $updates['execution_required'] = true;
             $updates['workflow_status_id'] = $outcome === 'Approved'
                 ? \App\Models\ContractStatus::where('status_name', 'SBSI Review')->value('status_id') : null;
             $updates['rejection_reason'] = null;
@@ -311,8 +313,17 @@ class ApprovalEngineService
         }
 
         $contract->update($updates);
-        if ($contract->execution_required) {
+        if ($usesExecution) {
             \App\Jobs\SyncContractToMeilisearch::dispatch((int) $contract->getKey())->afterCommit();
+        }
+
+        if (!empty($contract->prs_activity_id) && in_array($outcome, ['Approved', 'Rejected'], true)) {
+            \App\Jobs\NotifyPrsOfContractUpdateJob::dispatch(
+                (int) $contract->prs_activity_id,
+                (int) $contract->contract_id,
+                $outcome,
+                $outcome === 'Approved' ? 'Won' : 'Loss'
+            )->afterCommit();
         }
     }
 
@@ -321,9 +332,9 @@ class ApprovalEngineService
      * assignment or active delegation), returning that holder's basic
      * info or null if they are not currently eligible.
      */
-    private function findHolderInfo(int $authRoleId, int $actingUserId): ?array
+    private function findHolderInfo(int $authRoleId, int $actingUserId, bool $useCache = false): ?array
     {
-        $holders = $this->roleProxy->activeHoldersOf($authRoleId);
+        $holders = $this->roleProxy->activeHoldersOf($authRoleId, $useCache);
         foreach ($holders as $holder) {
             if ((int) ($holder['id'] ?? 0) === $actingUserId) {
                 return $holder;

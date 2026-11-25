@@ -1,6 +1,9 @@
 import { ref, computed } from 'vue'
 import { useAuth } from './useAuth'
+import { useApiCache } from './useApiCache'
 import type { Notification, NotifType } from '@/types/notification'
+
+let knownNotificationIds: Set<string> | null = null
 
 const BASE_URL = import.meta.env.VITE_NOTIFICATION_API_URL as string
 
@@ -75,7 +78,18 @@ export function useNotifications() {
       })
       const json = await res.json()
       if (res.ok) {
-        notifications.value = (json.data ?? []).map(mapNotification)
+        const mapped = (json.data ?? []).map(mapNotification)
+        const hasNewContractEvent = knownNotificationIds !== null && mapped.some(
+          (n: Notification) =>
+            !knownNotificationIds!.has(n.id) &&
+            (n.type === 'contract' || n.contractId !== null || Boolean(n.notifType?.startsWith('prs_')))
+        )
+        knownNotificationIds = new Set(mapped.map((n: Notification) => n.id))
+        notifications.value = mapped
+
+        if (hasNewContractEvent) {
+          useApiCache().refreshCachedInBackground()
+        }
       }
     } catch (e) {
       console.error('Failed to fetch notifications', e)

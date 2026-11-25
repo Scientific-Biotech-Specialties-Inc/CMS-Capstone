@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\Product;
 use App\Services\EncryptionService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,21 @@ class TsIntegrationController extends Controller
     public function __construct(
         private readonly EncryptionService $encryption
     ) {}
+
+    public function ping(Request $request): JsonResponse
+    {
+        if ($denied = $this->authorizeRequest($request)) {
+            return $denied;
+        }
+
+        return response()->json([
+            'status'      => 'ok',
+            'service'     => 'contract-management',
+            'integration' => 'TS',
+            'source_of_truth' => 'CMS',
+            'timestamp'   => now()->toIso8601String(),
+        ]);
+    }
 
     /**
      * Unified CMS -> TS sync payload containing equipment and customer per Business Partner contract.
@@ -169,6 +185,89 @@ class TsIntegrationController extends Controller
         ]);
     }
 
+    public function showEquipment(Request $request, string $equipmentUid): JsonResponse
+    {
+        if ($denied = $this->authorizeRequest($request)) {
+            return $denied;
+        }
+
+        $entries = $this->resolveBusinessPartnerContracts($request);
+        $needle = strtoupper(trim($equipmentUid));
+        $match = $entries->first(function (array $entry) use ($needle, $equipmentUid): bool {
+            /** @var Contract $contract */
+            $contract = $entry['contract'];
+            $uid = strtoupper('EQP-' . $contract->contract_id);
+            return $uid === $needle || strcasecmp((string) $contract->serial_number, trim($equipmentUid)) === 0;
+        });
+
+        if (!$match) {
+            return response()->json(['message' => 'Equipment record not found.'], 404);
+        }
+
+        $customer = $match['customer'];
+
+        return response()->json([
+            'data' => array_merge($this->formatEquipment($match['contract']), [
+                'customer_uid'  => $customer['customer_uid'],
+                'customer_name' => $customer['customer_name'],
+                'class_tier'    => $customer['class_tier'] ?? null,
+                'customer'      => $customer,
+            ]),
+            'meta' => ['source_of_truth' => 'CMS'],
+        ]);
+    }
+
+    public function showCustomer(Request $request, string $customerUid): JsonResponse
+    {
+        if ($denied = $this->authorizeRequest($request)) {
+            return $denied;
+        }
+
+        $entries = $this->resolveBusinessPartnerContracts($request);
+        $needle = strtoupper(trim($customerUid));
+        $record = null;
+
+        foreach ($entries as $entry) {
+            $customer = $entry['customer'];
+            $uid = strtoupper((string) ($customer['customer_uid'] ?? ''));
+            $sourceId = (string) ($customer['customer_source_id'] ?? '');
+            if ($uid !== $needle && $sourceId !== trim($customerUid)) {
+                continue;
+            }
+
+            if ($record === null) {
+                $record = $this->initVendorCustomerRecord($customer);
+            }
+
+            /** @var Contract $contract */
+            $contract = $entry['contract'];
+            $item = $this->formatEquipment($contract);
+            $branch = $item['sbsi_branch'];
+
+            if (empty($record['ordered_items'])) {
+                $record['sbsi_branch'] = $branch;
+            }
+            if (!in_array($branch, $record['sbsi_branches'], true)) {
+                $record['sbsi_branches'][] = $branch;
+            }
+            $record['contract_ids'][] = $contract->contract_id;
+            $record['equipment_uids'][] = $item['equipment_uid'];
+            if (!empty($item['serial_number']) && !in_array($item['serial_number'], $record['serial_numbers'], true)) {
+                $record['serial_numbers'][] = $item['serial_number'];
+            }
+            $record['ordered_items'][] = $item;
+        }
+
+        if ($record === null) {
+            return response()->json(['message' => 'Customer record not found.'], 404);
+        }
+
+        return response()->json([
+            'data' => $record,
+            'meta' => ['source_of_truth' => 'CMS'],
+        ]);
+    }
+
     private function authorizeRequest(Request $request): ?JsonResponse
     {
         if (config('services.ts.public_read') === true) {
@@ -197,7 +296,7 @@ class TsIntegrationController extends Controller
         $includeExpired = filter_var($request->query('include_expired', false), FILTER_VALIDATE_BOOLEAN);
 
         $query = Contract::query()
-            ->with(['category', 'approvalStatus', 'workflowStatus', 'region'])
+            ->with(['category', 'approvalStatus', 'workflowStatus', 'region', 'product'])
             ->whereHas('approvalStatus', fn (Builder $q) => $q->where('status_name', 'Approved'))
             ->orderBy('contract_id');
 
@@ -258,13 +357,16 @@ class TsIntegrationController extends Controller
 
         return [
             'equipment_uid' => 'EQP-' . $contract->contract_id,
+            'product_id' => $contract->product_id,
             'contract_id' => $contract->contract_id,
             'contract_code' => $contract->contract_code ?? ('CTR-' . str_pad((string) $contract->contract_id, 5, '0', STR_PAD_LEFT)),
-            'equipment_name' => $contract->equipment_name ?? ($snapshot['name'] ?? null),
-            'brand' => $contract->brand ?? ($snapshot['brand'] ?? null),
-            'model' => $contract->model ?? ($snapshot['model'] ?? null),
+            'equipment_name' => $contract->equipment_name ?? ($snapshot['name'] ?? $snapshot['product_name'] ?? null),
+            'manufacturer' => $contract->product?->manufacturer ?? ($snapshot['manufacturer'] ?? null),
+            'brand' => $contract->brand ?? $contract->product?->brand ?? ($snapshot['brand'] ?? null),
+            'model' => $contract->model ?? $contract->product?->model ?? ($snapshot['model'] ?? null),
             'serial_number' => $contract->serial_number,
             'item_code' => $contract->item_code,
+            'sbu' => $contract->product?->sbu ?? Product::parseSbuInt($contract->sbu_number),
             'sbu_number' => $contract->sbu_number,
             'description' => $contract->description,
             'category' => $contract->category?->category_name,
@@ -372,6 +474,7 @@ class TsIntegrationController extends Controller
             'contact_number' => $partner['contact_number'] ?? null,
             'contact_person' => $partner['contact_person'] ?? null,
             'address' => $partner['address'] ?? null,
+            'class_tier' => $partner['class_tier'] ?? null,
             'sbsi_branch' => $branch,
             'region' => $partner['region'] ?? $fallbackRegion,
             'status' => $partner['status'] ?? null,
@@ -529,6 +632,7 @@ class TsIntegrationController extends Controller
                 'email' => $this->safeDecrypt($row->email ?? null),
                 'contact_number' => $this->safeDecrypt($row->contact_number ?? null),
                 'address' => $this->safeDecrypt($row->address ?? null),
+                'class_tier' => $row->class_tier ?? null,
                 'region' => $row->region ?? null,
                 'status' => $row->status ?? null,
                 'updated_at' => $row->updated_at ?? null,

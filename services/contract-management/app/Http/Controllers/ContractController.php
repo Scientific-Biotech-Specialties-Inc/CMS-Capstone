@@ -61,7 +61,7 @@ class ContractController extends Controller
             'lifecycle_status'           => $contract->lifecycle_status,
             'execution_required'         => $contract->execution_required,
             'created_by'                 => $contract->created_by,
-            'creator_name'               => $contract->creator_name ?? null,
+            'creator_name'               => $contract->creator_name ?? ($contract->source_system === 'PRS' ? 'PRS Employee' : null),
             'prs_activity_id'            => $contract->prs_activity_id,
             'product_id'                 => $contract->product_id,
             'product_snapshot'           => $contract->product_snapshot,
@@ -153,6 +153,13 @@ class ContractController extends Controller
                     $q->whereNull('approval_status_id')
                       ->orWhere('approval_status_id', '!=', 2);
                 });
+            } elseif ($lifecycle === 'draft') {
+                $draftStatusId = ContractApprovalStatus::where('status_name', 'Draft')->value('approval_status_id');
+                if ($draftStatusId) {
+                    $query->where('approval_status_id', $draftStatusId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             } elseif ($lifecycle === 'pending_execution') {
                 $query->pendingExecution();
             } elseif ($lifecycle === 'expiring') {
@@ -164,15 +171,14 @@ class ContractController extends Controller
             }
         }
 
-        // Sales and Employee (incl. Sales & Marketing dept) can only ever see their own contracts
+        // Sales and Employee (incl. Sales & Marketing dept) see their own contracts + unassigned Draft handoffs
         $role = $request->get('auth_role');
         if (in_array($role, ['Sales', 'Employee'])) {
-            $query->where('created_by', $request->get('auth_id'));
+            $this->applySalesScope($query, $request);
         }
 
-        // Rejected contracts (approval_status_id = 3) always appear at the bottom of the list
-        $query->orderByRaw('CASE WHEN approval_status_id = 3 THEN 1 ELSE 0 END ASC')
-              ->orderBy('contract_id', 'desc');
+        // Order: Draft first -> Pending/Approved -> Rejected last
+        $this->applyDefaultContractOrdering($query);
 
         if ($request->has('paginate') && $request->paginate === 'true') {
             // Cap page size: existing clients send up to 100, so this is the
@@ -328,28 +334,48 @@ class ContractController extends Controller
             'prs_branch_id' => 'nullable|integer|min:1',
         ]);
         if (isset($selection['prs_institution_id'])) {
-            $url = (string) config('services.prs.institutions_url');
-            abort_if($url === '', 503, 'The PRS institution directory is unavailable.');
-            try {
-                $institution = \Illuminate\Support\Facades\Http::acceptJson()
-                    ->timeout(5)->get(rtrim($url, '/') . '/' . $selection['prs_institution_id']);
-            } catch (\Illuminate\Http\Client\ConnectionException) {
-                abort(503, 'The PRS institution directory is unavailable.');
+            $url = trim((string) config('services.prs.institutions_url'));
+            if ($url !== '') {
+                try {
+                    $institution = \Illuminate\Support\Facades\Http::connectTimeout(3)
+                        ->acceptJson()
+                        ->timeout(5)
+                        ->get(rtrim($url, '/') . '/' . $selection['prs_institution_id']);
+
+                    if ($institution->successful()) {
+                        $branchIds = array_column($institution->json('data.branches', []), 'branch_id');
+                        if (isset($selection['prs_branch_id']) && !in_array((int) $selection['prs_branch_id'], $branchIds, true)) {
+                            throw \Illuminate\Validation\ValidationException::withMessages([
+                                'prs_institution_id' => 'Select a valid PRS institution and branch.',
+                            ]);
+                        }
+                    } elseif ($institution->notFound()) {
+                        \Illuminate\Support\Facades\Log::warning('PRS institution lookup returned 404 (tunnel may have expired); continuing with local partner.', [
+                            'prs_institution_id' => $selection['prs_institution_id'],
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('PRS institution lookup degraded; continuing with local partner.', [
+                            'prs_institution_id' => $selection['prs_institution_id'],
+                            'status'             => $institution->status(),
+                        ]);
+                    }
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    throw $e;
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('PRS institution directory unreachable; continuing with local partner.', [
+                        'prs_institution_id' => $selection['prs_institution_id'],
+                        'error'              => $e->getMessage(),
+                    ]);
+                }
             }
-            abort_if(!$institution->successful() && !$institution->notFound(), 503, 'The PRS institution directory is unavailable.');
-            $branchIds = array_column($institution->json('data.branches', []), 'branch_id');
-            if ($institution->notFound() || (isset($selection['prs_branch_id'])
-                && !in_array((int) $selection['prs_branch_id'], $branchIds, true))) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'prs_institution_id' => 'Select a valid PRS institution and branch.',
-                ]);
-            }
+
             $partnerCode = config('services.prs.institution_partners.' . $selection['prs_institution_id']);
             if ($partnerCode !== null) {
                 $partnerName = DB::table('business_partners')->where('bp_code', $partnerCode)
                     ->where('status', 'Active')->value('partner_name');
-                abort_unless($partnerName, 422, 'The mapped CMS business partner is unavailable.');
-                $data['bp_name'] = $partnerName;
+                if ($partnerName) {
+                    $data['bp_name'] = $partnerName;
+                }
             }
         }
         $product = null;
@@ -358,7 +384,15 @@ class ContractController extends Controller
             if (!$product) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['product_id' => 'Select an active product.']);
             }
-            $data = array_replace($data, $product->only(['item_code', 'sbu_number', 'description']));
+            $data = array_replace($data, array_filter([
+                'item_code'      => $product->item_code,
+                'sbu_number'     => $product->sbu_number ?: \App\Models\Product::formatSbuNumber($product->sbu),
+                'description'    => $product->description ?: $product->product_name,
+                'equipment_name' => $product->product_name,
+                'brand'          => $product->brand ?? $product->manufacturer,
+                'model'          => $product->model,
+                'serial_number'  => $data['serial_number'] ?? $data['serialNo'] ?? $product->serial_number,
+            ], static fn ($v) => $v !== null && $v !== ''));
         }
 
         // Normalize camelCase fields from test to snake_case
@@ -371,9 +405,9 @@ class ContractController extends Controller
             'serial_number'   => $data['serial_number'] ?? $data['serialNo'] ?? null,
             'sbu_number'      => $data['sbu_number'] ?? $data['sbuNumber'] ?? null,
             'sbsi_branch'     => $data['sbsi_branch'] ?? $data['sbsiBranch'] ?? null,
-            'equipment_name'  => $data['equipment_name'] ?? $data['equipmentName'] ?? $product?->getAttribute('name') ?? $product?->getAttribute('equipment_name'),
-            'brand'           => $data['brand'] ?? $product?->getAttribute('brand'),
-            'model'           => $data['model'] ?? $product?->getAttribute('model'),
+            'equipment_name'  => $data['equipment_name'] ?? $data['equipmentName'] ?? $product?->product_name,
+            'brand'           => $data['brand'] ?? $product?->brand ?? $product?->manufacturer,
+            'model'           => $data['model'] ?? $product?->model,
             'region'          => $data['region'] ?? null,
             'start_date'      => $data['start_date'] ?? $data['startDate'] ?? null,
             'end_date'        => $data['end_date'] ?? $data['endDate'] ?? null,
@@ -565,10 +599,10 @@ class ContractController extends Controller
             return response()->json(['message' => 'Contract not found.'], 404);
         }
 
-        // Authorization check if Sales / Employee editing another user's contract
+        // Authorization check if Sales / Employee editing another user's contract (allow unassigned Drafts)
         $role = $request->get('auth_role');
         $userId = $request->get('auth_id');
-        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== $userId) {
+        if (in_array($role, ['Sales', 'Employee']) && !$this->salesCanAccessContract($contract, $userId)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -619,6 +653,25 @@ class ContractController extends Controller
         }
 
         $incoming = $validator->validated();
+
+        if ($contract->approvalStatus?->status_name === 'Draft') {
+            $hasDraftPdf = array_key_exists('document_ids', $data)
+                ? \App\Models\Document::whereIn('_id', $incoming['document_ids'] ?? [])
+                    ->where(fn ($q) => $q->whereNull('contract_id')->orWhere('contract_id', $contract->contract_id))
+                    ->where('file_type', 'pdf')
+                    ->get()
+                    ->contains(fn ($d) => !empty($d->file_path))
+                : \App\Models\Document::where('contract_id', $contract->contract_id)
+                    ->where('file_type', 'pdf')
+                    ->get()
+                    ->contains(fn ($d) => !empty($d->file_path));
+
+            if (!$hasDraftPdf) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'document_ids' => 'Upload or generate a contract PDF before saving or submitting a draft.',
+                ]);
+            }
+        }
 
         if ($incoming['bp_name'] !== $contract->bp_name && $this->vendorIsSuspended($incoming['bp_name'])) {
             return response()->json([
@@ -720,6 +773,21 @@ class ContractController extends Controller
                 \App\Models\Document::whereIn('_id', $linkableIds)
                     ->update(['contract_id' => $contract->contract_id]);
 
+                if (empty($contract->execution_draft_id)) {
+                    $firstPdf = \App\Models\Document::whereIn('_id', $linkableIds)
+                        ->where('file_type', 'pdf')
+                        ->get()
+                        ->sortByDesc(fn ($d) => (string) $d->getKey())
+                        ->first();
+                    if ($firstPdf) {
+                        $firstPdfId = (string) $firstPdf->getKey();
+                        $contract->update(['execution_draft_id' => $firstPdfId]);
+                        if (empty($firstPdf->doc_category)) {
+                            $firstPdf->update(['doc_category' => 'draft']);
+                        }
+                    }
+                }
+
                 // Audit log only newly linked documents (not ones that were already linked)
                 $previouslyLinkedIds = $currentDocs->map(fn ($d) => (string) $d->getKey())->toArray();
                 foreach ($linkableIds as $docId) {
@@ -763,6 +831,175 @@ class ContractController extends Controller
 
         return response()->json([
             'message' => 'Contract updated successfully.',
+            'data'    => $this->formatContract($contract),
+        ]);
+    }
+
+    /**
+     * Attach or replace the draft PDF on an editable Draft contract (e.g. from Contract Generator).
+     */
+    public function attachDraftDocument(Request $request, $id)
+    {
+        $contract = Contract::with(['category', 'approvalStatus', 'workflowStatus', 'region', 'documents'])
+            ->where('contract_code', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
+            ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        $userId = $request->get('auth_id');
+        if (in_array($role, ['Sales', 'Employee'], true) && !$this->salesCanAccessContract($contract, $userId)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($contract->approvalStatus?->status_name !== 'Draft') {
+            return response()->json(['message' => 'Only Draft contracts can attach draft documents here.'], 409);
+        }
+
+        $validated = $request->validate([
+            'document_id' => 'required|string|max:64',
+        ]);
+
+        $doc = \App\Models\Document::where('_id', $validated['document_id'])
+            ->where(function ($q) use ($contract, $userId, $role) {
+                $q->where('contract_id', $contract->contract_id)
+                    ->orWhere(function ($uq) use ($userId, $role) {
+                        $uq->whereNull('contract_id');
+                        if ($role !== 'Admin' && $role !== 'Super Admin') {
+                            $uq->where('uploaded_by', (int) $userId);
+                        }
+                    });
+            })
+            ->first();
+
+        if (!$doc || $doc->file_type !== 'pdf' || empty($doc->file_path)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'document_id' => 'Attach a valid uploaded PDF document.',
+            ]);
+        }
+
+        $docIdStr = (string) $doc->getKey();
+        $doc->update([
+            'contract_id'  => $contract->contract_id,
+            'doc_category' => 'draft',
+        ]);
+        $contract->update([
+            'execution_required' => true,
+            'execution_draft_id' => $docIdStr,
+        ]);
+
+        $this->auditLogService->log(
+            'document_linked',
+            'Document',
+            $docIdStr,
+            $userId,
+            [],
+            ['contract_id' => $contract->contract_id, 'doc_category' => 'draft'],
+            $request->get('auth_department')
+        );
+
+        $contract = Contract::with(['documents', 'category', 'approvalStatus', 'workflowStatus', 'region'])
+            ->withExists('pendingApprovalInstances as has_pending_approval_workflow')
+            ->findOrFail($contract->contract_id);
+
+        return response()->json([
+            'message' => 'Draft PDF attached.',
+            'data'    => $this->formatContract($contract),
+        ]);
+    }
+
+    /**
+     * Transition an editable Draft contract (e.g., from PRS 2.3 closing handoff or SERMS 1.3) into Pending approval.
+     */
+    public function submitDraft(Request $request, $id)
+    {
+        $contract = Contract::with(['category', 'approvalStatus', 'workflowStatus', 'region', 'documents'])
+            ->where('contract_code', $id)
+            ->orWhere('contract_id', is_numeric($id) ? (int) $id : 0)
+            ->firstOrFail();
+
+        $role = $request->get('auth_role');
+        $userId = $request->get('auth_id');
+        if (in_array($role, ['Sales', 'Employee'], true) && !$this->salesCanAccessContract($contract, $userId)) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($contract->approvalStatus?->status_name !== 'Draft') {
+            return response()->json(['message' => 'Only Draft contracts can be submitted for approval.'], 409);
+        }
+
+        $draftPdf = \App\Models\Document::where('contract_id', (int) $contract->getKey())
+            ->where('file_type', 'pdf')
+            ->get()
+            ->sortByDesc(fn ($d) => (string) $d->getKey())
+            ->first(fn ($d) => !empty($d->file_path));
+
+        if (!$draftPdf) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'document_ids' => 'Upload or generate a contract PDF before submitting the draft.',
+            ]);
+        }
+
+        $oldData = $contract->toArray();
+        $pendingStatus = ContractApprovalStatus::firstOrCreate(['status_name' => 'Pending']);
+        $updates = [
+            'approval_status_id' => $pendingStatus->approval_status_id,
+            'execution_required' => true,
+        ];
+
+        if (empty($contract->execution_draft_id)) {
+            $updates['execution_draft_id'] = (string) $draftPdf->getKey();
+            if (empty($draftPdf->doc_category)) {
+                $draftPdf->update(['doc_category' => 'draft']);
+            }
+        }
+
+        if ($contract->created_by === null && in_array($role, ['Sales', 'Employee'], true) && $userId) {
+            $updates['created_by'] = (int) $userId;
+        }
+
+        $contract->update($updates);
+
+        if ($this->approvalEngine->isEnabled() && $contract->category_id) {
+            $activeWorkflow = $this->approvalEngine->resolveActiveWorkflow((int) $contract->category_id);
+            if ($activeWorkflow) {
+                $this->approvalEngine->startInstance($contract->refresh(), $activeWorkflow);
+            }
+        }
+
+        $this->auditLogService->log(
+            'draft_submitted',
+            'Contract',
+            $contract->contract_id,
+            $userId,
+            $oldData,
+            $contract->fresh()->toArray(),
+            $request->get('auth_department')
+        );
+
+        try {
+            app(\App\Services\NotificationService::class)->push(
+                (int) $contract->contract_id,
+                'manager_approval_request',
+                "Draft contract {$contract->bp_name} ({$contract->item_code}) has been submitted for approval.",
+                'Manager,Admin'
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to push submit-draft notification: ' . $e->getMessage());
+        }
+
+        $contract = Contract::with(['documents', 'category', 'approvalStatus', 'workflowStatus', 'region'])
+            ->withExists('pendingApprovalInstances as has_pending_approval_workflow')
+            ->findOrFail($contract->contract_id);
+
+        $this->notifyPrsOfContractLink($contract);
+        try {
+            SyncContractToMeilisearch::dispatch((int) $contract->getKey());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Meilisearch sync skipped after submit-draft: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Draft contract submitted for approval.',
             'data'    => $this->formatContract($contract),
         ]);
     }
@@ -838,16 +1075,15 @@ class ContractController extends Controller
             'approvalStatus',
             'workflowStatus',
             'region',
-        ]);
+        ])->withExists('pendingApprovalInstances as has_pending_approval_workflow');
 
         $role = $request->get('auth_role');
         if (in_array($role, ['Sales', 'Employee'])) {
-            $query->where('created_by', $request->get('auth_id'));
+            $this->applySalesScope($query, $request);
         }
 
-        $contracts = $query->orderByRaw('CASE WHEN approval_status_id = 3 THEN 1 ELSE 0 END ASC')
-                           ->orderByDesc('contract_id')
-                           ->get();
+        $this->applyDefaultContractOrdering($query);
+        $contracts = $query->get();
 
         $userIds = $contracts->pluck('created_by')->filter()->unique()->toArray();
         $users = $this->authService->getUsersBatch($userIds);
@@ -859,6 +1095,8 @@ class ContractController extends Controller
                 if ($c->created_by && $userMap->has($c->created_by)) {
                     $u = $userMap->get($c->created_by);
                     $creatorName = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                } elseif ($c->source_system === 'PRS') {
+                    $creatorName = 'PRS Employee';
                 }
 
                 return [
@@ -868,6 +1106,7 @@ class ContractController extends Controller
                     'bp_name'         => $c->bp_name,
                     'category'        => $c->category?->category_name,
                     'approval_status' => $c->approvalStatus?->status_name,
+                    'has_pending_approval_workflow' => (bool) ($c->has_pending_approval_workflow ?? false),
                     'workflow_status' => $c->workflowStatus?->status_name,
                     'item_code'       => $c->item_code,
                     'description'     => $c->description,
@@ -881,6 +1120,9 @@ class ContractController extends Controller
                     'created_by'       => $c->created_by,
                     'creator_name'     => $creatorName,
                     'prs_activity_id'  => $c->prs_activity_id,
+                    'source_system'    => $c->source_system,
+                    'source_reference_id' => $c->source_reference_id,
+                    'supporting_expense_summary' => $c->supporting_expense_summary,
                     'created_at'       => $c->created_at?->toISOString(),
                     'documents'        => [],
                 ];
@@ -903,7 +1145,7 @@ class ContractController extends Controller
             !in_array($role, ['Admin', 'Super Admin'], true)
             && !in_array('cms.contracts.approve', $request->get('auth_permissions', []), true)
         )) {
-            $query->where('created_by', $request->get('auth_id'));
+            $this->applySalesScope($query, $request);
         } elseif ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);
         }
@@ -949,7 +1191,7 @@ class ContractController extends Controller
           ->firstOrFail();
 
         $role = $request->get('auth_role');
-        if (in_array($role, ['Sales', 'Employee']) && $contract->created_by !== $request->get('auth_id')) {
+        if (in_array($role, ['Sales', 'Employee']) && !$this->salesCanAccessContract($contract, $request->get('auth_id'))) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -1037,7 +1279,8 @@ class ContractController extends Controller
         }
 
         $workflowStatusId = null;
-        if ($contract->execution_required) {
+        $usesExecution = $contract->execution_required || !$request->filled('workflow_status');
+        if ($usesExecution) {
             abort_unless(in_array($role, ['Manager', 'Admin', 'Super Admin'], true), 403);
             $workflowStatusId = $request->approval_status === 'Approved'
                 ? ContractStatus::where('status_name', 'SBSI Review')->value('status_id') : null;
@@ -1055,7 +1298,8 @@ class ContractController extends Controller
             'approval_status_id' => $approvalStatusId,
             'workflow_status_id' => $workflowStatusId,
         ];
-        if ($contract->execution_required) {
+        if ($usesExecution) {
+            $updateData['execution_required'] = true;
             $updateData['rejection_reason'] = null;
             $updateData['internal_approved_at'] = $request->approval_status === 'Approved' ? now() : null;
         }
@@ -1249,5 +1493,44 @@ class ContractController extends Controller
     public function notifyManager(Request $request, $id)
     {
         return $this->notifyResponsibleRole($request, $id);
+    }
+
+    private function applySalesScope($query, Request $request): void
+    {
+        $userId = $request->get('auth_id');
+        $draftStatusId = ContractApprovalStatus::where('status_name', 'Draft')->value('approval_status_id');
+        $query->where(function ($q) use ($userId, $draftStatusId) {
+            $q->where('created_by', $userId);
+            if ($draftStatusId) {
+                $q->orWhere(function ($dq) use ($draftStatusId) {
+                    $dq->where('approval_status_id', $draftStatusId)
+                        ->where(function ($sq) {
+                            $sq->whereNull('created_by')
+                                ->orWhereIn('source_system', ['PRS', 'SERMS']);
+                        });
+                });
+            }
+        });
+    }
+
+    private function salesCanAccessContract(Contract $contract, mixed $userId): bool
+    {
+        if ((int) $contract->created_by === (int) $userId && $contract->created_by !== null) {
+            return true;
+        }
+
+        return $contract->approvalStatus?->status_name === 'Draft'
+            && ($contract->created_by === null || in_array($contract->source_system, ['PRS', 'SERMS'], true));
+    }
+
+    private function applyDefaultContractOrdering($query): void
+    {
+        $draftId = (int) (ContractApprovalStatus::where('status_name', 'Draft')->value('approval_status_id') ?? 0);
+        $rejectedId = (int) (ContractApprovalStatus::where('status_name', 'Rejected')->value('approval_status_id') ?? 0);
+
+        $query->orderByRaw(
+            'CASE WHEN approval_status_id = ? THEN 0 WHEN approval_status_id = ? THEN 2 ELSE 1 END ASC',
+            [$draftId, $rejectedId]
+        )->orderByDesc('contract_id');
     }
 }

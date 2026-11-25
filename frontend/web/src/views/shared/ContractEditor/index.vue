@@ -11,6 +11,8 @@ import {
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
+import { useAuth } from '@/composables/useAuth'
+import { useApiCache } from '@/composables/useApiCache'
 import { useCreateContractDraft, type HeaderFooterConfig } from '@/composables/useCreateContractDraft'
 import { useQuillEditor } from '@/composables/useQuillEditor'
 import { useContractGenerator } from '@/composables/useContractGenerator'
@@ -25,7 +27,9 @@ import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
 
 const router = useRouter()
 const { success, error: toastError } = useToast()
-const { draft, setGeneratedDoc, attachDoc } = useCreateContractDraft()
+const { state: authState } = useAuth()
+const { invalidateContracts } = useApiCache()
+const { draft, setGeneratedDoc, attachDoc, clearDraft } = useCreateContractDraft()
 const { isGenerating, generate } = useContractGenerator()
 const { uploadFile } = useDocumentUpload()
 const {
@@ -493,12 +497,40 @@ async function handleAttachToContract() {
       html,
     })
 
+    const targetContractId = draft.targetContractId
+    const returnPath = draft.returnPath
+    const returnEditMode = draft.returnEditMode
+
+    if (targetContractId && !returnEditMode) {
+      if (!newDoc.id) {
+        toastError('Upload Failed', newDoc.errorMessage || 'Could not upload the generated PDF to the draft.')
+        return
+      }
+      const apiBase = import.meta.env.VITE_CONTRACT_API_URL as string
+      const attachRes = await fetch(`${apiBase}/contracts/${targetContractId}/draft-document`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${authState.token}`,
+        },
+        body: JSON.stringify({ document_id: newDoc.id }),
+      })
+      if (!attachRes.ok) {
+        const attachData = await attachRes.json().catch(() => ({}))
+        toastError('Attachment Error', attachData.message || 'Could not attach the generated PDF to the contract draft.')
+        return
+      }
+      invalidateContracts()
+      clearDraft()
+    }
+
     success('Contract Attached', 'Document attached to contract draft.')
 
     document.body.style.pointerEvents = 'auto'
     document.body.style.overflow = ''
 
-    const backRoute = draft.role ? `/${draft.role}/contracts/create` : '/sales/contracts/create'
+    const backRoute = returnPath || (draft.role ? `/${draft.role}/contracts/create` : '/sales/contracts/create')
     router.push(backRoute)
   } catch (err: any) {
     console.error('Error attaching contract:', err)
@@ -797,7 +829,7 @@ function handlePrint() {
 function handleBack() {
   document.body.style.pointerEvents = 'auto'
   document.body.style.overflow = ''
-  const backRoute = draft.role ? `/${draft.role}/contracts/create` : '/sales/contracts/create'
+  const backRoute = draft.returnPath || (draft.role ? `/${draft.role}/contracts/create` : '/sales/contracts/create')
   router.push(backRoute)
 }
 

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
-import type { Partner, TabKey, Region, Status, LinkedContract, VendorReimbursement, VendorReimbursementMeta } from '@/types/partner'
+import type { Partner, TabKey, Region, Status, PartnerClassTier, LinkedContract, VendorReimbursement, VendorReimbursementMeta } from '@/types/partner'
 
 export function usePartners() {
   const { state: authState } = useAuth()
@@ -17,7 +17,8 @@ export function usePartners() {
     search = '',
     region = 'All',
     status = 'All',
-    industry = 'All'
+    industry = 'All',
+    classTier = 'All'
   ) => {
     loading.value = true
     try {
@@ -39,6 +40,9 @@ export function usePartners() {
       }
       if (industry && industry !== 'All') {
         url.searchParams.append('industry', industry)
+      }
+      if (type === 'partners' && classTier && classTier !== 'All') {
+        url.searchParams.append('class_tier', classTier)
       }
 
       const res = await fetch(url.toString(), {
@@ -65,6 +69,7 @@ export function usePartners() {
             name: item.partner_name || '',
             industry: item.industry || 'Banking & Finance',
             region: (item.region || 'Luzon') as Region,
+            classTier: (item.class_tier || 'Class C') as PartnerClassTier,
             status: (item.status || 'Active') as Status,
             contracts: item.associations_count || 0,
             totalValue: '₱0',
@@ -82,6 +87,7 @@ export function usePartners() {
             name: item.supplier_name || '',
             industry: item.industry || 'Medical Supplies',
             region: (item.region || 'Luzon') as Region,
+            classTier: (item.class_tier || 'Class C') as PartnerClassTier,
             status: (item.status || 'Active') as Status,
             contracts: item.associations_count || 0,
             totalValue: '₱0',
@@ -152,6 +158,7 @@ export function usePartners() {
           email: form.email,
           address: form.address,
           region: form.region,
+          class_tier: form.classTier || 'Class C',
           industry: form.industry,
           status: form.status,
           contact_person: form.contactPerson
@@ -163,6 +170,7 @@ export function usePartners() {
           email: form.email,
           address: form.address,
           region: form.region,
+          class_tier: form.classTier || 'Class C',
           industry: form.industry,
           status: form.status,
           contact_person: form.contactPerson

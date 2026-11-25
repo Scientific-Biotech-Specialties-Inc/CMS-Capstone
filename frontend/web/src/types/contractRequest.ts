@@ -24,6 +24,10 @@ export interface ContractRequest {
   itemCode:         string
   serialNo:         string
   sbuNumber?:       string
+  sbsiBranch?:      string
+  equipmentName?:   string
+  brand?:           string
+  model?:           string
   prsActivityId?:   number
   sourceSystem?:    string | null
   sourceReferenceId?: string | null

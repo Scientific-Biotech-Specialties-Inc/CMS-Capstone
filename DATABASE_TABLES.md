@@ -117,12 +117,16 @@ updated_at timestamp
 
 ### Table: products
 PK id bigint
-item_code string (unique)
+prs_product_id bigint (nullable, unique, PRS product_list.id)
+item_code string (indexed; unique with serial_number)
+serial_number string (nullable, indexed)
 product_name string
 sbu_number string
-description text
-category string
+sbu unsignedTinyInteger (nullable, indexed, PRS sbu)
+description text (nullable)
+category string (nullable)
 manufacturer string (nullable)
+brand string (nullable)
 model string (nullable)
 is_active boolean (default: true)
 created_at timestamp
@@ -133,6 +137,12 @@ PK event_id UUID
 prs_activity_id bigint
 revision bigint (unique per activity)
 outcome string
+prs_status string(50) (nullable)
+mapped_approval_status string(50) (nullable)
+mapped_workflow_status string(50) (nullable)
+contract_id bigint (nullable, indexed)
+payload json (nullable)
+processed_at timestamp (nullable)
 created_at timestamp
 
 ### Table: contract_amendments
@@ -290,15 +300,31 @@ updated_at timestamp
 ### Table: business_partners
 PK partner_id bigint
 bp_code string(100) (unique, indexed)
+prs_institution_id bigint (nullable, unique)
 partner_name string (indexed)
 contact_number longText (nullable)
 email longText (nullable)
-address longText (nullable)
+address longText (required in validation, encrypted)
 region string (nullable, indexed)
+class_tier string(20) (default: 'Class C', indexed; Class A | Class B | Class C)
 status string (nullable)
 industry string (nullable)
 contact_person string (nullable)
 created_by bigint (nullable, indexed)
+created_at timestamp
+updated_at timestamp
+
+### Table: partner_branches
+PK branch_id bigint
+location_uid string(64) (unique)
+partner_id bigint (indexed, foreign key to business_partners.partner_id onDelete cascade)
+prs_branch_id bigint (nullable, unique)
+branch_name string(255)
+address longText (encrypted)
+region string(100) (nullable)
+sbsi_branch string(100) (nullable, indexed)
+is_primary boolean (default: false)
+is_active boolean (default: true)
 created_at timestamp
 updated_at timestamp
 

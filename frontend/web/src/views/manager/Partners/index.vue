@@ -45,8 +45,10 @@ const activeTab      = ref<TabKey>('partners')
 const viewMode       = ref<'card' | 'table'>('card')
 const search         = ref('')
 const regionFilter   = ref('All')
+const classFilter    = ref('All')
 const statusFilter   = ref('All')
 const regions        = ['All', 'Luzon', 'Visayas', 'Mindanao']
+const classTiers     = ['All', 'Class A', 'Class B', 'Class C']
 const statusOptions  = ['All', 'Active', 'Inactive', 'Suspended'] as const
 
 const partnersCount = computed(() => businessPartners.value.length)
@@ -60,6 +62,7 @@ const filtered = computed(() =>
     return (
       (!q || p.name.toLowerCase().includes(q) || p.industry.toLowerCase().includes(q)) &&
       (regionFilter.value   === 'All' || p.region   === regionFilter.value) &&
+      (activeTab.value !== 'partners' || classFilter.value === 'All' || (p.classTier || 'Class C') === classFilter.value) &&
       (statusFilter.value   === 'All' || p.status   === statusFilter.value)
     )
   })
@@ -67,10 +70,11 @@ const filtered = computed(() =>
 
 const currentPage  = ref(1)
 const itemsPerPage = 15
-watch([search, regionFilter, statusFilter], () => { currentPage.value = 1 })
+watch([search, regionFilter, classFilter, statusFilter], () => { currentPage.value = 1 })
 watch(activeTab, () => {
   search.value         = ''
   regionFilter.value   = 'All'
+  classFilter.value    = 'All'
   statusFilter.value   = 'All'
   currentPage.value    = 1
 })
@@ -213,6 +217,10 @@ async function executeExport() {
         <input v-model="search" type="text" :placeholder="`Search ${activeTab === 'partners' ? 'partners' : 'suppliers'}...`"
           class="w-full h-9 rounded-lg border border-black/10 bg-white pl-8.5 pr-3 text-sm placeholder:text-black/25 focus:border-brand-blue focus:outline-none transition" />
       </div>
+      <select v-if="activeTab === 'partners'" v-model="classFilter"
+        class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
+        <option v-for="c in classTiers" :key="c" :value="c">{{ c === 'All' ? 'All Classes' : c }}</option>
+      </select>
       <select v-model="regionFilter"
         class="h-9 shrink-0 rounded-lg border border-black/10 bg-white px-3 text-sm text-black focus:border-brand-blue focus:outline-none transition-colors">
         <option v-for="r in regions" :key="r" :value="r">{{ r === 'All' ? 'All Regions' : r }}</option>

@@ -2,10 +2,14 @@
 
 return [
     'prs' => [
-        'inbound_key' => env('PRS_TO_CMS_INTEGRATION_KEY'),
+        'inbound_key' => env('PRS_TO_CMS_INTEGRATION_KEY') ?: env('CMS_PRS_INTEGRATION_KEY'),
+        'outbound_key' => env('PRS_INTEGRATION_KEY') ?: env('CMS_PRS_INTEGRATION_KEY'),
+        'base_url' => rtrim((string) env('PRS_BASE_URL', ''), '/'),
+        'webhook_url' => env('PRS_WEBHOOK_URL', ''),
+        'products_url' => env('PRS_PRODUCTS_URL', ''),
         'catalog_networks' => env('PRS_CATALOG_ALLOWED_NETWORKS', ''),
-        'catalog_public_read' => env('PRS_CATALOG_PUBLIC_READ', false),
-        'institutions_url' => env('PRS_INSTITUTIONS_URL'),
+        'catalog_public_read' => filter_var(env('PRS_CATALOG_PUBLIC_READ', false), FILTER_VALIDATE_BOOLEAN),
+        'institutions_url' => env('PRS_INSTITUTIONS_URL', ''),
         'institution_partners' => json_decode((string) env('PRS_INSTITUTION_PARTNERS', '{}'), true) ?: [],
     ],
 

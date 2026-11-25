@@ -50,7 +50,7 @@ const config = {
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="pointer-events-auto flex items-center gap-3 w-full bg-white border border-slate-200/90 rounded-xl shadow-lg px-4 py-3 transition-all font-poppins"
+          class="pointer-events-auto flex items-center gap-3 w-full overflow-hidden bg-white border border-slate-200/90 rounded-xl shadow-lg px-4 py-3 transition-all font-poppins"
           :class="config[toast.type].borderClass"
           @mouseenter="pause(toast.id)"
           @mouseleave="resume(toast.id)"
@@ -69,12 +69,13 @@ const config = {
 
           <!-- Text Block: Vertically Centered -->
           <div class="flex-1 min-w-0 pr-1 flex flex-col justify-center">
-            <p class="text-xs font-bold text-slate-800 leading-snug tracking-wide">
+            <p class="text-xs font-bold text-slate-800 leading-snug tracking-wide truncate" :title="toast.title">
               {{ toast.title }}
             </p>
             <p
               v-if="toast.description"
-              class="text-xs text-slate-500 mt-0.5 leading-tight font-normal"
+              class="text-xs text-slate-500 mt-0.5 leading-tight font-normal line-clamp-2 overflow-hidden [overflow-wrap:anywhere]"
+              :title="toast.description"
             >
               {{ toast.description }}
             </p>

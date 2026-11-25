@@ -56,7 +56,7 @@ const statCardList = computed(() => [
   { label: 'Expired',         value: statCards.value.expired,  valueClass: 'text-black', change: '-1.3%', positive: false },
 ])
 
-const approvalStatuses = new Set(['Pending', 'Approved', 'Rejected'])
+const approvalStatuses = new Set(['Draft', 'Pending', 'Approved', 'Rejected'])
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -74,7 +74,8 @@ const filtered = computed(() => {
       || c.category.toLowerCase().includes(q)
       || c.itemCode.toLowerCase().includes(q)
 
-    const byTab = activeFilter.value === 'all' || contractLifecycle(c) === activeFilter.value
+    const byTab = activeFilter.value === 'all'
+      || (activeFilter.value === 'draft' ? c.approvalStatus === 'Draft' : contractLifecycle(c) === activeFilter.value)
 
     const byCategory = !cat || c.category === cat
     const byRegion = !reg || c.region === reg

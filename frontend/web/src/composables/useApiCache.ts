@@ -44,6 +44,38 @@ const state = reactive<CacheState>({
   cachedUserId: null,
 })
 
+const STALE_MS = 10_000
+let contractsFetchedAt = 0
+let requestsFetchedAt = 0
+let dashboardFetchedAt = 0
+let inFlightContracts: Promise<Contract[]> | null = null
+let inFlightRequests: Promise<ContractRequest[]> | null = null
+let inFlightDashboard: Promise<void> | null = null
+
+function resetCacheEntries(clearAuth = false) {
+  state.contracts = null
+  state.contractsScope = null
+  state.contractsLoading = false
+  state.contractsPagination = null
+  state.contractsStats = null
+
+  state.requests = null
+  state.requestsScope = null
+  state.requestsLoading = false
+
+  contractsFetchedAt = 0
+  requestsFetchedAt = 0
+  dashboardFetchedAt = 0
+  inFlightContracts = null
+  inFlightRequests = null
+  inFlightDashboard = null
+
+  if (clearAuth) {
+    state.cachedToken = null
+    state.cachedUserId = null
+  }
+}
+
 // Reactively watch for auth state changes to clear cache instantly
 watch(
   () => {
@@ -52,16 +84,7 @@ watch(
   },
   ([currentToken, currentUserId]: readonly [string | null, number | null]) => {
     if (state.cachedToken !== currentToken || state.cachedUserId !== currentUserId) {
-      state.contracts = null
-      state.contractsScope = null
-      state.contractsLoading = false
-      state.contractsPagination = null
-      state.contractsStats = null
-
-      state.requests = null
-      state.requestsScope = null
-      state.requestsLoading = false
-
+      resetCacheEntries()
       state.cachedToken = currentToken
       state.cachedUserId = currentUserId
     }
@@ -76,16 +99,7 @@ function validateCacheCredentials() {
 
   // If credentials changed, clear cache completely to avoid data exposure
   if (state.cachedToken !== currentToken || state.cachedUserId !== currentUserId) {
-    state.contracts = null
-    state.contractsScope = null
-    state.contractsLoading = false
-    state.contractsPagination = null
-    state.contractsStats = null
-
-    state.requests = null
-    state.requestsScope = null
-    state.requestsLoading = false
-
+    resetCacheEntries()
     state.cachedToken = currentToken
     state.cachedUserId = currentUserId
   }
@@ -106,14 +120,12 @@ function normalizeDocumentUrl(url?: string): string {
 }
 
 function sortContractsWithRejectedAtBottom(contracts: Contract[]): Contract[] {
-  return [...contracts].sort((a, b) => {
-    const aRejected = a.approvalStatus === 'Rejected' ? 1 : 0
-    const bRejected = b.approvalStatus === 'Rejected' ? 1 : 0
-    return aRejected - bRejected
-  })
+  const rank = (status: Contract['approvalStatus']) =>
+    status === 'Draft' ? 0 : status === 'Rejected' ? 2 : 1
+  return [...contracts].sort((a, b) => rank(a.approvalStatus) - rank(b.approvalStatus))
 }
 
-function resolveCreatorName(d: any, currentUserId: number | null, firstName?: string, lastName?: string): string {
+export function resolveCreatorName(d: any, currentUserId: number | null, firstName?: string, lastName?: string): string {
   const isCreatedByCurrentUser = currentUserId !== null && d.created_by === currentUserId
   if (isCreatedByCurrentUser) {
     return `${firstName || ''} ${lastName || ''}`.trim() || 'Me'
@@ -121,6 +133,9 @@ function resolveCreatorName(d: any, currentUserId: number | null, firstName?: st
   if (d.creator_name) return d.creator_name
   if (d.source_system === 'SERMS') {
     return d.supporting_expense_summary?.forwarded_by_name || 'SERMS Accounting'
+  }
+  if (d.source_system === 'PRS') {
+    return 'PRS Employee'
   }
   return d.created_by ? `User #${d.created_by}` : '—'
 }
@@ -244,7 +259,7 @@ function mapApiToRequest(d: any, currentUserId: number | null, firstName?: strin
   }
 }
 
-async function fetchDashboard(force = false): Promise<void> {
+async function fetchDashboard(force = false, silent = false): Promise<void> {
   validateCacheCredentials()
 
   const { role } = useAuth()
@@ -256,38 +271,58 @@ async function fetchDashboard(force = false): Promise<void> {
     state.contracts !== null && state.contractsScope === scope &&
     state.requests !== null && state.requestsScope === scope &&
     !force
-  ) return
+  ) {
+    if (Date.now() - dashboardFetchedAt > STALE_MS) {
+      void fetchDashboard(true, true).catch(() => {})
+    }
+    return
+  }
 
-  state.contractsLoading = true
-  state.requestsLoading = true
+  if (inFlightDashboard) return inFlightDashboard
+
+  if (!silent) {
+    state.contractsLoading = true
+    state.requestsLoading = true
+  }
 
   const { state: authState } = useAuth()
   const apiBase = import.meta.env.VITE_CONTRACT_API_URL as string
 
-  try {
-    const res = await fetch(`${apiBase}/dashboard`, {
-      headers: {
-        'Accept': 'application/json',
-        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
-      },
-    })
+  inFlightDashboard = (async () => {
+    try {
+      const res = await fetch(`${apiBase}/dashboard`, {
+        headers: {
+          'Accept': 'application/json',
+          ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
+        },
+      })
 
-    if (!res.ok) throw new Error('Failed to fetch dashboard data')
+      if (!res.ok) throw new Error('Failed to fetch dashboard data')
 
-    const json = await res.json()
-    const user = authState.user
-    const firstName = (user as any)?.profile?.first_name || user?.first_name
-    const lastName = (user as any)?.profile?.last_name || user?.last_name
-    const data: any[] = json.data ?? []
+      const json = await res.json()
+      const user = authState.user
+      const firstName = (user as any)?.profile?.first_name || user?.first_name
+      const lastName = (user as any)?.profile?.last_name || user?.last_name
+      const data: any[] = json.data ?? []
 
-    state.contracts = sortContractsWithRejectedAtBottom(data.map(d => mapApiContract(d, state.cachedUserId, firstName, lastName)))
-    state.requests = data.map(d => mapApiToRequest(d, state.cachedUserId, firstName, lastName))
-    state.contractsScope = scope
-    state.requestsScope = scope
-  } finally {
-    state.contractsLoading = false
-    state.requestsLoading = false
-  }
+      state.contracts = sortContractsWithRejectedAtBottom(data.map(d => mapApiContract(d, state.cachedUserId, firstName, lastName)))
+      state.requests = data.map(d => mapApiToRequest(d, state.cachedUserId, firstName, lastName))
+      state.contractsScope = scope
+      state.requestsScope = scope
+      const now = Date.now()
+      dashboardFetchedAt = now
+      contractsFetchedAt = now
+      requestsFetchedAt = now
+    } finally {
+      if (!silent) {
+        state.contractsLoading = false
+        state.requestsLoading = false
+      }
+      inFlightDashboard = null
+    }
+  })()
+
+  return inFlightDashboard
 }
 
 async function fetchContracts(
@@ -304,131 +339,196 @@ async function fetchContracts(
     lifecycle_status?: string
     start_date?: string
     end_date?: string
-  }
+  },
+  silent = false
 ): Promise<Contract[]> {
   validateCacheCredentials()
 
   const scope = userId ? `user-${userId}` : 'all'
-  const isQuerying = queryParams && Object.keys(queryParams).length > 0
+  const isQuerying = !!(queryParams && Object.keys(queryParams).length > 0)
 
-  // If already cached and scope matches and not forced and not querying, return cached data
+  // If already cached and scope matches and not forced and not querying, return cached data (and revalidate silently when stale)
   if (state.contracts !== null && state.contractsScope === scope && !force && !isQuerying) {
+    if (Date.now() - contractsFetchedAt > STALE_MS) {
+      void fetchContracts(userId, true, undefined, true).catch(() => {})
+    }
     return state.contracts as Contract[]
   }
 
-  state.contractsLoading = true
+  if (!isQuerying && inFlightContracts) {
+    return inFlightContracts
+  }
+
+  if (!silent) {
+    state.contractsLoading = true
+  }
   const { state: authState } = useAuth()
   const apiBase = import.meta.env.VITE_CONTRACT_API_URL as string
 
-  try {
-    let queryString = ''
-    if (queryParams) {
-      const parts = Object.entries(queryParams)
-        .filter(([_, val]) => val !== undefined && val !== null && val !== '')
-        .map(([key, val]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(val))}`)
-      if (parts.length > 0) {
-        queryString = parts.join('&')
+  const run = (async (): Promise<Contract[]> => {
+    try {
+      let queryString = ''
+      if (queryParams) {
+        const parts = Object.entries(queryParams)
+          .filter(([_, val]) => val !== undefined && val !== null && val !== '')
+          .map(([key, val]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(val))}`)
+        if (parts.length > 0) {
+          queryString = parts.join('&')
+        }
+      }
+
+      let url = userId
+        ? `${apiBase}/contracts?created_by=${userId}`
+        : `${apiBase}/contracts`
+
+      if (queryString) {
+        url += (url.includes('?') ? '&' : '?') + queryString
+      }
+
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
+        },
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch contracts')
+      }
+
+      const json = await res.json()
+      const user = authState.user
+      const firstName = (user as any)?.profile?.first_name || user?.first_name
+      const lastName = (user as any)?.profile?.last_name || user?.last_name
+
+      state.contracts = sortContractsWithRejectedAtBottom(
+        (json.data ?? []).map((d: any) =>
+          mapApiContract(d, state.cachedUserId, firstName, lastName)
+        )
+      )
+      state.contractsScope = scope
+      if (!isQuerying) {
+        contractsFetchedAt = Date.now()
+      }
+
+      if (json.pagination) {
+        state.contractsPagination = json.pagination
+      } else {
+        state.contractsPagination = null
+      }
+
+      if (json.stats) {
+        state.contractsStats = json.stats
+      } else {
+        state.contractsStats = null
+      }
+    } catch (err) {
+      console.error('Error fetching contracts:', err)
+      throw err
+    } finally {
+      if (!silent) {
+        state.contractsLoading = false
+      }
+      if (!isQuerying) {
+        inFlightContracts = null
       }
     }
 
-    let url = userId
-      ? `${apiBase}/contracts?created_by=${userId}`
-      : `${apiBase}/contracts`
+    return (state.contracts || []) as Contract[]
+  })()
 
-    if (queryString) {
-      url += (url.includes('?') ? '&' : '?') + queryString
-    }
-
-    const res = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
-      },
-    })
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch contracts')
-    }
-
-    const json = await res.json()
-    const user = authState.user
-    const firstName = (user as any)?.profile?.first_name || user?.first_name
-    const lastName = (user as any)?.profile?.last_name || user?.last_name
-
-    state.contracts = sortContractsWithRejectedAtBottom(
-      (json.data ?? []).map((d: any) =>
-        mapApiContract(d, state.cachedUserId, firstName, lastName)
-      )
-    )
-    state.contractsScope = scope
-
-    if (json.pagination) {
-      state.contractsPagination = json.pagination
-    } else {
-      state.contractsPagination = null
-    }
-
-    if (json.stats) {
-      state.contractsStats = json.stats
-    } else {
-      state.contractsStats = null
-    }
-  } catch (err) {
-    console.error('Error fetching contracts:', err)
-    throw err
-  } finally {
-    state.contractsLoading = false
+  if (!isQuerying) {
+    inFlightContracts = run
   }
-
-  return (state.contracts || []) as Contract[]
+  return run
 }
 
-async function fetchRequests(userId?: number, force = false): Promise<ContractRequest[]> {
+async function fetchRequests(userId?: number, force = false, silent = false): Promise<ContractRequest[]> {
   validateCacheCredentials()
 
   const scope = userId ? `user-${userId}` : 'all'
 
-  // If already cached and scope matches and not forced, return cached data
+  // If already cached and scope matches and not forced, return cached data (and revalidate silently when stale)
   if (state.requests !== null && state.requestsScope === scope && !force) {
+    if (Date.now() - requestsFetchedAt > STALE_MS) {
+      void fetchRequests(userId, true, true).catch(() => {})
+    }
     return state.requests as ContractRequest[]
   }
 
-  state.requestsLoading = true
+  if (inFlightRequests) {
+    return inFlightRequests
+  }
+
+  if (!silent) {
+    state.requestsLoading = true
+  }
   const { state: authState } = useAuth()
   const apiBase = import.meta.env.VITE_CONTRACT_API_URL as string
 
-  try {
-    const url = userId
-      ? `${apiBase}/contract-requests?created_by=${userId}`
-      : `${apiBase}/contract-requests`
+  inFlightRequests = (async (): Promise<ContractRequest[]> => {
+    try {
+      const url = userId
+        ? `${apiBase}/contract-requests?created_by=${userId}`
+        : `${apiBase}/contract-requests`
 
-    const res = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
-      },
-    })
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          ...(state.cachedToken ? { 'Authorization': `Bearer ${state.cachedToken}` } : {}),
+        },
+      })
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch contract requests')
+      if (!res.ok) {
+        throw new Error('Failed to fetch contract requests')
+      }
+
+      const json = await res.json()
+      const user = authState.user
+      const firstName = (user as any)?.profile?.first_name || user?.first_name
+      const lastName = (user as any)?.profile?.last_name || user?.last_name
+      state.requests = (json.data ?? []).map((d: any) =>
+        mapApiToRequest(d, state.cachedUserId, firstName, lastName)
+      )
+      state.requestsScope = scope
+      requestsFetchedAt = Date.now()
+    } catch (err) {
+      console.error('Error fetching requests:', err)
+      throw err
+    } finally {
+      if (!silent) {
+        state.requestsLoading = false
+      }
+      inFlightRequests = null
     }
 
-    const json = await res.json()
-    const user = authState.user
-    const firstName = (user as any)?.profile?.first_name || user?.first_name
-    const lastName = (user as any)?.profile?.last_name || user?.last_name
-    state.requests = (json.data ?? []).map((d: any) =>
-      mapApiToRequest(d, state.cachedUserId, firstName, lastName)
-    )
-    state.requestsScope = scope
-  } catch (err) {
-    console.error('Error fetching requests:', err)
-    throw err
-  } finally {
-    state.requestsLoading = false
-  }
+    return (state.requests || []) as ContractRequest[]
+  })()
 
-  return (state.requests || []) as ContractRequest[]
+  return inFlightRequests
+}
+
+function refreshCachedInBackground() {
+  validateCacheCredentials()
+  if (!state.cachedToken) return
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+
+  if (state.contracts !== null) {
+    const userId = state.contractsScope?.startsWith('user-') ? Number(state.contractsScope.slice(5)) : undefined
+    void fetchContracts(userId, true, undefined, true).catch(() => {})
+  }
+  if (state.requests !== null) {
+    const reqUserId = state.requestsScope?.startsWith('user-') ? Number(state.requestsScope.slice(5)) : undefined
+    void fetchRequests(reqUserId, true, true).catch(() => {})
+  }
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - Math.max(contractsFetchedAt, requestsFetchedAt) > STALE_MS) {
+      refreshCachedInBackground()
+    }
+  })
 }
 
 function invalidateContracts() {
@@ -442,16 +542,7 @@ function invalidateRequests() {
 }
 
 function clearCache() {
-  state.contracts = null
-  state.contractsScope = null
-  state.contractsLoading = false
-  state.contractsPagination = null
-  state.contractsStats = null
-  state.requests = null
-  state.requestsScope = null
-  state.requestsLoading = false
-  state.cachedToken = null
-  state.cachedUserId = null
+  resetCacheEntries(true)
 }
 
 function updateContractInCache(id: string, patch: Partial<Contract>) {
@@ -495,6 +586,7 @@ export function useApiCache() {
     fetchDashboard,
     fetchContracts,
     fetchRequests,
+    refreshCachedInBackground,
     invalidateContracts,
     invalidateRequests,
     clearCache,

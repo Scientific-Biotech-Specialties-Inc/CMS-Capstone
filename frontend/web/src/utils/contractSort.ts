@@ -6,14 +6,15 @@ import type { ContractWithDays } from '@/types/contract'
  * The "All" list is split into explicit, labelled sections so the ordering
  * reads intentionally instead of as a jumble:
  *
- *   Pending Approval -> Expiring Soon -> Active -> Expired -> Rejected
+ *   Draft -> Pending Approval -> Expiring Soon -> Active -> Expired -> Rejected
  *
  * Only `Approved` contracts participate in the lifecycle sections
- * (expiring/active/expired); `Pending` and `Rejected` are approval states and
+ * (expiring/active/expired); `Draft`, `Pending`, and `Rejected` are approval states and
  * get their own sections. This also fixes the old quirk where `Pending`
  * contracts were urgency-sorted alongside approved ones.
  */
 export type ContractGroupKey =
+  | 'draft'
   | 'pending'
   | 'expiring'
   | 'active'
@@ -28,6 +29,7 @@ export interface ContractGroupMeta {
 }
 
 export const CONTRACT_GROUPS: ContractGroupMeta[] = [
+  { key: 'draft',    label: 'Draft',            hex: '#2E85D8' }, // Brand Accent Blue
   { key: 'pending',  label: 'Pending Approval', hex: '#F59E0B' }, // Warning / Pending
   { key: 'expiring', label: 'Expiring Soon',    hex: '#F59E0B' }, // Warning / Pending
   { key: 'active',   label: 'Active',           hex: '#10B981' }, // Success / Approved
@@ -36,11 +38,12 @@ export const CONTRACT_GROUPS: ContractGroupMeta[] = [
 ]
 
 const GROUP_ORDER: Record<ContractGroupKey, number> = {
-  pending: 0,
-  expiring: 1,
-  active: 2,
-  expired: 3,
-  rejected: 4,
+  draft: 0,
+  pending: 1,
+  expiring: 2,
+  active: 3,
+  expired: 4,
+  rejected: 5,
 }
 
 const EXPIRING_THRESHOLD_DAYS = 30
@@ -51,6 +54,7 @@ function normaliseDays(days: number): number {
 }
 
 export function contractGroup(c: ContractWithDays): ContractGroupKey {
+  if (c.approvalStatus === 'Draft') return 'draft'
   if (c.approvalStatus === 'Rejected') return 'rejected'
   if (c.approvalStatus === 'Pending') return 'pending'
 
@@ -62,7 +66,7 @@ export function contractGroup(c: ContractWithDays): ContractGroupKey {
 
 export function groupCounts(list: ContractWithDays[]): Record<ContractGroupKey, number> {
   const counts: Record<ContractGroupKey, number> = {
-    pending: 0, expiring: 0, active: 0, expired: 0, rejected: 0,
+    draft: 0, pending: 0, expiring: 0, active: 0, expired: 0, rejected: 0,
   }
   for (const c of list) counts[contractGroup(c)]++
   return counts
@@ -83,7 +87,8 @@ export function sortContractsForAll<T extends ContractWithDays>(list: T[]): T[] 
     if (orderDiff !== 0) return orderDiff
 
     switch (group) {
-      // Awaiting action / terminal: newest first.
+      // Draft / awaiting action / terminal: newest first.
+      case 'draft':
       case 'pending':
       case 'rejected':
         return newestFirst(a, b)

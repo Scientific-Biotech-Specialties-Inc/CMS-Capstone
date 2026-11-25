@@ -63,7 +63,7 @@ class InternalVendorController extends Controller
             'contact_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string',
             'email'          => 'required|email|max:255',
-            'address'        => 'nullable|string',
+            'address'        => 'required|string|max:255',
             'region'         => 'nullable|string|max:100',
             'status'         => 'nullable|string|in:Active,Inactive,Suspended',
             'decided_by'     => 'nullable|integer',
@@ -98,15 +98,24 @@ class InternalVendorController extends Controller
      */
     public function storePartner(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $input = $request->all();
+        if (isset($input['class_tier'])) {
+            $normalizedTier = BusinessPartner::normalizeClassTier((string) $input['class_tier']);
+            if ($normalizedTier !== null) {
+                $input['class_tier'] = $normalizedTier;
+            }
+        }
+
+        $validator = Validator::make($input, [
             'bp_code'        => 'required|string|max:100',
             'partner_name'   => 'required|string|max:255',
             'industry'       => 'nullable|string|max:100',
             'contact_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string',
             'email'          => 'required|email|max:255',
-            'address'        => 'nullable|string',
+            'address'        => 'required|string|max:255',
             'region'         => 'nullable|string|max:100',
+            'class_tier'     => 'nullable|string|in:Class A,Class B,Class C',
             'status'         => 'nullable|string|in:Active,Inactive,Suspended',
             'decided_by'     => 'nullable|integer',
         ]);
@@ -116,6 +125,7 @@ class InternalVendorController extends Controller
         }
 
         $data = $validator->validated();
+        $data['class_tier'] = $data['class_tier'] ?? 'Class C';
         $decidedBy = $data['decided_by'] ?? null;
         unset($data['decided_by']);
         $data['created_by'] = $decidedBy;

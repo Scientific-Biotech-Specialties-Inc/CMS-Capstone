@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -117,31 +118,39 @@ class RoleProxyService
      *
      * @return array<int, array{id:int,email:string,first_name:string,last_name:string,department:?string}>
      */
-    public function activeHoldersOf(int $roleId): array
+    public function activeHoldersOf(int $roleId, bool $useCache = false): array
     {
-        try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'X-Internal-Secret' => env('INTERNAL_SERVICE_SECRET'),
-            ])->get("{$this->baseUrl}/internal/roles/{$roleId}/active-holders");
+        $fetcher = function () use ($roleId): array {
+            try {
+                $response = Http::withHeaders([
+                    'Accept' => 'application/json',
+                    'X-Internal-Secret' => env('INTERNAL_SERVICE_SECRET'),
+                ])->get("{$this->baseUrl}/internal/roles/{$roleId}/active-holders");
 
-            if ($response->successful()) {
-                return $response->json('data') ?? [];
+                if ($response->successful()) {
+                    return $response->json('data') ?? [];
+                }
+
+                Log::warning('RoleProxyService::activeHoldersOf failed', [
+                    'role_id' => $roleId,
+                    'status' => $response->status(),
+                ]);
+
+                return [];
+            } catch (\Exception $e) {
+                Log::error('RoleProxyService::activeHoldersOf connection error', [
+                    'role_id' => $roleId,
+                    'message' => $e->getMessage(),
+                ]);
+                return [];
             }
+        };
 
-            Log::warning('RoleProxyService::activeHoldersOf failed', [
-                'role_id' => $roleId,
-                'status' => $response->status(),
-            ]);
-
-            return [];
-        } catch (\Exception $e) {
-            Log::error('RoleProxyService::activeHoldersOf connection error', [
-                'role_id' => $roleId,
-                'message' => $e->getMessage(),
-            ]);
-            return [];
+        if ($useCache && !app()->runningUnitTests()) {
+            return Cache::remember("role_proxy:holders:{$roleId}", 10, $fetcher);
         }
+
+        return $fetcher();
     }
 
     /**
@@ -152,20 +161,28 @@ class RoleProxyService
      */
     public function describeRole(int $roleId): array
     {
-        try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'X-Internal-Secret' => env('INTERNAL_SERVICE_SECRET'),
-            ])->get("{$this->baseUrl}/internal/roles/{$roleId}/describe");
+        $fetcher = function () use ($roleId): array {
+            try {
+                $response = Http::withHeaders([
+                    'Accept' => 'application/json',
+                    'X-Internal-Secret' => env('INTERNAL_SERVICE_SECRET'),
+                ])->get("{$this->baseUrl}/internal/roles/{$roleId}/describe");
 
-            if ($response->successful()) {
-                return $response->json();
+                if ($response->successful()) {
+                    return $response->json();
+                }
+
+                return ['exists' => false, 'deleted' => true, 'current_name' => null, 'was_renamed' => false, 'name_history' => []];
+            } catch (\Exception $e) {
+                Log::error('RoleProxyService::describeRole connection error', ['message' => $e->getMessage()]);
+                return ['exists' => false, 'deleted' => true, 'current_name' => null, 'was_renamed' => false, 'name_history' => []];
             }
+        };
 
-            return ['exists' => false, 'deleted' => true, 'current_name' => null, 'was_renamed' => false, 'name_history' => []];
-        } catch (\Exception $e) {
-            Log::error('RoleProxyService::describeRole connection error', ['message' => $e->getMessage()]);
-            return ['exists' => false, 'deleted' => true, 'current_name' => null, 'was_renamed' => false, 'name_history' => []];
+        if (!app()->runningUnitTests()) {
+            return Cache::remember("role_proxy:describe:{$roleId}", 30, $fetcher);
         }
+
+        return $fetcher();
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Integrations\SyncPrsProductAction;
 use App\Models\Product;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -26,8 +27,34 @@ final class IntegrationProductController
         $products = Product::query()->orderBy('id')->cursorPaginate($request->integer('per_page', 50));
 
         return response()->json([
-            'data' => $products->getCollection()->map(fn (Product $product) => $product->catalogDetails()),
+            'data'        => $products->getCollection()->map(fn (Product $product): array => $product->catalogDetails()),
             'next_cursor' => $products->nextCursor()?->encode(),
+        ]);
+    }
+
+    /**
+     * Authenticated CMS frontend product picker endpoint (`GET /api/products`).
+     */
+    public function listForUi(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+        $query = Product::query()->where('is_active', true)->orderBy('product_name');
+
+        if ($search !== '') {
+            $term = '%' . mb_substr($search, 0, 100) . '%';
+            $query->where(function ($q) use ($term): void {
+                $q->where('product_name', 'like', $term)
+                    ->orWhere('item_code', 'like', $term)
+                    ->orWhere('serial_number', 'like', $term)
+                    ->orWhere('brand', 'like', $term)
+                    ->orWhere('model', 'like', $term);
+            });
+        }
+
+        $products = $query->limit(500)->get();
+
+        return response()->json([
+            'data' => $products->map(fn (Product $p): array => $p->toPrsProductPayload())->values(),
         ]);
     }
 
@@ -35,12 +62,16 @@ final class IntegrationProductController
     {
         abort_unless($product->is_active, 404);
 
-        return response()->json(['data' => $product->catalogDetails()]);
+        return response()->json(['data' => $product->toPrsProductPayload()]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, SyncPrsProductAction $syncAction): JsonResponse
     {
         $data = $this->validateProduct($request);
+        $sbuInt = Product::parseSbuInt($data['sbu'] ?? $data['sbu_number'] ?? null);
+        $data['sbu'] = $sbuInt;
+        $data['sbu_number'] = Product::formatSbuNumber($data['sbu_number'] ?? $sbuInt);
+
         $code = $data['item_code'] ?? null;
         if ($code !== null) {
             try {
@@ -73,6 +104,12 @@ final class IntegrationProductController
     public function update(Request $request, Product $product): JsonResponse
     {
         $data = $this->validateProduct($request, $product);
+        if (array_key_exists('sbu', $data) || array_key_exists('sbu_number', $data)) {
+            $sbuInt = Product::parseSbuInt($data['sbu'] ?? $data['sbu_number'] ?? $product->sbu);
+            $data['sbu'] = $sbuInt;
+            $data['sbu_number'] = Product::formatSbuNumber($data['sbu_number'] ?? $sbuInt);
+        }
+
         try {
             $product->update($data);
         } catch (UniqueConstraintViolationException) {
@@ -85,20 +122,23 @@ final class IntegrationProductController
     private function validateProduct(Request $request, ?Product $product = null): array
     {
         $presence = $product ? 'sometimes' : 'required';
-        $unique = Rule::unique('products', 'item_code');
+        $unique = Rule::unique('products', 'item_code')->where(fn ($q) => $q->whereNull('serial_number'));
         if ($product) {
             $unique->ignore($product);
         }
 
         return $request->validate([
-            'item_code' => [$product ? 'sometimes' : 'nullable', $product ? 'required' : 'string', 'regex:/^ITM-[0-9]{4}$/D', $unique],
-            'product_name' => [$presence, 'required', 'string', 'max:255'],
-            'sbu_number' => [$presence, 'required', 'regex:/^SBU-[0-9]{3}$/D'],
-            'description' => [$presence, 'required', 'string', 'max:1000'],
-            'category' => [$presence, 'required', 'string', 'max:255'],
-            'manufacturer' => ['nullable', 'string', 'max:255'],
-            'model' => ['nullable', 'string', 'max:255'],
-            'is_active' => ['sometimes', 'boolean'],
+            'item_code'     => [$product ? 'sometimes' : 'nullable', $product ? 'required' : 'string', 'max:255', $unique],
+            'serial_number' => ['nullable', 'string', 'max:255'],
+            'product_name'  => [$presence, 'required', 'string', 'max:255'],
+            'sbu_number'    => [$request->filled('sbu') ? 'sometimes' : $presence, 'string', 'max:20'],
+            'sbu'           => ['nullable', 'integer', 'min:0', 'max:255'],
+            'description'   => [$presence, 'required', 'string', 'max:1000'],
+            'category'      => [$presence, 'required', 'string', 'max:255'],
+            'manufacturer'  => ['nullable', 'string', 'max:255'],
+            'brand'         => ['nullable', 'string', 'max:255'],
+            'model'         => ['nullable', 'string', 'max:255'],
+            'is_active'     => ['sometimes', 'boolean'],
         ]);
     }
 }

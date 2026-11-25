@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, FileText, FilePenLine, Clock, AlertTriangle, Loader2, CheckCircle, CheckCircle2, XCircle, Workflow } from 'lucide-vue-next'
+import { ArrowLeft, FileText, FilePenLine, Clock, AlertTriangle, Loader2, CheckCircle, CheckCircle2, XCircle, Workflow, Sparkles } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { approvalStatusBadge, workflowStatusBadge } from '@/types/contract'
 import type { StoredContract } from '@/composables/useContractStore'
@@ -29,12 +29,14 @@ const props = defineProps<{
   // contract is engine-routed (relaxes the Pending-only visibility).
   nudgeLabel?: string
   isEngineRouted?: boolean
+  hasActionableTask?: boolean
+  canGenerateContract?: boolean
   executionState?: ExecutionState | null
   executionSubmitLabel?: string
 }>()
 
 defineEmits<{ 
-  back: []; edit: []; save: []; cancel: []; notifyStep: [];
+  back: []; edit: []; save: []; cancel: []; notifyStep: []; submitDraft: []; generateContract: [];
   approve: []; toggleReject: []; confirmReject: []; openHistory: []; openRiskAssessment: []; openWorkflowTracker: [];
   executionAction: [action: ExecutionAction]
 }>()
@@ -49,21 +51,21 @@ function daysDisplay(days: number) {
 <template>
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
     
-    <div class="flex items-start gap-4">
+    <div class="flex items-start gap-4 min-w-0 flex-1">
       <!-- Back button -->
       <button @click="$emit('back')"
         class="w-10 h-10 bg-white rounded-lg border border-black/10 flex items-center justify-center hover:bg-black/5 transition-colors shadow-sm shrink-0">
         <ArrowLeft class="w-5 h-5 text-brand-navy" />
       </button>
 
-      <div>
-        <div class="flex items-center gap-3 mb-1">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-3 mb-1 min-w-0">
           <!-- Icon box -->
-          <div class="p-2 bg-brand-navy/10 rounded-lg text-brand-navy flex items-center justify-center">
+          <div class="p-2 bg-brand-navy/10 rounded-lg text-brand-navy flex items-center justify-center shrink-0">
             <FileText class="w-5 h-5" />
           </div>
           <!-- Title -->
-          <h2 class="text-2xl font-bold text-black">{{ contract.businessPartner }}</h2>
+          <h2 class="text-2xl font-bold text-black truncate" :title="contract.businessPartner">{{ contract.businessPartner }}</h2>
         </div>
         
         <!-- Subtitle -->
@@ -109,9 +111,14 @@ function daysDisplay(days: number) {
          (visible at first glance, right-aligned with the title);
          bottom row = quieter secondary tools. -->
     <div class="flex flex-col items-end gap-2.5 shrink-0">
-      <!-- Edit Mode (Save/Cancel) -->
+      <!-- Edit Mode (Save/Cancel + Draft Generator) -->
       <template v-if="isEditing">
         <div class="flex flex-wrap items-center justify-end gap-3">
+          <button v-if="contract.approvalStatus === 'Draft' && canGenerateContract" @click="$emit('generateContract')" :disabled="saving || actionInProgress"
+            class="px-4 py-2.5 bg-white border border-brand-navy/30 text-brand-navy rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-brand-navy/5 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            <Sparkles class="w-4 h-4 text-brand-navy" />
+            Generate Contract
+          </button>
           <button @click="$emit('cancel')" :disabled="actionInProgress"
             class="px-6 py-2.5 bg-white border border-black/15 text-black/60 rounded-lg text-sm font-medium hover:text-black hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             Cancel
@@ -128,8 +135,26 @@ function daysDisplay(days: number) {
       <template v-else>
         <!-- Primary row: the approve/reject decision -->
         <div class="flex flex-wrap items-center justify-end gap-3">
-          <!-- Manager: Approve / Reject -->
-          <template v-if="isManager && contract.hasPendingApprovalWorkflow === false && !isEngineRouted && contract.approvalStatus === 'Pending' && !isSnapshot">
+          <!-- Draft Contract Actions: Generate Contract, Edit Draft & Submit for Approval -->
+          <template v-if="contract.approvalStatus === 'Draft' && !isSnapshot">
+            <button v-if="canGenerateContract" @click="$emit('generateContract')" :disabled="actionInProgress"
+              class="px-4 py-2.5 bg-white border border-brand-navy/30 text-brand-navy rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-brand-navy/5 transition-colors shadow-sm disabled:opacity-50">
+              <Sparkles class="w-4 h-4 text-brand-navy" />
+              Generate Contract
+            </button>
+            <button @click="$emit('edit')" :disabled="actionInProgress"
+              class="px-5 py-2.5 bg-white border border-black/15 text-black/75 rounded-lg text-sm font-semibold flex items-center gap-2 hover:text-black hover:bg-black/5 transition-colors shadow-sm disabled:opacity-50">
+              <FilePenLine class="w-4 h-4 text-brand-blue" />
+              Edit Draft
+            </button>
+            <Button @click="$emit('submitDraft')" :disabled="actionInProgress"
+              class="h-11 px-7 text-[15px] bg-brand-navy hover:bg-brand-dark text-white font-semibold shadow-md">
+              <CheckCircle class="w-5 h-5" /> Submit for Approval
+            </Button>
+          </template>
+
+          <!-- Manager / Actionable Task: Approve / Reject -->
+          <template v-if="contract.approvalStatus === 'Pending' && !isSnapshot && ((isManager && !isEngineRouted) || hasActionableTask)">
             <template v-if="!showRejectInput">
               <Button @click="$emit('toggleReject')" :disabled="actionInProgress" variant="outline"
                 class="h-11 px-6 border-black/15 text-black/65 hover:text-red-600 hover:border-red-200 hover:bg-red-50 font-semibold">

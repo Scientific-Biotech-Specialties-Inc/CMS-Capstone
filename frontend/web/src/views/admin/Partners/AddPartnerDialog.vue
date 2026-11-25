@@ -20,11 +20,11 @@ const emit = defineEmits<{
 const isEdit = computed(() => !!props.editTarget)
 
 const form = reactive<AddPartnerForm>({
-  name: '', industry: '', region: '', status: 'Active',
+  name: '', industry: '', region: '', classTier: 'Class C', status: 'Active',
   contactPerson: '', email: '', phone: '', address: '', tinNumber: '',
 })
 const touched = reactive({
-  name: false, industry: false, region: false,
+  name: false, industry: false, region: false, classTier: false,
   contactPerson: false, email: false, phone: false, address: false,
 })
 
@@ -58,14 +58,15 @@ function onPhoneInput(e: Event) {
 }
 
 function reset() {
-  Object.assign(form, { name: '', industry: '', region: '', status: 'Active', contactPerson: '', email: '', phone: '', address: '', tinNumber: '' })
-  Object.assign(touched, { name: false, industry: false, region: false, contactPerson: false, email: false, phone: false, address: false })
+  Object.assign(form, { name: '', industry: '', region: '', classTier: 'Class C', status: 'Active', contactPerson: '', email: '', phone: '', address: '', tinNumber: '' })
+  Object.assign(touched, { name: false, industry: false, region: false, classTier: false, contactPerson: false, email: false, phone: false, address: false })
 }
 
 function populate(p: Partner) {
   form.name          = p.name
   form.industry      = p.industry
   form.region        = p.region ?? ''
+  form.classTier     = p.classTier ?? 'Class C'
   form.status        = p.status
   form.contactPerson = p.contactPerson
   form.email         = p.email
@@ -85,7 +86,7 @@ watch(() => props.open, open => {
 
 function submit() {
   Object.keys(touched).forEach(k => ((touched as Record<string, boolean>)[k] = true))
-  if (!form.name || form.name.trim().length < 2 || isDuplicate.value || !form.industry || !form.region || !form.contactPerson || !emailValid.value || !phoneValid.value || !form.address) return
+  if (!form.name || form.name.trim().length < 2 || isDuplicate.value || !form.industry || !form.region || (props.activeTab === 'partners' && !form.classTier) || !form.contactPerson || !emailValid.value || !phoneValid.value || !form.address.trim()) return
   emit('submit', { ...form })
   emit('update:open', false)
 }
@@ -200,17 +201,30 @@ function err(field: keyof typeof touched, extra = true) {
             class="w-full h-9 rounded-md border border-black/12 bg-white px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition" />
         </div>
 
-        <!-- Status -->
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Status</label>
-          <Select v-model="form.status">
-            <SelectTrigger class="h-9 rounded-md border-black/12 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-              <SelectItem value="Suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
+        <!-- Status & Class Tier -->
+        <div class="grid gap-4" :class="activeTab === 'partners' ? 'grid-cols-2' : 'grid-cols-1'">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Status</label>
+            <Select v-model="form.status">
+              <SelectTrigger class="h-9 rounded-md border-black/12 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="Suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div v-if="activeTab === 'partners'" class="space-y-1.5">
+            <label class="text-xs font-semibold text-black/55 uppercase tracking-wide">Class Tier <span class="text-red-500">*</span></label>
+            <Select v-model="form.classTier" @update:model-value="touched.classTier = true">
+              <SelectTrigger class="h-9 rounded-md border-black/12 text-sm"><SelectValue placeholder="Select class tier" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Class A">Class A</SelectItem>
+                <SelectItem value="Class B">Class B</SelectItem>
+                <SelectItem value="Class C">Class C</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <!-- Footer -->

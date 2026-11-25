@@ -172,6 +172,7 @@ function removeChip(key: string) {
 
 const filterTabs: { label: string; value: FilterTab }[] = [
   { label: 'All',           value: 'all'      },
+  { label: 'Draft',         value: 'draft'    },
   { label: 'Active',        value: 'active'   },
   { label: 'Inactive',      value: 'inactive' },
   { label: 'Pending Execution', value: 'pending_execution' },
@@ -188,6 +189,7 @@ const categories = [
 ]
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
+  { label: 'Draft',         value: 'Draft'        },
   { label: 'Pending',       value: 'Pending'      },
   { label: 'Approved',      value: 'Approved'     },
   { label: 'Rejected',      value: 'Rejected'     },

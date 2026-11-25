@@ -6,9 +6,11 @@ import type { UploadedDoc } from '@/types/contract'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps<{
-  docs:      UploadedDoc[]
-  isEditing: boolean
+  docs:            UploadedDoc[]
+  isEditing:       boolean
   snapshotVersion?: number | null
+  contractDbId?:   number
+  isDraft?:        boolean
 }>()
 
 const emit = defineEmits<{ 'update:docs': [v: UploadedDoc[]] }>()
@@ -23,6 +25,7 @@ const dragOver  = ref(false)
 const fileError = ref('')
 const previousDrafts = computed(() => props.docs.filter(doc => doc.category === 'draft' && !doc.isCurrentDraft))
 const currentDocuments = computed(() => props.docs.filter(doc => doc.category !== 'draft' || doc.isCurrentDraft))
+const hasPdfDoc = computed(() => props.docs.some(doc => doc.type === 'pdf' && doc.uploadStatus !== 'error'))
 
 function viewDocument(doc: UploadedDoc) {
   if (doc.uploadStatus && doc.uploadStatus !== 'success') return
@@ -81,8 +84,8 @@ async function uploadFile(doc: UploadedDoc, index: number) {
   try {
     const formData = new FormData()
     formData.append('file', doc.file)
-    if (contractId) {
-      formData.append('contract_id', contractId)
+    if (props.contractDbId) {
+      formData.append('contract_id', String(props.contractDbId))
     }
 
     const res = await fetch(`${import.meta.env.VITE_CONTRACT_API_URL}/documents/upload`, {
@@ -176,9 +179,20 @@ function fmtSize(bytes: number) {
   <div class="bg-white rounded-xl border border-black/[0.08] p-4 sm:p-6 shadow-sm">
 
     <!-- Section header -->
-    <div class="flex items-center gap-3 mb-6">
-      <h3 class="text-[10px] font-bold text-brand-navy/60 uppercase tracking-widest">Documents</h3>
-      <span class="px-2 py-0.5 bg-brand-blue/10 text-[10px] font-bold rounded-full text-brand-blue tabular-nums">{{ docs.length }}</span>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <div class="flex items-center gap-3">
+        <h3 class="text-[10px] font-bold text-brand-navy/60 uppercase tracking-widest">Documents</h3>
+        <span class="px-2 py-0.5 bg-brand-blue/10 text-[10px] font-bold rounded-full text-brand-blue tabular-nums">{{ docs.length }}</span>
+      </div>
+      <span v-if="isDraft" class="text-[11px] font-semibold" :class="hasPdfDoc ? 'text-emerald-700' : 'text-red-500'">
+        {{ hasPdfDoc ? 'Draft PDF attached' : 'PDF required *' }}
+      </span>
+    </div>
+
+    <div v-if="isDraft && !hasPdfDoc"
+      class="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
+      <AlertCircle class="w-4 h-4 shrink-0 text-amber-600" />
+      <span>Upload a PDF file in Edit Draft or use <strong>Generate Contract</strong> before saving or submitting this draft.</span>
     </div>
 
     <!-- Empty state (view mode) -->

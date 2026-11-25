@@ -92,6 +92,7 @@ class TsIntegrationTest extends TestCase
                         'email' => 'biomed@stluke.test',
                         'contact_number' => '+63-917-123-4567',
                         'address' => 'Quezon City',
+                        'class_tier' => 'Class A',
                     ],
                 ],
                 'last_page' => 1,
@@ -119,7 +120,26 @@ class TsIntegrationTest extends TestCase
             ->assertJsonPath('data.0.customer.customer_name', 'St. Luke Medical Center')
             ->assertJsonPath('data.0.customer.customer_email', 'biomed@stluke.test')
             ->assertJsonPath('data.0.customer.contact_number', '+63-917-123-4567')
+            ->assertJsonPath('data.0.customer.class_tier', 'Class A')
             ->assertJsonPath('data.0.customer.sbsi_branch', 'Main Office');
+
+        // Single-record lookup endpoints for TS
+        $this->withHeaders(['X-Internal-Secret' => $this->tsKey])
+            ->getJson('/api/integrations/v1/ts/ping')
+            ->assertOk()
+            ->assertJsonPath('integration', 'TS');
+
+        $this->withHeaders(['X-Internal-Secret' => $this->tsKey])
+            ->getJson('/api/integrations/v1/ts/equipment/EQP-' . $approvedContract->contract_id)
+            ->assertOk()
+            ->assertJsonPath('data.serial_number', 'SN-2026-0101')
+            ->assertJsonPath('data.class_tier', 'Class A');
+
+        $this->withHeaders(['X-Internal-Secret' => $this->tsKey])
+            ->getJson('/api/integrations/v1/ts/customers/BP-0015')
+            ->assertOk()
+            ->assertJsonPath('data.customer_uid', 'BP-0015')
+            ->assertJsonPath('data.class_tier', 'Class A');
     }
 
     public function test_ts_sync_supports_bearer_auth_excludes_pending_and_supports_optional_equipment_name(): void

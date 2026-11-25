@@ -16,6 +16,7 @@ export function useApprovalProgress() {
   const workflow = ref<WorkflowProgress | null>(null)
   const status = ref<TrackerStatus>('loading')
   const error = ref<string | null>(null)
+  const isEngine = ref(false)
   // Phase 7: role names owning the latest run's current step (top-level
   // `current_step_roles` from the progress response). Empty for legacy
   // contracts — the nudge button falls back to "Notify Manager".
@@ -46,23 +47,27 @@ export function useApprovalProgress() {
       const data = json.data ?? json
       myTasks.value = data.my_tasks ?? []
 
+      const engineActive = Boolean(data.engine)
       const hasRuns = Array.isArray(data.runs) && data.runs.length > 0
       const hasExecution = Array.isArray(data.execution_stages) && data.execution_stages.length > 0
 
       if (!hasRuns && !hasExecution) {
         workflow.value = null
         status.value = 'empty'
+        isEngine.value = false
         currentStepRoles.value = []
         return
       }
 
       workflow.value = mapProgressResponse(String(contractId), data)
       status.value = 'ready'
-      currentStepRoles.value = Array.isArray(data.current_step_roles) ? data.current_step_roles : []
+      isEngine.value = engineActive
+      currentStepRoles.value = engineActive && Array.isArray(data.current_step_roles) ? data.current_step_roles : []
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       error.value = err instanceof Error ? err.message : 'Failed to load approval progress.'
       status.value = 'error'
+      isEngine.value = false
       currentStepRoles.value = []
       myTasks.value = []
     }
@@ -84,5 +89,5 @@ export function useApprovalProgress() {
     if (!response.ok) throw new Error(result.message ?? 'Approval decision could not be saved.')
   }
 
-  return { workflow, status, error, currentStepRoles, myTasks, fetchProgress, retry, decide }
+  return { workflow, status, error, isEngine, currentStepRoles, myTasks, fetchProgress, retry, decide }
 }

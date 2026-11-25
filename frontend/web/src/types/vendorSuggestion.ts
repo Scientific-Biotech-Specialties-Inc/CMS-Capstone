@@ -29,12 +29,15 @@ export interface VendorSuggestionBatch {
 // Per-tab review form state — reuses the same field shape as
 // AddPartnerForm/AddPartnerPage.vue so the review step's inputs match the
 // manual Add Partner/Supplier form exactly.
+import type { PartnerClassTier } from './partner'
+
 export interface VendorSuggestionReviewForm {
   candidateId:  number
   vendorType:   'supplier' | 'partner'
   name:         string
   industry:     string
   region:       'Luzon' | 'Visayas' | 'Mindanao' | ''
+  classTier:    PartnerClassTier
   contactPerson: string
   email:        string
   phone:        string

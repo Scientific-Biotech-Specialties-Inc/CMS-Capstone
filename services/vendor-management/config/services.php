@@ -40,4 +40,12 @@ return [
         'secret' => (string) (env('SERMS_INTERNAL_SECRET', '') ?: env('INTERNAL_SERVICE_SECRET', '')),
     ],
 
+    'prs' => [
+        'inbound_key' => env('PRS_TO_CMS_INTEGRATION_KEY') ?: env('CMS_PRS_INTEGRATION_KEY'),
+        'outbound_key' => env('PRS_INTEGRATION_KEY') ?: env('CMS_PRS_INTEGRATION_KEY'),
+        'base_url' => rtrim((string) env('PRS_BASE_URL', ''), '/'),
+        'institutions_url' => env('PRS_INSTITUTIONS_URL', ''),
+        'internal_secret' => env('INTERNAL_SERVICE_SECRET', ''),
+    ],
+
 ];

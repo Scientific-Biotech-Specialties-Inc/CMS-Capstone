@@ -236,11 +236,17 @@ FORMAT & STYLING RESTRICTION:
             ];
         }
 
-        // Default: Service Agreement
+        $cleanName = trim($category) !== '' ? trim($category) : 'Service Agreement';
+        $isDefaultService = $normalized === '' || $normalized === 'service agreement';
+        $title = $isDefaultService
+            ? 'COMMERCIAL SERVICES AGREEMENT'
+            : strtoupper($cleanName) . (preg_match('/\b(agreement|contract)$/i', $cleanName) ? '' : ' AGREEMENT');
+
+        // Default & dynamically added categories (e.g. Field Service)
         return [
             'key' => 'service',
-            'name' => 'Service Agreement',
-            'title' => 'COMMERCIAL SERVICES AGREEMENT',
+            'name' => $cleanName,
+            'title' => $title,
             'party_one_label' => 'First Party / Client',
             'party_two_label' => 'Second Party / Contractor',
             'sections' => [

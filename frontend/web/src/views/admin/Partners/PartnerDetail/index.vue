@@ -278,6 +278,9 @@ const statusClass = computed(() => {
             <p class="text-sm text-black/45 mt-0.5 truncate" :title="partner.industry || '—'">{{ partner.industry || '—' }}</p>
             <div class="flex items-center gap-2 mt-2">
               <span class="text-xs font-mono text-black/30 bg-black/4 px-2 py-0.5 rounded">{{ displayId }}</span>
+              <span v-if="type === 'bp'" class="text-xs font-semibold px-2.5 py-0.5 rounded-full border bg-[#EFF6FF] text-[#252578] border-[#2E85D8]/25">
+                {{ partner.classTier || 'Class C' }}
+              </span>
             </div>
           </div>
           <span class="text-sm font-semibold px-3 py-1 rounded-full border shrink-0" :class="statusClass">

@@ -3,12 +3,12 @@ import type { TimeFilterOption } from '@/composables/useTimeFilter'
 import { TIME_FILTER_LABELS } from '@/composables/useTimeFilter'
 
 const props = defineProps<{
-  modelValue: TimeFilterOption
+  modelValue: TimeFilterOption | null
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [v: TimeFilterOption] }>()
 
-const options: TimeFilterOption[] = ['today', 'week', 'month']
+const options: TimeFilterOption[] = ['today', 'week', 'month', 'all']
 </script>
 
 <template>

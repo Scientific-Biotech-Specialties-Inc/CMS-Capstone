@@ -19,11 +19,23 @@ Route::middleware(['internal.secret'])->group(function () {
     Route::get('/internal/vendors/lookup', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'lookup']);
     Route::get('/vendor/lookup', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'lookup']);
     Route::post('/internal/vendors/suggest', [\App\Http\Controllers\Api\V1\Internal\InternalVendorController::class, 'suggestFromSerms']);
+
+    // PRS Integration (2.2): Internal proxy routes for contract-management
+    Route::get('/internal/prs/institutions', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'institutions']);
+    Route::get('/internal/prs/locations', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'locations']);
+    Route::post('/internal/prs/institutions/sync', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'sync']);
 });
 
 // Integration Endpoint for retrieving SBSI customer details
 Route::get('/integration/customers', [\App\Http\Controllers\Api\V1\IntegrationCustomerController::class, 'index'])
     ->middleware('auth.integration.secret');
+
+// PRS Integration (2.2): Institution & Location Synchronization
+Route::prefix('/integrations/v1/prs')->middleware(['auth.integration.secret', 'throttle:60,1'])->group(function () {
+    Route::get('/institutions', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'institutions']);
+    Route::get('/locations', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'locations']);
+    Route::post('/institutions/sync', [\App\Http\Controllers\Api\V1\PrsInstitutionIntegrationController::class, 'sync']);
+});
 
 Route::middleware(['auth.internal'])->group(function () {
 

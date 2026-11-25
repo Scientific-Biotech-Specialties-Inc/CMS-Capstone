@@ -43,6 +43,10 @@ export interface Draft {
   role:   'sales' | 'manager' | 'admin' | ''
   generatedDoc?: GeneratedDocument | null
   headerFooter?: HeaderFooterConfig | null
+  targetContractId?: string
+  targetContractDbId?: number
+  returnPath?: string
+  returnEditMode?: boolean
 }
 
 // Module-level singleton
@@ -67,6 +71,10 @@ const draft = reactive<Draft>({
   docs: [],
   role: '',
   generatedDoc: null,
+  targetContractId: undefined,
+  targetContractDbId: undefined,
+  returnPath: undefined,
+  returnEditMode: false,
   headerFooter: {
     headerLeft: 'CONFIDENTIAL CONTRACT AGREEMENT',
     headerRight: 'SBSI CRMS',
@@ -78,11 +86,22 @@ const draft = reactive<Draft>({
   }
 })
 
+export interface SaveDraftTarget {
+  targetContractId?: string
+  targetContractDbId?: number
+  returnPath?: string
+  returnEditMode?: boolean
+}
+
 export function useCreateContractDraft() {
-  function saveDraft(form: DraftForm, docs: UploadedDoc[], role: Draft['role']) {
+  function saveDraft(form: DraftForm, docs: UploadedDoc[], role: Draft['role'], target?: SaveDraftTarget) {
     draft.form = { ...form }
     draft.docs   = [...docs]
     draft.role   = role
+    draft.targetContractId = target?.targetContractId
+    draft.targetContractDbId = target?.targetContractDbId
+    draft.returnPath = target?.returnPath
+    draft.returnEditMode = target?.returnEditMode ?? false
     draft.active = true
   }
 
@@ -109,6 +128,10 @@ export function useCreateContractDraft() {
     draft.docs   = []
     draft.role   = ''
     draft.generatedDoc = null
+    draft.targetContractId = undefined
+    draft.targetContractDbId = undefined
+    draft.returnPath = undefined
+    draft.returnEditMode = false
     Object.keys(draft.form).forEach(k => { 
       (draft.form as any)[k] = '' 
     })

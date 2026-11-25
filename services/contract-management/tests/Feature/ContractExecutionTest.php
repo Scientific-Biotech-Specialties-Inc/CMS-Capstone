@@ -136,6 +136,36 @@ final class ContractExecutionTest extends TestCase
             && $request['message'] === "Contract Number #{$number} with a submitted signed PDF is waiting for confirmation from Manager or CEO.");
     }
 
+    public function test_execution_show_auto_heals_approved_contract_and_links_latest_pdf_draft(): void
+    {
+        $approvedId = \App\Models\ContractApprovalStatus::firstOrCreate(['status_name' => 'Approved'])->approval_status_id;
+        $contract = Contract::create([
+            'created_by' => 42,
+            'execution_required' => false,
+            'execution_draft_id' => null,
+            'approval_status_id' => $approvedId,
+            'workflow_status_id' => null,
+            'end_date' => now()->addYear(),
+        ]);
+        $firstPdfId = $this->createDraftPdf();
+        $secondPdfId = $this->createDraftPdf();
+        Document::whereIn('_id', [$firstPdfId, $secondPdfId])->update(['contract_id' => $contract->getKey()]);
+
+        $res = $this->withHeaders(['Authorization' => 'Bearer owner', 'Accept' => 'application/json'])
+            ->get('/api/contracts/'.$contract->getKey().'/execution')
+            ->assertOk();
+
+        $res->assertJsonPath('data.enabled', true)
+            ->assertJsonPath('data.stage', 'SBSI Review')
+            ->assertJsonPath('data.draft_document_id', $secondPdfId)
+            ->assertJsonPath('data.allowed.submit', true);
+
+        $contract->refresh();
+        $this->assertTrue((bool) $contract->execution_required);
+        $this->assertSame($secondPdfId, $contract->execution_draft_id);
+        $this->assertSame('SBSI Review', $contract->workflowStatus?->status_name);
+    }
+
     private function stageAction(string $token, string $action, string $stage, array $payload = []): TestResponse
     {
         return $this->withHeaders(['Authorization' => "Bearer {$token}", 'Accept' => 'application/json'])

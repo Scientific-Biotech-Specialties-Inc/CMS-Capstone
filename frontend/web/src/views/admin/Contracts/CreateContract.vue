@@ -5,7 +5,8 @@ import { ArrowLeft, Loader2, ScanLine, Sparkles } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
-import { readPrsContractLink, usePrsContractHandoff } from '@/composables/usePrsContractHandoff'
+import { readPrsContractLink, usePrsContractHandoff, type CatalogProduct } from '@/composables/usePrsContractHandoff'
+import ProductCatalogSelect from '@/components/shared/ProductCatalogSelect.vue'
 import { useApiCache } from '@/composables/useApiCache'
 import DocumentUpload from '@/views/sales/Contracts/DocumentUpload.vue'
 import type { ContractRegion, UploadedDoc } from '@/types/contract'
@@ -17,6 +18,7 @@ import PrefixedNumberInput from '@/components/shared/PrefixedNumberInput.vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
 import { useDocumentUpload } from '@/composables/useDocumentUpload'
 import { useSbsiBranches } from '@/composables/useSbsiBranches'
+import { useContractTypes } from '@/composables/useContractTypes'
 
 const { hasPermission, role } = useAuth()
 const canUseOcr = computed(() => hasPermission('cms.ai.ocr') || role.value === 'Admin' || role.value === 'CEO')
@@ -29,6 +31,7 @@ const prsLink = readPrsContractLink(route.query)
 const ocrOpen = ref(false)
 const { detectType: detectOcrDocType, validate: validateOcrDoc, uploadFile: uploadOcrDoc } = useDocumentUpload()
 const { branches: sbsiBranches, fetchBranches: fetchSbsiBranches } = useSbsiBranches()
+const { contractTypes, fetchContractTypes } = useContractTypes()
 
 const activePartnerNames = computed(() => {
   return vendorOptions.value.filter(v => v.status !== 'Suspended').map(v => v.name)
@@ -246,13 +249,7 @@ const errors = computed(() => ({
     : '',
 }))
 
-const categories = [
-  'Service Agreement',
-  'Partnership Agreement',
-  'Supply Contract',
-  'Equipment Lease',
-  'Equipment Maintenance',
-]
+const categories = computed(() => contractTypes.value)
 
 const regions: ContractRegion[] = ['Luzon', 'Visayas', 'Mindanao']
 
@@ -442,6 +439,7 @@ async function fetchPartnerNames() {
 }
 
 onMounted(async () => {
+  fetchContractTypes()
   fetchSbsiBranches()
   await fetchPartnerNames()
   if (route.query.partner) {
@@ -512,6 +510,21 @@ function selectSuggestion(name: string) {
   form.businessPartner = name
   showSuggestions.value = false
   touched.businessPartner = true
+}
+
+function handleProductSelect(p: CatalogProduct) {
+  form.productId = p.productId
+  form.itemCode = p.productCode
+  form.sbuNumber = p.sbuNumber
+  form.description = p.description || p.productName
+  form.equipmentName = p.productName
+  if (p.serialNumber) form.serialNo = p.serialNumber
+  if (p.brand || p.manufacturer) form.brand = p.brand ?? p.manufacturer ?? ''
+  if (p.model) form.model = p.model
+}
+
+function handleProductClear() {
+  form.productId = undefined
 }
 
 onClickOutside(suggestionsContainer, () => {
@@ -612,6 +625,11 @@ onClickOutside(suggestionsContainer, () => {
       <!-- Section: Item Details -->
       <div class="px-6 py-5 border-b border-black/6">
         <h2 class="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4">Item Details</h2>
+        <ProductCatalogSelect
+          :selected-product-id="form.productId"
+          @select="handleProductSelect"
+          @clear="handleProductClear"
+        />
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
           <!-- Item Code -->

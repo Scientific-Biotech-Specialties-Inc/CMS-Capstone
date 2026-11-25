@@ -169,6 +169,7 @@ function removeChip(key: string) {
 
 const filterTabs: { label: string; value: FilterTab }[] = [
   { label: 'All',           value: 'all'      },
+  { label: 'Draft',         value: 'draft'    },
   { label: 'Active',        value: 'active'   },
   { label: 'Inactive',      value: 'inactive' },
   { label: 'Pending Execution', value: 'pending_execution' },
@@ -177,6 +178,7 @@ const filterTabs: { label: string; value: FilterTab }[] = [
 ]
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
+  { label: 'Draft',         value: 'Draft'        },
   { label: 'Pending',       value: 'Pending'      },
   { label: 'Approved',      value: 'Approved'     },
   { label: 'Rejected',      value: 'Rejected'     },
@@ -485,7 +487,7 @@ const categories = [
                   </DropdownMenuItem>
                   <template v-if="hasPermission('cms.contracts.approve') || hasPermission('cms.contracts.delete')">
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem v-if="hasPermission('cms.contracts.approve') && c.approvalStatus === 'Pending' && c.hasPendingApprovalWorkflow === false" @click="emit('approve', c.id)"
+                    <DropdownMenuItem v-if="hasPermission('cms.contracts.approve') && c.approvalStatus === 'Pending' && !c.hasPendingApprovalWorkflow" @click="emit('approve', c.id)"
                       class="gap-2.5 text-sm cursor-pointer text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50">
                       <CheckCircle class="w-3.5 h-3.5" /> Approve
                     </DropdownMenuItem>

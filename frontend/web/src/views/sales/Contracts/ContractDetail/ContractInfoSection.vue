@@ -7,11 +7,16 @@ import { CalendarCheck, CalendarX } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
 import FormSelect from '@/components/shared/FormSelect.vue'
 import { useSbsiBranches } from '@/composables/useSbsiBranches'
+import { useContractTypes } from '@/composables/useContractTypes'
 import { initialBusinessPartners, initialSuppliersData } from '@/views/admin/Partners/mockPartners'
 import { onClickOutside } from '@vueuse/core'
 
 const { branches: sbsiBranches, fetchBranches: fetchSbsiBranches } = useSbsiBranches()
-onMounted(() => { fetchSbsiBranches() })
+const { contractTypes, fetchContractTypes } = useContractTypes()
+onMounted(() => {
+  fetchSbsiBranches()
+  fetchContractTypes()
+})
 
 const props = defineProps<{
   contract:   StoredContract
@@ -57,13 +62,11 @@ function fieldCls(field: string, invalid: boolean) {
     : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'
 }
 
-const categories = [
-  'Service Agreement',
-  'Partnership Agreement',
-  'Supply Contract',
-  'Equipment Lease',
-  'Equipment Maintenance',
-]
+const categories = computed(() =>
+  contractTypes.value.length > 0
+    ? contractTypes.value
+    : ['Service Agreement', 'Partnership Agreement', 'Supply Contract', 'Equipment Lease', 'Equipment Maintenance']
+)
 
 const showSuggestions = ref(false)
 const suggestionsContainer = ref<HTMLElement | null>(null)
@@ -99,11 +102,11 @@ onClickOutside(suggestionsContainer, () => {
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Business Partner -->
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-col gap-1.5 min-w-0">
           <label class="text-xs font-semibold text-black/50">
             Business Partner <span v-if="isEditing" class="text-red-500">*</span>
           </label>
-          <p v-if="!isEditing" class="text-[15px] font-medium text-black mt-0.5">{{ contract.businessPartner }}</p>
+          <p v-if="!isEditing" class="text-[15px] font-medium text-black mt-0.5 truncate" :title="contract.businessPartner">{{ contract.businessPartner }}</p>
           <template v-else>
             <div class="relative w-full" ref="suggestionsContainer">
               <input

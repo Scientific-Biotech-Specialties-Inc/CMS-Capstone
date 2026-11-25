@@ -71,6 +71,7 @@ function statusClass(status: string) {
         <TableRow class="border-b border-black/4 hover:bg-transparent">
           <TableHead class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3 pl-6">Name</TableHead>
           <TableHead class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3 w-40">Industry</TableHead>
+          <TableHead v-if="activeTab === 'partners'" class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3">Class</TableHead>
           <TableHead class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3">Region</TableHead>
           <TableHead class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3">Contact</TableHead>
           <TableHead class="text-[11px] font-semibold text-black/40 uppercase tracking-wider py-3">Status</TableHead>
@@ -123,6 +124,11 @@ function statusClass(status: string) {
           </TableCell>
           <TableCell class="py-4 text-sm text-black/60 max-w-[160px] truncate"
                      :title="partner.industry || undefined">{{ partner.industry || '—' }}</TableCell>
+          <TableCell v-if="activeTab === 'partners'" class="py-4">
+            <span class="text-xs font-medium px-2.5 py-0.5 rounded-full border bg-[#EFF6FF] text-[#252578] border-[#2E85D8]/25">
+              {{ partner.classTier || 'Class C' }}
+            </span>
+          </TableCell>
           <TableCell class="py-4 text-sm text-black/60">{{ partner.region ?? '—' }}</TableCell>
           <TableCell class="py-4">
             <div class="text-sm text-black/70">{{ partner.contactPerson || '—' }}</div>

@@ -96,6 +96,10 @@ function statusClass(status: string) {
       <p class="text-xs text-black/40 mt-0.5 mb-4 truncate"
          :title="partner.industry || undefined">{{ partner.industry || '—' }}</p>
       <div class="space-y-1.5 border-t border-black/5 pt-3">
+        <div v-if="activeTab === 'partners'" class="flex items-center justify-between text-xs">
+          <span class="text-black/40">Class</span>
+          <span class="font-semibold text-[#252578]">{{ partner.classTier || 'Class C' }}</span>
+        </div>
         <div class="flex items-center justify-between text-xs">
           <span class="text-black/40">Region</span>
           <span class="font-medium text-black">{{ partner.region ?? '—' }}</span>
