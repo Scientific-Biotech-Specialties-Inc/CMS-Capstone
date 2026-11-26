@@ -164,9 +164,14 @@ function ingestRealtimeNotification(raw: any): void {
   }
 }
 
-async function fetchNotifications(): Promise<void> {
+function hasAuthSession(): boolean {
   const { state } = useAuth()
-  if (!state.token) return
+  const hasToken = Boolean(state.token) && state.token !== 'null' && state.token !== 'undefined'
+  return Boolean(state.user) || hasToken
+}
+
+async function fetchNotifications(): Promise<void> {
+  if (!hasAuthSession()) return
 
   loading.value = true
   try {
@@ -217,8 +222,7 @@ function scheduleReconnect(immediate = false): void {
 async function connectStream(): Promise<void> {
   if (activeConsumers <= 0) return
 
-  const { state } = useAuth()
-  if (!state.token || state.token === 'null' || state.token === 'undefined') {
+  if (!hasAuthSession()) {
     return
   }
 
