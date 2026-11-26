@@ -43,7 +43,7 @@ const route  = useRoute();
 const router = useRouter();
 const { user: authUser, role, hasPermission, refreshPermissions, logout } = useAuth();
 
-const { notifications, unreadCount, fetchNotifications, markAllRead, markRead } = useNotifications();
+const { notifications, unreadCount, startNotificationStream, stopNotificationStream, markAllRead, markRead } = useNotifications();
 
 const recentNotifs = computed(() =>
   notifications.value.filter(n => !n.isArchived).slice(0, 10)
@@ -61,13 +61,11 @@ function openNotification(n: Notification) {
   router.push('/admin/notifications');
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(async () => {
   await refreshPermissions();
-  fetchNotifications();
-  pollTimer = setInterval(fetchNotifications, 5000);
+  startNotificationStream();
 });
-onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
+onUnmounted(() => { stopNotificationStream(); });
 
 const contractPaths = ["/admin/contracts"];
 const contractsOpen = ref(contractPaths.some(p => route.path.startsWith(p)));

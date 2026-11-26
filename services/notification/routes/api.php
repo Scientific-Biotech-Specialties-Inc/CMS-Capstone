@@ -14,6 +14,7 @@ Route::middleware(['internal.secret'])->group(function () {
 
 // User-facing — authenticated by Bearer JWT token
 Route::middleware(['auth.internal'])->group(function () {
+    Route::get('/notifications/stream', \App\Http\Controllers\Api\V1\Notifications\StreamController::class);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
@@ -22,6 +23,7 @@ Route::middleware(['auth.internal'])->group(function () {
     Route::post('/notifications/batch-delete', [NotificationController::class, 'batchDestroy']);
 
     // Direct aliases without /notifications prefix for singular proxy routing
+    Route::get('/stream', \App\Http\Controllers\Api\V1\Notifications\StreamController::class);
     Route::get('/', [NotificationController::class, 'index']);
     Route::patch('/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('/{id}/read', [NotificationController::class, 'markRead']);

@@ -251,7 +251,7 @@ final class SendContractExpiryEmail implements ShouldQueue
                     ->exists();
 
                 if (!$exists) {
-                    Notification::create([
+                    $created = Notification::create([
                         'contract_id' => $this->contractId,
                         'notification_type' => 'email_dispatch',
                         'target_user_id' => $this->userId,
@@ -260,6 +260,10 @@ final class SendContractExpiryEmail implements ShouldQueue
                         'notification_date' => now(),
                         'is_read' => false,
                     ]);
+
+                    app(\App\Services\NotificationEventBroker::class)->publish(
+                        app(\App\Services\NotificationAudienceMatcher::class)->formatForBroadcast($created)
+                    );
                 }
             }
         } catch (\Exception $e) {

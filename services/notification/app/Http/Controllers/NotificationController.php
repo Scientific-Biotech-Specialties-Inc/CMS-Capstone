@@ -4,11 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Notification;
 use App\Models\NotificationRead;
+use App\Services\NotificationAudienceMatcher;
+use App\Services\NotificationEventBroker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class NotificationController extends Controller
 {
+    public function __construct(
+        private readonly NotificationEventBroker $eventBroker,
+        private readonly NotificationAudienceMatcher $audienceMatcher,
+    ) {
+    }
     /**
      * POST /internal/push — called by other services (contract-management scheduler).
      * Protected by X-Internal-Secret middleware.
@@ -46,6 +53,8 @@ class NotificationController extends Controller
             ->where('target_user_id', $data['target_user_id'] ?? null)
             ->first();
 
+        $shouldBroadcast = false;
+
         if ($notification) {
             $notification->wasRecentlyCreated = false;
 
@@ -63,6 +72,7 @@ class NotificationController extends Controller
 
                 // Delete reads records to reset unread state for all users
                 NotificationRead::where('notification_id', $notification->notification_id)->delete();
+                $shouldBroadcast = true;
             }
         } else {
             $notification = Notification::create([
@@ -75,6 +85,11 @@ class NotificationController extends Controller
                 'is_read'           => false,
             ]);
             $notification->wasRecentlyCreated = true;
+            $shouldBroadcast = true;
+        }
+
+        if ($shouldBroadcast) {
+            $this->eventBroker->publish($this->audienceMatcher->formatForBroadcast($notification));
         }
 
         if ($notification->wasRecentlyCreated && str_starts_with($notification->notification_type, 'expiry_')) {
@@ -106,32 +121,16 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $userId   = $request->input('auth_id');
-        $userRole = $request->input('auth_role');
+        $userId   = (int) $request->input('auth_id');
+        $userRole = (string) $request->input('auth_role');
 
-        $preference = \App\Models\EmailPreference::where('user_id', $userId)->first();
-        $systemAlertsEnabled = $preference ? (bool) $preference->system_alerts_enabled : true;
-
-        $sysConfig = \App\Models\SystemConfiguration::first();
-        if ($sysConfig && !$sysConfig->in_app_notifs_enabled) {
-            return response()->json(['data' => []]);
-        }
-
-        if (!$systemAlertsEnabled) {
+        if (!$this->audienceMatcher->isUserAlertsEnabled($userId)) {
             return response()->json(['data' => []]);
         }
 
         // Get notifications targeting this user's role; for user-scoped ones also match auth_id
         $notifications = Notification::orderByDesc('notification_date')->get()
-            ->filter(function (Notification $n) use ($userRole, $userId) {
-                if (!$n->target_roles) return false;
-                $roles = array_map('trim', explode(',', $n->target_roles));
-                $isAdminRole = in_array($userRole, ['Admin', 'Super Admin', 'CEO'], true);
-                $matchesRole = in_array($userRole, $roles, true) || ($isAdminRole && in_array('Admin', $roles, true));
-                if (!$matchesRole) return false;
-                if ($n->target_user_id !== null && (int) $n->target_user_id !== (int) $userId) return false;
-                return true;
-            })
+            ->filter(fn (Notification $n) => $this->audienceMatcher->matches($n, $userRole, $userId))
             ->values();
 
         // Load per-user read state
@@ -145,17 +144,7 @@ class NotificationController extends Controller
             $read = $reads->get($n->notification_id);
             return !($read?->is_deleted ?? false);
         })->map(function (Notification $n) use ($reads) {
-            $read = $reads->get($n->notification_id);
-            return [
-                'id'                => (string) $n->notification_id,
-                'contract_id'       => $n->contract_id,
-                'notification_type' => $n->notification_type,
-                'message'           => $n->message,
-                'notification_date' => $n->notification_date?->toISOString(),
-                'is_read'           => $read?->is_read ?? false,
-                'is_archived'       => $read?->is_archived ?? false,
-                'is_favorite'       => $read?->is_favorite ?? false,
-            ];
+            return $this->audienceMatcher->formatForClient($n, $reads->get($n->notification_id));
         })->values();
 
         return response()->json(['data' => $result]);
@@ -186,17 +175,11 @@ class NotificationController extends Controller
      */
     public function markAllRead(Request $request)
     {
-        $userId   = $request->input('auth_id');
-        $userRole = $request->input('auth_role');
+        $userId   = (int) $request->input('auth_id');
+        $userRole = (string) $request->input('auth_role');
 
         $notifIds = Notification::orderByDesc('notification_date')->get()
-            ->filter(function (Notification $n) use ($userRole, $userId) {
-                if (!$n->target_roles) return false;
-                $roles = array_map('trim', explode(',', $n->target_roles));
-                if (!in_array($userRole, $roles, true)) return false;
-                if ($n->target_user_id !== null && (int) $n->target_user_id !== (int) $userId) return false;
-                return true;
-            })
+            ->filter(fn (Notification $n) => $this->audienceMatcher->matches($n, $userRole, $userId))
             ->pluck('notification_id')
             ->all();
 

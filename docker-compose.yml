@@ -223,6 +223,9 @@ services:
     command: sh -c "composer install --no-scripts && sleep 20 && php artisan migrate --force && (php artisan queue:work --queue=notification_queue --sleep=3 --tries=3 --timeout=60 &) && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - PHP_CLI_SERVER_WORKERS=12
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       mysql:
         condition: service_healthy

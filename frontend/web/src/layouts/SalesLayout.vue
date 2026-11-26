@@ -52,7 +52,7 @@ onMounted(async () => {
   }
 })
 
-const { notifications, unreadCount, fetchNotifications, markAllRead, markRead } = useNotifications();
+const { notifications, unreadCount, startNotificationStream, stopNotificationStream, markAllRead, markRead } = useNotifications();
 const recentNotifs = computed(() => notifications.value.filter(n => !n.isArchived).slice(0, 10));
 const isNotifOpen = ref(false);
 
@@ -66,9 +66,8 @@ function openNotification(n: Notification) {
   router.push('/sales/notifications');
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-onMounted(() => { fetchNotifications(); pollTimer = setInterval(fetchNotifications, 5000); });
-onUnmounted(() => { if (pollTimer) clearInterval(pollTimer); });
+onMounted(() => { startNotificationStream(); });
+onUnmounted(() => { stopNotificationStream(); });
 
 const contractPaths = ["/sales/contracts", "/sales/contract-requests", "/sales/contract-requests-review", "/sales/contract-amendments"];
 const contractsOpen = ref(contractPaths.includes(route.path));
