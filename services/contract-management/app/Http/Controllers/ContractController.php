@@ -34,8 +34,47 @@ class ContractController extends Controller
         $this->approvalEngine = $approvalEngine;
     }
 
+    private static function normalizeEquipmentItemsPayload(mixed $rawItems): ?array
+    {
+        if (!is_array($rawItems)) {
+            return null;
+        }
+
+        $items = [];
+        foreach ($rawItems as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $name  = isset($row['equipment_name']) ? trim((string) $row['equipment_name']) : (isset($row['equipmentName']) ? trim((string) $row['equipmentName']) : '');
+            $brand = isset($row['brand']) ? trim((string) $row['brand']) : '';
+            $model = isset($row['model']) ? trim((string) $row['model']) : '';
+
+            if ($name === '' && $brand === '' && $model === '') {
+                continue;
+            }
+
+            $items[] = [
+                'equipment_name' => $name !== '' ? $name : null,
+                'brand'          => $brand !== '' ? $brand : null,
+                'model'          => $model !== '' ? $model : null,
+            ];
+        }
+
+        return $items;
+    }
+
     public static function formatContract(Contract $contract): array
     {
+        $equipmentItems = is_array($contract->equipment_items) && count($contract->equipment_items) > 0
+            ? array_values($contract->equipment_items)
+            : (($contract->equipment_name || $contract->brand || $contract->model)
+                ? [[
+                    'equipment_name' => $contract->equipment_name,
+                    'brand'          => $contract->brand,
+                    'model'          => $contract->model,
+                ]]
+                : []);
+
         return [
             'contract_id'     => $contract->contract_code ?? (string) $contract->contract_id,
             'contract_db_id'  => $contract->contract_id,
@@ -53,6 +92,7 @@ class ContractController extends Controller
             'equipment_name'  => $contract->equipment_name,
             'brand'           => $contract->brand,
             'model'           => $contract->model,
+            'equipment_items' => $equipmentItems,
             'region'          => $contract->region?->region_name,
             'rejection_reason' => $contract->rejection_reason,
             'start_date'                 => $contract->start_date?->toDateString(),
@@ -395,6 +435,9 @@ class ContractController extends Controller
             ], static fn ($v) => $v !== null && $v !== ''));
         }
 
+        $rawEquipmentItems = self::normalizeEquipmentItemsPayload($data['equipment_items'] ?? $data['equipmentItems'] ?? null);
+        $firstEquipment = $rawEquipmentItems[0] ?? null;
+
         // Normalize camelCase fields from test to snake_case
         $normalized = [
             'bp_name'         => $data['bp_name'] ?? $data['businessPartner'] ?? null,
@@ -405,9 +448,10 @@ class ContractController extends Controller
             'serial_number'   => $data['serial_number'] ?? $data['serialNo'] ?? null,
             'sbu_number'      => $data['sbu_number'] ?? $data['sbuNumber'] ?? null,
             'sbsi_branch'     => $data['sbsi_branch'] ?? $data['sbsiBranch'] ?? null,
-            'equipment_name'  => $data['equipment_name'] ?? $data['equipmentName'] ?? $product?->product_name,
-            'brand'           => $data['brand'] ?? $product?->brand ?? $product?->manufacturer,
-            'model'           => $data['model'] ?? $product?->model,
+            'equipment_name'  => $firstEquipment !== null ? $firstEquipment['equipment_name'] : ($data['equipment_name'] ?? $data['equipmentName'] ?? $product?->product_name),
+            'brand'           => $firstEquipment !== null ? $firstEquipment['brand'] : ($data['brand'] ?? $product?->brand ?? $product?->manufacturer),
+            'model'           => $firstEquipment !== null ? $firstEquipment['model'] : ($data['model'] ?? $product?->model),
+            'equipment_items' => $rawEquipmentItems,
             'region'          => $data['region'] ?? null,
             'start_date'      => $data['start_date'] ?? $data['startDate'] ?? null,
             'end_date'        => $data['end_date'] ?? $data['endDate'] ?? null,
@@ -428,6 +472,10 @@ class ContractController extends Controller
             'equipment_name'  => 'nullable|string|max:255',
             'brand'           => 'nullable|string|max:255',
             'model'           => 'nullable|string|max:255',
+            'equipment_items'                  => 'nullable|array|max:20',
+            'equipment_items.*.equipment_name' => 'nullable|string|max:255',
+            'equipment_items.*.brand'          => 'nullable|string|max:255',
+            'equipment_items.*.model'          => 'nullable|string|max:255',
             'region'          => 'required|string|in:Luzon,Visayas,Mindanao',
             'start_date'      => 'required|date',
             'end_date'        => 'required|date|after:start_date',
@@ -490,6 +538,15 @@ class ContractController extends Controller
             'equipment_name'     => $incoming['equipment_name'] ?? null,
             'brand'              => $incoming['brand'] ?? null,
             'model'              => $incoming['model'] ?? null,
+            'equipment_items'    => !empty($incoming['equipment_items'])
+                ? $incoming['equipment_items']
+                : (($incoming['equipment_name'] || $incoming['brand'] || $incoming['model'])
+                    ? [[
+                        'equipment_name' => $incoming['equipment_name'] ?? null,
+                        'brand'          => $incoming['brand'] ?? null,
+                        'model'          => $incoming['model'] ?? null,
+                    ]]
+                    : null),
             'region_id'          => $regionId,
             'start_date'         => $incoming['start_date'],
             'end_date'           => $incoming['end_date'],
@@ -609,6 +666,12 @@ class ContractController extends Controller
         $data = $request->all();
 
         // Normalize
+        $hasEquipmentItemsKey = array_key_exists('equipment_items', $data) || array_key_exists('equipmentItems', $data);
+        $rawUpdateEquipmentItems = $hasEquipmentItemsKey
+            ? self::normalizeEquipmentItemsPayload($data['equipment_items'] ?? $data['equipmentItems'] ?? null)
+            : null;
+        $firstUpdateEquipment = $rawUpdateEquipmentItems[0] ?? null;
+
         $normalized = [
             'bp_name'         => $data['bp_name'] ?? $data['businessPartner'] ?? null,
             'category'        => $data['category'] ?? null,
@@ -618,11 +681,18 @@ class ContractController extends Controller
             'serial_number'   => $data['serial_number'] ?? $data['serialNo'] ?? null,
             'sbu_number'      => $data['sbu_number'] ?? $data['sbuNumber'] ?? null,
             'sbsi_branch'     => $data['sbsi_branch'] ?? $data['sbsiBranch'] ?? $contract->sbsi_branch,
-            'equipment_name'  => array_key_exists('equipment_name', $data) || array_key_exists('equipmentName', $data)
-                ? ($data['equipment_name'] ?? $data['equipmentName'] ?? null)
-                : $contract->equipment_name,
-            'brand'           => array_key_exists('brand', $data) ? $data['brand'] : $contract->brand,
-            'model'           => array_key_exists('model', $data) ? $data['model'] : $contract->model,
+            'equipment_name'  => $hasEquipmentItemsKey
+                ? ($firstUpdateEquipment['equipment_name'] ?? null)
+                : (array_key_exists('equipment_name', $data) || array_key_exists('equipmentName', $data)
+                    ? ($data['equipment_name'] ?? $data['equipmentName'] ?? null)
+                    : $contract->equipment_name),
+            'brand'           => $hasEquipmentItemsKey
+                ? ($firstUpdateEquipment['brand'] ?? null)
+                : (array_key_exists('brand', $data) ? $data['brand'] : $contract->brand),
+            'model'           => $hasEquipmentItemsKey
+                ? ($firstUpdateEquipment['model'] ?? null)
+                : (array_key_exists('model', $data) ? $data['model'] : $contract->model),
+            'equipment_items' => $hasEquipmentItemsKey ? $rawUpdateEquipmentItems : $contract->equipment_items,
             'region'          => $data['region'] ?? null,
             'start_date'      => $data['start_date'] ?? $data['startDate'] ?? null,
             'end_date'        => $data['end_date'] ?? $data['endDate'] ?? null,
@@ -641,6 +711,10 @@ class ContractController extends Controller
             'equipment_name'  => 'nullable|string|max:255',
             'brand'           => 'nullable|string|max:255',
             'model'           => 'nullable|string|max:255',
+            'equipment_items'                  => 'nullable|array|max:20',
+            'equipment_items.*.equipment_name' => 'nullable|string|max:255',
+            'equipment_items.*.brand'          => 'nullable|string|max:255',
+            'equipment_items.*.model'          => 'nullable|string|max:255',
             'region'          => 'required|string|in:Luzon,Visayas,Mindanao',
             'start_date'      => 'required|date',
             'end_date'        => 'required|date|after:start_date',
@@ -701,6 +775,15 @@ class ContractController extends Controller
             'equipment_name' => $incoming['equipment_name'] ?? null,
             'brand'          => $incoming['brand'] ?? null,
             'model'          => $incoming['model'] ?? null,
+            'equipment_items' => !empty($incoming['equipment_items'])
+                ? $incoming['equipment_items']
+                : (($incoming['equipment_name'] || $incoming['brand'] || $incoming['model'])
+                    ? [[
+                        'equipment_name' => $incoming['equipment_name'] ?? null,
+                        'brand'          => $incoming['brand'] ?? null,
+                        'model'          => $incoming['model'] ?? null,
+                    ]]
+                    : null),
             'region_id'      => $regionId,
             'start_date'    => $incoming['start_date'],
             'end_date'      => $incoming['end_date'],

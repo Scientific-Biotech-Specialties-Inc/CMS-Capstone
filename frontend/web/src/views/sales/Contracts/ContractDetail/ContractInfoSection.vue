@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { BRAND_PALETTE } from '@/constants/theme'
 import { fmtDate } from '@/types/contract'
-import type { ContractRegion, ContractWorkflowStatus } from '@/types/contract'
+import type { ContractRegion, ContractWorkflowStatus, EquipmentItem } from '@/types/contract'
+import EquipmentItemsInput from '@/components/shared/EquipmentItemsInput.vue'
 import type { StoredContract } from '@/composables/useContractStore'
 import { CalendarCheck, CalendarX } from 'lucide-vue-next'
 import { ref, computed, onMounted } from 'vue'
@@ -35,6 +36,7 @@ const props = defineProps<{
     equipmentName:   string
     brand:           string
     model:           string
+    equipmentItems:  EquipmentItem[]
     region:          ContractRegion | ''
     startDate:       string
     endDate:         string
@@ -45,6 +47,20 @@ const props = defineProps<{
 }>()
 
 const palette = BRAND_PALETTE
+
+const displayEquipmentItems = computed<EquipmentItem[]>(() => {
+  if (props.contract.equipmentItems && props.contract.equipmentItems.length > 0) {
+    return props.contract.equipmentItems
+  }
+  if (props.contract.equipmentName || props.contract.brand || props.contract.model) {
+    return [{
+      equipmentName: props.contract.equipmentName ?? '',
+      brand: props.contract.brand ?? '',
+      model: props.contract.model ?? '',
+    }]
+  }
+  return []
+})
 
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -223,20 +239,43 @@ onClickOutside(suggestionsContainer, () => {
             </tr>
           </tbody>
         </table>
-        <dl class="grid gap-4 px-8 py-4 border-t border-black/[0.05] sm:grid-cols-3">
+        <dl v-if="displayEquipmentItems.length <= 1" class="grid gap-4 px-8 py-4 border-t border-black/[0.05] sm:grid-cols-3">
           <div>
             <dt class="text-xs font-semibold text-black/50">Equipment / Machine Name</dt>
-            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.equipmentName || '—' }}</dd>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ displayEquipmentItems[0]?.equipmentName || '—' }}</dd>
           </div>
           <div>
             <dt class="text-xs font-semibold text-black/50">Brand</dt>
-            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.brand || '—' }}</dd>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ displayEquipmentItems[0]?.brand || '—' }}</dd>
           </div>
           <div>
             <dt class="text-xs font-semibold text-black/50">Model</dt>
-            <dd class="text-sm font-medium text-black mt-0.5">{{ contract.model || '—' }}</dd>
+            <dd class="text-sm font-medium text-black mt-0.5">{{ displayEquipmentItems[0]?.model || '—' }}</dd>
           </div>
         </dl>
+        <div v-else class="px-8 py-4 border-t border-black/[0.05]">
+          <p class="text-xs font-semibold text-black/50 mb-3">Equipment / Machines ({{ displayEquipmentItems.length }})</p>
+          <div class="overflow-x-auto rounded-lg border border-black/[0.06]">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-black/[0.05]">
+                  <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider w-12">#</th>
+                  <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Equipment / Machine Name</th>
+                  <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Brand</th>
+                  <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Model</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/[0.04]">
+                <tr v-for="(item, idx) in displayEquipmentItems" :key="idx">
+                  <td class="px-4 py-2.5 text-xs font-semibold text-black/40">{{ idx + 1 }}</td>
+                  <td class="px-4 py-2.5 text-sm font-medium text-black">{{ item.equipmentName || '—' }}</td>
+                  <td class="px-4 py-2.5 text-sm text-black">{{ item.brand || '—' }}</td>
+                  <td class="px-4 py-2.5 text-sm text-black">{{ item.model || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <dl v-if="contract.productSnapshot || contract.prsClosingOutcome" class="grid gap-4 px-8 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <div v-if="contract.productSnapshot">
             <dt class="text-sm font-semibold">Product Category</dt>
@@ -323,38 +362,11 @@ onClickOutside(suggestionsContainer, () => {
           <p v-if="touched.sbuNumber && !editForm.sbuNumber" class="text-xs text-red-500">SBU number is required.</p>
         </div>
 
-        <!-- Equipment / Machine Name -->
-        <div class="flex flex-col gap-1.5 md:col-span-2">
-          <label class="text-xs font-semibold text-black/50">Equipment / Machine Name <span class="font-normal text-black/35">(Optional)</span></label>
-          <input
-            v-model="editForm.equipmentName"
-            type="text"
-            placeholder="Optional for software products"
-            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
-          />
-        </div>
-
-        <!-- Brand -->
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-black/50">Brand</label>
-          <input
-            v-model="editForm.brand"
-            type="text"
-            placeholder="e.g. Sysmex"
-            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
-          />
-        </div>
-
-        <!-- Model -->
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-semibold text-black/50">Model</label>
-          <input
-            v-model="editForm.model"
-            type="text"
-            placeholder="e.g. XN-1000"
-            class="h-9 rounded-lg border border-black/12 px-3 text-sm placeholder:text-black/25 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15 transition mt-1"
-          />
-        </div>
+        <!-- Equipment / Machine Name, Brand, Model (Repeatable Rows) -->
+        <EquipmentItemsInput
+          v-model="editForm.equipmentItems"
+          :required="false"
+        />
       </div>
     </div>
 

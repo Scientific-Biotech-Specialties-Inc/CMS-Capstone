@@ -252,6 +252,15 @@ function mapApiToContract(data: any): StoredContract {
     equipmentName:   data.equipment_name ?? '',
     brand:           data.brand ?? '',
     model:           data.model ?? '',
+    equipmentItems:  Array.isArray(data.equipment_items) && data.equipment_items.length > 0
+      ? data.equipment_items.map((item: any) => ({
+          equipmentName: item?.equipment_name ?? item?.equipmentName ?? '',
+          brand: item?.brand ?? '',
+          model: item?.model ?? '',
+        }))
+      : (data.equipment_name || data.brand || data.model
+          ? [{ equipmentName: data.equipment_name ?? '', brand: data.brand ?? '', model: data.model ?? '' }]
+          : []),
     region:          (data.region ?? '') as ContractRegion,
     startDate:       data.start_date ?? '',
     endDate:         data.end_date ?? '',
@@ -458,6 +467,9 @@ onMounted(async () => {
       equipmentName:   draft.form.equipmentName,
       brand:           draft.form.brand,
       model:           draft.form.model,
+      equipmentItems:  draft.form.equipmentItems && draft.form.equipmentItems.length > 0
+        ? draft.form.equipmentItems.map(item => ({ ...item }))
+        : [{ equipmentName: draft.form.equipmentName ?? '', brand: draft.form.brand ?? '', model: draft.form.model ?? '' }],
       region:          draft.form.region,
       startDate:       draft.form.startDate,
       endDate:         draft.form.endDate,
@@ -717,6 +729,7 @@ const editForm = reactive({
   equipmentName:   '',
   brand:           '',
   model:           '',
+  equipmentItems:  [{ equipmentName: '', brand: '', model: '' }] as Array<{ equipmentName: string; brand: string; model: string }>,
   region:          '' as ContractRegion | '',
   startDate:       '',
   endDate:         '',
@@ -776,6 +789,13 @@ function startEdit() {
     equipmentName:   contract.value.equipmentName ?? '',
     brand:           contract.value.brand ?? '',
     model:           contract.value.model ?? '',
+    equipmentItems:  contract.value.equipmentItems && contract.value.equipmentItems.length > 0
+      ? contract.value.equipmentItems.map(item => ({ ...item }))
+      : [{
+          equipmentName: contract.value.equipmentName ?? '',
+          brand: contract.value.brand ?? '',
+          model: contract.value.model ?? '',
+        }],
     region:          contract.value.region,
     startDate:       contract.value.startDate,
     endDate:         contract.value.endDate,
@@ -815,9 +835,16 @@ async function confirmSaveEdit() {
       serial_number: editForm.serialNo,
       sbu_number:    editForm.sbuNumber,
       sbsi_branch:   editForm.sbsiBranch || null,
-      equipment_name: editForm.equipmentName.trim() || null,
-      brand:         editForm.brand.trim() || null,
-      model:         editForm.model.trim() || null,
+      equipment_name: String(editForm.equipmentItems[0]?.equipmentName || '').trim() || null,
+      brand:         String(editForm.equipmentItems[0]?.brand || '').trim() || null,
+      model:         String(editForm.equipmentItems[0]?.model || '').trim() || null,
+      equipment_items: editForm.equipmentItems
+        .map(item => ({
+          equipment_name: String(item.equipmentName || '').trim() || null,
+          brand: String(item.brand || '').trim() || null,
+          model: String(item.model || '').trim() || null,
+        }))
+        .filter(item => item.equipment_name || item.brand || item.model),
       region:        editForm.region,
       start_date:    editForm.startDate,
       end_date:      editForm.endDate,

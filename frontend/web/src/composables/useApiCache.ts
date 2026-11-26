@@ -160,6 +160,15 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
     equipmentName: d.equipment_name ?? '',
     brand: d.brand ?? '',
     model: d.model ?? '',
+    equipmentItems: Array.isArray(d.equipment_items) && d.equipment_items.length > 0
+      ? d.equipment_items.map((item: any) => ({
+          equipmentName: item?.equipment_name ?? item?.equipmentName ?? '',
+          brand: item?.brand ?? '',
+          model: item?.model ?? '',
+        }))
+      : (d.equipment_name || d.brand || d.model
+          ? [{ equipmentName: d.equipment_name ?? '', brand: d.brand ?? '', model: d.model ?? '' }]
+          : []),
     region: (d.region ?? 'Luzon') as ContractRegion,
     startDate: d.start_date ?? '',
     endDate: d.end_date ?? '',
@@ -253,6 +262,15 @@ function mapApiToRequest(d: any, currentUserId: number | null, firstName?: strin
     equipmentName: d.equipment_name ?? '',
     brand: d.brand ?? '',
     model: d.model ?? '',
+    equipmentItems: Array.isArray(d.equipment_items) && d.equipment_items.length > 0
+      ? d.equipment_items.map((item: any) => ({
+          equipmentName: item?.equipment_name ?? item?.equipmentName ?? '',
+          brand: item?.brand ?? '',
+          model: item?.model ?? '',
+        }))
+      : (d.equipment_name || d.brand || d.model
+          ? [{ equipmentName: d.equipment_name ?? '', brand: d.brand ?? '', model: d.model ?? '' }]
+          : []),
     prsActivityId: d.prs_activity_id ? Number(d.prs_activity_id) : undefined,
     sourceSystem: d.source_system ?? null,
     sourceReferenceId: d.source_reference_id ?? null,

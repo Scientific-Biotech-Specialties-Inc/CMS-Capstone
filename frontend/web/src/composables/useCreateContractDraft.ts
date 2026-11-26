@@ -1,5 +1,9 @@
 import { reactive } from 'vue'
-import type { ContractRegion, UploadedDoc } from '@/types/contract'
+import type { ContractRegion, EquipmentItem, UploadedDoc } from '@/types/contract'
+
+function emptyEquipmentRow(): EquipmentItem {
+  return { equipmentName: '', brand: '', model: '' }
+}
 
 export interface DraftForm {
   businessPartner: string
@@ -12,6 +16,7 @@ export interface DraftForm {
   equipmentName:   string
   brand:           string
   model:           string
+  equipmentItems?: EquipmentItem[]
   region:          ContractRegion | ''
   startDate:       string
   endDate:         string
@@ -63,6 +68,7 @@ const draft = reactive<Draft>({
     equipmentName: '',
     brand: '',
     model: '',
+    equipmentItems: [emptyEquipmentRow()],
     region: '',
     startDate: '',
     endDate: '',
@@ -95,7 +101,10 @@ export interface SaveDraftTarget {
 
 export function useCreateContractDraft() {
   function saveDraft(form: DraftForm, docs: UploadedDoc[], role: Draft['role'], target?: SaveDraftTarget) {
-    draft.form = { ...form }
+    const clonedItems = form.equipmentItems && form.equipmentItems.length > 0
+      ? form.equipmentItems.map(item => ({ ...item }))
+      : [{ equipmentName: form.equipmentName || '', brand: form.brand || '', model: form.model || '' }]
+    draft.form = { ...form, equipmentItems: clonedItems }
     draft.docs   = [...docs]
     draft.role   = role
     draft.targetContractId = target?.targetContractId
@@ -106,7 +115,11 @@ export function useCreateContractDraft() {
   }
 
   function restoreDraft() {
-    return draft.active ? { ...draft, docs: [...draft.docs] } : null
+    if (!draft.active) return null
+    const clonedItems = draft.form.equipmentItems && draft.form.equipmentItems.length > 0
+      ? draft.form.equipmentItems.map(item => ({ ...item }))
+      : [{ equipmentName: draft.form.equipmentName || '', brand: draft.form.brand || '', model: draft.form.model || '' }]
+    return { ...draft, form: { ...draft.form, equipmentItems: clonedItems }, docs: [...draft.docs] }
   }
 
   function setGeneratedDoc(doc: GeneratedDocument | null) {
@@ -132,8 +145,12 @@ export function useCreateContractDraft() {
     draft.targetContractDbId = undefined
     draft.returnPath = undefined
     draft.returnEditMode = false
-    Object.keys(draft.form).forEach(k => { 
-      (draft.form as any)[k] = '' 
+    Object.keys(draft.form).forEach(k => {
+      if (k === 'equipmentItems') {
+        draft.form.equipmentItems = [emptyEquipmentRow()]
+      } else {
+        (draft.form as any)[k] = ''
+      }
     })
   }
 

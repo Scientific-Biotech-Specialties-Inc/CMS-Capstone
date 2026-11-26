@@ -20,6 +20,12 @@ export type ContractRegion = 'Luzon' | 'Visayas' | 'Mindanao'
 export type FilterTab = 'all' | 'draft' | ContractLifecycleStatus
 export type StatusFilter   = '' | ContractApprovalStatus | ContractWorkflowStatus
 
+export interface EquipmentItem {
+  equipmentName: string
+  brand:         string
+  model:         string
+}
+
 export interface Contract {
   prsClosingOutcome?: 'Won' | 'Loss' | 'Follow-up' | null
   productSnapshot?: {
@@ -40,6 +46,7 @@ export interface Contract {
   equipmentName?:  string
   brand?:          string
   model?:          string
+  equipmentItems?: EquipmentItem[]
   region:          ContractRegion
   startDate:       string
   endDate:         string

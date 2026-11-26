@@ -9,7 +9,8 @@ import { readPrsContractLink, usePrsContractHandoff, type CatalogProduct } from 
 import ProductCatalogSelect from '@/components/shared/ProductCatalogSelect.vue'
 import { useApiCache } from '@/composables/useApiCache'
 import DocumentUpload from '@/views/sales/Contracts/DocumentUpload.vue'
-import type { ContractRegion, UploadedDoc } from '@/types/contract'
+import type { ContractRegion, EquipmentItem, UploadedDoc } from '@/types/contract'
+import EquipmentItemsInput from '@/components/shared/EquipmentItemsInput.vue'
 import type { OcrExtractedData } from '@/types/ocr'
 import { useCreateContractDraft } from '@/composables/useCreateContractDraft'
 import OcrImportDialog from '@/views/admin/Contracts/OcrImportDialog.vue'
@@ -137,6 +138,7 @@ interface FormState {
   equipmentName:   string
   brand:           string
   model:           string
+  equipmentItems:  EquipmentItem[]
   region:          ContractRegion | ''
   startDate:       string
   endDate:         string
@@ -153,6 +155,7 @@ const form = reactive<FormState>({
   equipmentName:   '',
   brand:           '',
   model:           '',
+  equipmentItems:  [{ equipmentName: '', brand: '', model: '' }],
   region:          '',
   startDate:       '',
   endDate:         '',
@@ -173,6 +176,7 @@ const touched = reactive<Record<keyof FormState, boolean>>({
   equipmentName:   false,
   brand:           false,
   model:           false,
+  equipmentItems:  false,
   region:          false,
   startDate:       false,
   endDate:         false,
@@ -253,8 +257,49 @@ const categories = computed(() => contractTypes.value)
 
 const regions: ContractRegion[] = ['Luzon', 'Visayas', 'Mindanao']
 
+const equipmentTouched = ref<Array<{ brand: boolean; model: boolean }>>([{ brand: false, model: false }])
+
+watch(
+  () => form.equipmentItems,
+  (items) => {
+    const first = items[0]
+    form.equipmentName = first?.equipmentName ?? ''
+    form.brand = first?.brand ?? ''
+    form.model = first?.model ?? ''
+    while (equipmentTouched.value.length < items.length) {
+      equipmentTouched.value.push({ brand: false, model: false })
+    }
+  },
+  { deep: true }
+)
+
+const equipmentErrors = computed(() =>
+  form.equipmentItems.map((item, idx) => ({
+    brand: equipmentTouched.value[idx]?.brand && !String(item.brand || '').trim() ? 'Brand is required.' : '',
+    model: equipmentTouched.value[idx]?.model && !String(item.model || '').trim() ? 'Model is required.' : '',
+  }))
+)
+
+function handleEquipmentBlur(index: number, field: keyof EquipmentItem) {
+  if (field === 'brand' || field === 'model') {
+    if (!equipmentTouched.value[index]) {
+      equipmentTouched.value[index] = { brand: false, model: false }
+    }
+    equipmentTouched.value[index][field] = true
+  }
+}
+
+function handleAddEquipmentRow() {
+  equipmentTouched.value.push({ brand: false, model: false })
+}
+
+function handleRemoveEquipmentRow(index: number) {
+  equipmentTouched.value.splice(index, 1)
+}
+
 function touchAll() {
   (Object.keys(touched) as (keyof FormState)[]).forEach(k => { touched[k] = true })
+  equipmentTouched.value = form.equipmentItems.map(() => ({ brand: true, model: true }))
 }
 
 function isValid() {
@@ -269,8 +314,8 @@ function isValid() {
     !existingSerialNumbers.value.has(form.serialNo.trim().toLowerCase()) &&
     form.sbuNumber.trim() && /^SBU-\d{3}$/.test(form.sbuNumber.trim()) &&
     form.sbsiBranch &&
-    form.brand.trim() &&
-    form.model.trim() &&
+    form.equipmentItems.length > 0 &&
+    form.equipmentItems.every(item => String(item.brand || '').trim() && String(item.model || '').trim()) &&
     form.region &&
     form.startDate && form.startDate >= minDate && form.startDate <= maxDate &&
     form.endDate && form.endDate <= maxDate &&
@@ -352,9 +397,14 @@ async function handleSubmit() {
       serial_number: form.serialNo,
       sbu_number:    form.sbuNumber,
       sbsi_branch:   form.sbsiBranch,
-      equipment_name: form.equipmentName.trim() || null,
-      brand:         form.brand.trim(),
-      model:         form.model.trim(),
+      equipment_name: String(form.equipmentItems[0]?.equipmentName || '').trim() || null,
+      brand:         String(form.equipmentItems[0]?.brand || '').trim(),
+      model:         String(form.equipmentItems[0]?.model || '').trim(),
+      equipment_items: form.equipmentItems.map(item => ({
+        equipment_name: String(item.equipmentName || '').trim() || null,
+        brand: String(item.brand || '').trim(),
+        model: String(item.model || '').trim(),
+      })),
       region:        form.region,
       start_date:    form.startDate,
       end_date:      form.endDate,
@@ -517,10 +567,13 @@ function handleProductSelect(p: CatalogProduct) {
   form.itemCode = p.productCode
   form.sbuNumber = p.sbuNumber
   form.description = p.description || p.productName
-  form.equipmentName = p.productName
   if (p.serialNumber) form.serialNo = p.serialNumber
-  if (p.brand || p.manufacturer) form.brand = p.brand ?? p.manufacturer ?? ''
-  if (p.model) form.model = p.model
+  const existingFirst = form.equipmentItems[0] ?? { equipmentName: '', brand: '', model: '' }
+  form.equipmentItems[0] = {
+    equipmentName: p.productName,
+    brand: (p.brand || p.manufacturer) ? (p.brand ?? p.manufacturer ?? '') : existingFirst.brand,
+    model: p.model ? p.model : existingFirst.model,
+  }
 }
 
 function handleProductClear() {
@@ -694,44 +747,15 @@ onClickOutside(suggestionsContainer, () => {
             <p v-if="errors.sbuNumber" class="text-xs text-red-500">{{ errors.sbuNumber }}</p>
           </div>
 
-          <!-- Equipment / Machine Name (optional for software products) -->
-          <div class="flex flex-col gap-1.5 md:col-span-2">
-            <label class="text-xs font-semibold text-black/55">Equipment / Machine Name <span class="font-normal text-black/40">(Optional for software products)</span></label>
-            <input
-              v-model="form.equipmentName"
-              type="text"
-              placeholder="e.g., Sysmex XN-1000 Hematology Analyzer"
-              class="h-10 rounded-lg border border-black/12 bg-white px-3.5 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2 focus:border-brand-blue focus:ring-brand-blue/15"
-            />
-          </div>
-
-          <!-- Brand -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-black/55">Brand <span class="text-red-500">*</span></label>
-            <input
-              v-model="form.brand"
-              type="text"
-              placeholder="e.g., Sysmex"
-              @blur="touched.brand = true"
-              class="h-10 rounded-lg border bg-white px-3.5 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2"
-              :class="errors.brand ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
-            />
-            <p v-if="errors.brand" class="text-xs text-red-500">{{ errors.brand }}</p>
-          </div>
-
-          <!-- Model -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-black/55">Model <span class="text-red-500">*</span></label>
-            <input
-              v-model="form.model"
-              type="text"
-              placeholder="e.g., XN-1000"
-              @blur="touched.model = true"
-              class="h-10 rounded-lg border bg-white px-3.5 text-sm text-black placeholder:text-black/30 focus:outline-none focus:ring-2"
-              :class="errors.model ? 'border-red-400 focus:border-red-400 focus:ring-red-400/15' : 'border-black/12 focus:border-brand-blue focus:ring-brand-blue/15'"
-            />
-            <p v-if="errors.model" class="text-xs text-red-500">{{ errors.model }}</p>
-          </div>
+          <!-- Equipment / Machine Name, Brand, Model (Repeatable Rows) -->
+          <EquipmentItemsInput
+            v-model="form.equipmentItems"
+            :errors="equipmentErrors"
+            size="md"
+            @blur-field="handleEquipmentBlur"
+            @add-row="handleAddEquipmentRow"
+            @remove-row="handleRemoveEquipmentRow"
+          />
 
         </div>
       </div>

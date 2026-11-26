@@ -1,4 +1,4 @@
-import type { UploadedDoc, SupportingExpenseSummary } from './contract'
+import type { EquipmentItem, UploadedDoc, SupportingExpenseSummary } from './contract'
 
 export type RequestStatus   = 'Pending' | 'Under Review' | 'Approved' | 'Rejected'
 export type RequestFilterTab = 'all' | 'pending' | 'reviewing' | 'approved' | 'rejected'
@@ -28,6 +28,7 @@ export interface ContractRequest {
   equipmentName?:   string
   brand?:           string
   model?:           string
+  equipmentItems?:  EquipmentItem[]
   prsActivityId?:   number
   sourceSystem?:    string | null
   sourceReferenceId?: string | null
