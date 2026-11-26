@@ -14,7 +14,7 @@ type Role   = 'Admin' | 'Manager' | 'Sales'
 type Status = 'Active' | 'Inactive'
 
 interface DashUser {
-  id: string; name: string; email: string; role: Role; status: Status
+  id: string; name: string; email: string; role: Role; status: Status; createdAt?: string | null
 }
 
 interface PartnerItem {
@@ -130,6 +130,7 @@ async function fetchAdminDashboard() {
           email: u.email,
           role: normalizeRole(u.profile?.role?.name || 'Unknown'),
           status: (u.is_active ? 'Active' : 'Inactive') as Status,
+          createdAt: u.created_at ?? null,
         }))
       }
     }

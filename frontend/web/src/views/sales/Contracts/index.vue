@@ -10,7 +10,9 @@ import SalesContractsTable  from './SalesContractsTable.vue'
 import { contractLifecycle, remainingDays } from '@/types/contract'
 import type { ContractWithDays, StatusFilter, FilterTab } from '@/types/contract'
 import { sortContractsForAll } from '@/utils/contractSort'
+import { computeContractStatDeltas } from '@/utils/statDelta'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
+import StatDeltaPill from '@/components/shared/StatDeltaPill.vue'
 
 const router = useRouter()
 const { success, error } = useToast()
@@ -47,12 +49,14 @@ const statCards = computed(() => {
   }
 })
 
+const contractDeltas = computed(() => computeContractStatDeltas(withDays.value))
+
 const statCardList = computed(() => [
-  { label: 'My Contracts',  value: statCards.value.total,    valueClass: 'text-black', change: '+2.1%', positive: true },
-  { label: 'Active',        value: statCards.value.active,   valueClass: 'text-black', change: '+4.0%', positive: true },
-  { label: 'Inactive',      value: statCards.value.inactive, valueClass: 'text-black', change: '+0.5%', positive: true },
-  { label: 'Expiring Soon', value: statCards.value.expiring, valueClass: 'text-black', change: '+5.2%', positive: true },
-  { label: 'Expired',       value: statCards.value.expired,  valueClass: 'text-black', change: '-1.3%', positive: false },
+  { label: 'My Contracts',  value: statCards.value.total,    valueClass: 'text-black', delta: contractDeltas.value.total },
+  { label: 'Active',        value: statCards.value.active,   valueClass: 'text-black', delta: contractDeltas.value.active },
+  { label: 'Inactive',      value: statCards.value.inactive, valueClass: 'text-black', delta: contractDeltas.value.inactive },
+  { label: 'Expiring Soon', value: statCards.value.expiring, valueClass: 'text-black', delta: contractDeltas.value.expiring },
+  { label: 'Expired',       value: statCards.value.expired,  valueClass: 'text-black', delta: contractDeltas.value.expired },
 ])
 
 const approvalStatuses = new Set(['Draft', 'Pending', 'Approved', 'Rejected'])
@@ -240,10 +244,7 @@ async function executeApprove() {
           <p class="text-xs font-medium text-black/40 uppercase tracking-wide mb-3">{{ card.label }}</p>
           <div class="flex items-end justify-between gap-2">
             <span class="text-3xl font-semibold tabular-nums" :class="card.valueClass">{{ card.value }}</span>
-            <span class="text-xs font-medium px-2 py-0.5 rounded-md mb-0.5 shrink-0"
-              :class="card.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
-              {{ card.change }}
-            </span>
+            <StatDeltaPill :delta="card.delta" />
           </div>
         </div>
       </template>

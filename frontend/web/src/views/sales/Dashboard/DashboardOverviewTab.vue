@@ -5,7 +5,9 @@ import type { Contract } from '@/types/contract'
 import type { ContractRequest } from '@/types/contractRequest'
 import TimeFilterBar from '@/components/shared/TimeFilterBar.vue'
 import YearFilterSelect from '@/components/shared/YearFilterSelect.vue'
+import StatDeltaPill from '@/components/shared/StatDeltaPill.vue'
 import { useTimeFilter, isWithinRange, dateRangeFor, yearRange, parseLocalDate } from '@/composables/useTimeFilter'
+import { computeContractStatDeltas, computeRequestStatDeltas } from '@/utils/statDelta'
 import RecentRequestsTable from './RecentRequestsTable.vue'
 import ContractStatusPanel from './ContractStatusPanel.vue'
 import SalesTrendChart from './SalesTrendChart.vue'
@@ -64,12 +66,28 @@ const scopedRequests = computed(() => {
 
 const recentRequests = computed(() => props.requests.slice(0, 6))
 
-const statCards = computed(() => [
-  { label: 'My Contracts',    value: scopedContracts.value.filter(c => c.approvalStatus === 'Approved').length },
-  { label: 'Pending',         value: scopedRequests.value.filter(r => r.status === 'Pending' || r.status === 'Under Review').length },
-  { label: 'Expiring Soon',   value: scopedContracts.value.filter(c => contractLifecycle(c) === 'expiring').length },
-  { label: 'Approved',        value: scopedRequests.value.filter(r => r.status === 'Approved').length },
-])
+const statCards = computed(() => {
+  const approvedContractDeltas = computeContractStatDeltas(props.contracts, {
+    filter: filter.value,
+    selectedYear: selectedYear.value,
+    approvedOnly: true,
+  })
+  const allContractDeltas = computeContractStatDeltas(props.contracts, {
+    filter: filter.value,
+    selectedYear: selectedYear.value,
+  })
+  const requestDeltas = computeRequestStatDeltas(props.requests, {
+    filter: filter.value,
+    selectedYear: selectedYear.value,
+  })
+
+  return [
+    { label: 'My Contracts',  value: scopedContracts.value.filter(c => c.approvalStatus === 'Approved').length, delta: approvedContractDeltas.total },
+    { label: 'Pending',       value: scopedRequests.value.filter(r => r.status === 'Pending' || r.status === 'Under Review').length, delta: requestDeltas.pendingOrReviewing },
+    { label: 'Expiring Soon', value: scopedContracts.value.filter(c => contractLifecycle(c) === 'expiring').length, delta: allContractDeltas.expiring },
+    { label: 'Approved',      value: scopedRequests.value.filter(r => r.status === 'Approved').length, delta: requestDeltas.approved },
+  ]
+})
 </script>
 
 <template>
@@ -87,7 +105,10 @@ const statCards = computed(() => [
       <div v-for="card in statCards" :key="card.label"
         class="bg-white rounded-lg border border-black/8 px-6 py-5 shadow-sm">
         <p class="text-xs font-medium text-black/40 uppercase tracking-wide mb-3">{{ card.label }}</p>
-        <p class="text-3xl font-semibold tabular-nums text-black">{{ card.value }}</p>
+        <div class="flex items-end justify-between gap-2">
+          <span class="text-3xl font-semibold tabular-nums text-black">{{ card.value }}</span>
+          <StatDeltaPill :delta="card.delta" />
+        </div>
       </div>
     </div>
 

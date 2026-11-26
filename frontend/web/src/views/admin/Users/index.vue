@@ -16,6 +16,8 @@ import DeleteUserDialog from './DeleteUserDialog.vue'
 import type { User, Role, Status } from '@/types/user'
 import { buildRoleTabs, pluralRoleName } from '@/types/user'
 import ConfirmationDialog from '@/components/shared/ConfirmationDialog.vue'
+import StatDeltaPill from '@/components/shared/StatDeltaPill.vue'
+import { computeUserStatDeltas } from '@/utils/statDelta'
 
 const { success, error } = useToast()
 const { withLoading }    = useLoader()
@@ -106,7 +108,8 @@ async function fetchUsers() {
         role: u.profile?.role?.name || 'Unknown',
         department: u.profile?.department?.name || 'Unknown',
         status: (u.is_active ? 'Active' : 'Inactive') as Status,
-        dateAdded: new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        dateAdded: new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        createdAt: u.created_at ?? null,
       }))
     }
   } catch (err) {
@@ -123,30 +126,25 @@ onMounted(() => {
   fetchRoleSystems()
 })
 
-// Stat cards stay in sync with the dynamic tabs: All users plus one per
-// CMS-accessible role. Known roles keep their historic delta pills;
-// newly granted roles show a neutral "new" pill.
-const KNOWN_CARD_DELTAS: Record<string, { change: string; positive: boolean }> = {
-  Admin:    { change: '+2.1%', positive: true  },
-  Manager:  { change: '-0.3%', positive: false },
-  Employee: { change: '+5.2%', positive: true  },
-}
-
 // Canonical role display order to match the Role Cards hierarchy.
 const ROLE_SORT_ORDER: Record<string, number> = {
   Admin: 0, Manager: 1, Sales: 2, Employee: 3,
 }
 
-const statCards = computed(() => [
-  { label: 'All users', value: users.value.length, change: '+4.0%', positive: true },
-  ...[...cmsRoleNames.value]
+const statCards = computed(() => {
+  const sortedRoles = [...cmsRoleNames.value]
     .sort((a, b) => (ROLE_SORT_ORDER[a] ?? 99) - (ROLE_SORT_ORDER[b] ?? 99))
-    .map(name => ({
+  const deltas = computeUserStatDeltas(users.value, sortedRoles)
+
+  return [
+    { label: 'All users', value: users.value.length, delta: deltas.total },
+    ...sortedRoles.map(name => ({
       label: pluralRoleName(name),
       value: users.value.filter(u => u.role === name).length,
-      ...(KNOWN_CARD_DELTAS[name] ?? { change: 'new', positive: true }),
+      delta: deltas.byRole[name]!,
     })),
-])
+  ]
+})
 
 type TabValue = string
 const activeTab   = ref<TabValue>('all')
@@ -392,10 +390,7 @@ async function executeExport() {
           <p class="text-xs font-medium text-black/40 mb-3 uppercase tracking-wide">{{ card.label }}</p>
           <div class="flex items-end justify-between gap-2">
             <span class="text-3xl font-semibold text-black tabular-nums">{{ card.value }}</span>
-            <span class="text-xs font-medium px-2 py-0.5 rounded-md mb-0.5 shrink-0"
-              :class="card.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
-              {{ card.change }}
-            </span>
+            <StatDeltaPill :delta="card.delta" />
           </div>
         </div>
       </template>

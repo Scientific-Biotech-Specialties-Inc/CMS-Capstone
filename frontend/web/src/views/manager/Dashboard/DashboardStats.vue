@@ -2,10 +2,23 @@
 import { computed } from 'vue'
 import { contractLifecycle } from '@/types/contract'
 import type { Contract } from '@/types/contract'
+import { TIME_FILTER_LABELS, type TimeFilterOption } from '@/composables/useTimeFilter'
+import { computeContractStatDeltas } from '@/utils/statDelta'
+import StatDeltaPill from '@/components/shared/StatDeltaPill.vue'
 
 const props = defineProps<{
   contracts: (Contract & { days: number })[]
+  allContracts?: (Contract & { days: number })[]
+  timeFilter?: TimeFilterOption
+  selectedYear?: number | null
 }>()
+
+const periodCaption = computed(() => {
+  if (props.selectedYear !== null && props.selectedYear !== undefined) {
+    return `Year ${props.selectedYear}`
+  }
+  return TIME_FILTER_LABELS[props.timeFilter ?? 'all']
+})
 
 const stats = computed(() => {
   const approvedContracts = props.contracts.filter(c => c.approvalStatus === 'Approved')
@@ -14,11 +27,17 @@ const stats = computed(() => {
   const expiring = approvedContracts.filter(c => contractLifecycle(c) === 'expiring').length
   const expired = approvedContracts.filter(c => contractLifecycle(c) === 'expired').length
 
+  const deltas = computeContractStatDeltas(props.allContracts ?? props.contracts, {
+    filter: props.timeFilter ?? 'all',
+    selectedYear: props.selectedYear ?? null,
+    approvedOnly: true,
+  })
+
   return [
-    { label: 'Total Contracts', value: String(total), change: '+12.5%', positive: true,  sub: 'All time' },
-    { label: 'Active',          value: String(active), change: '+8.3%',  positive: true,  sub: 'Currently running' },
-    { label: 'Expiring Soon',    value: String(expiring), change: '+22.2%', positive: false, sub: 'Within 30 days' },
-    { label: 'Expired',          value: String(expired), change: '-5.0%',  positive: true,  sub: 'Past end date' },
+    { label: 'Total Contracts', value: String(total), delta: deltas.total, sub: periodCaption.value },
+    { label: 'Active',          value: String(active), delta: deltas.active, sub: 'Currently running' },
+    { label: 'Expiring Soon',   value: String(expiring), delta: deltas.expiring, sub: 'Within 30 days' },
+    { label: 'Expired',         value: String(expired), delta: deltas.expired, sub: 'Past end date' },
   ]
 })
 </script>
@@ -33,12 +52,7 @@ const stats = computed(() => {
       <p class="text-xs font-medium text-black/40 mb-3 uppercase tracking-wide">{{ s.label }}</p>
       <div class="flex items-end justify-between gap-2">
         <span class="text-3xl font-semibold text-black tabular-nums">{{ s.value }}</span>
-        <span
-          class="text-xs font-medium px-2 py-0.5 rounded-md mb-0.5 shrink-0"
-          :class="s.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'"
-        >
-          {{ s.change }}
-        </span>
+        <StatDeltaPill :delta="s.delta" />
       </div>
       <p class="text-[10px] text-black/30 mt-1.5">{{ s.sub }}</p>
     </div>

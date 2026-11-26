@@ -12,6 +12,7 @@ export interface User {
   role:      Role
   status:    Status
   dateAdded: string
+  createdAt?: string | null
   department?: string
 }
 

@@ -43,6 +43,7 @@ export interface Contract {
   region:          ContractRegion
   startDate:       string
   endDate:         string
+  createdAt?:      string | null
   approvalStatus:  ContractApprovalStatus
   workflowStatus:  ContractWorkflowStatus | null
   lifecycleStatus?: ContractLifecycleStatus

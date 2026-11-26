@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
 import SalesRequestsTable      from './SalesRequestsTable.vue'
+import StatDeltaPill           from '@/components/shared/StatDeltaPill.vue'
 import type { ContractRequest, RequestFilterTab } from '@/types/contractRequest'
+import { computeRequestStatDeltas } from '@/utils/statDelta'
 
 const { success, error } = useToast()
 const { state: authState, hasPermission } = useAuth()
@@ -44,11 +46,13 @@ const statCards = computed(() => ({
   approved:  requests.value.filter(r => r.status === 'Approved').length,
 }))
 
+const requestDeltas = computed(() => computeRequestStatDeltas(requests.value))
+
 const statCardList = computed(() => [
-  { label: 'Total Requests', value: statCards.value.total,     valueClass: 'text-black', change: '+3.2%', positive: true },
-  { label: 'Pending',        value: statCards.value.pending,   valueClass: 'text-black', change: '+1.8%', positive: true },
-  { label: 'Under Review',   value: statCards.value.reviewing, valueClass: 'text-black', change: '+2.5%', positive: true },
-  { label: 'Approved',       value: statCards.value.approved,  valueClass: 'text-black', change: '+4.1%', positive: true },
+  { label: 'Total Requests', value: statCards.value.total,     valueClass: 'text-black', delta: requestDeltas.value.total },
+  { label: 'Pending',        value: statCards.value.pending,   valueClass: 'text-black', delta: requestDeltas.value.pending },
+  { label: 'Under Review',   value: statCards.value.reviewing, valueClass: 'text-black', delta: requestDeltas.value.reviewing },
+  { label: 'Approved',       value: statCards.value.approved,  valueClass: 'text-black', delta: requestDeltas.value.approved },
 ])
 
 const filtered = computed(() => {
@@ -118,10 +122,7 @@ function handleFollowUp(id: string) {
           <p class="text-xs font-medium text-black/40 uppercase tracking-wide mb-3">{{ card.label }}</p>
           <div class="flex items-end justify-between gap-2">
             <span class="text-3xl font-semibold tabular-nums" :class="card.valueClass">{{ card.value }}</span>
-            <span class="text-xs font-medium px-2 py-0.5 rounded-md mb-0.5 shrink-0"
-              :class="card.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
-              {{ card.change }}
-            </span>
+            <StatDeltaPill :delta="card.delta" />
           </div>
         </div>
       </template>

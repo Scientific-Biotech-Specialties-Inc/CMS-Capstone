@@ -163,6 +163,7 @@ function mapApiContract(d: any, currentUserId: number | null, firstName?: string
     region: (d.region ?? 'Luzon') as ContractRegion,
     startDate: d.start_date ?? '',
     endDate: d.end_date ?? '',
+    createdAt: d.created_at ?? null,
     approvalStatus: (d.approval_status ?? 'Pending') as ContractApprovalStatus,
     workflowStatus: (d.workflow_status ?? null) as ContractWorkflowStatus | null,
     lifecycleStatus: d.lifecycle_status,

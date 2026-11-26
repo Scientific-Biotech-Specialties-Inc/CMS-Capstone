@@ -71,7 +71,12 @@ const scopedContracts = computed(() => {
       </div>
     </div>
 
-    <DashboardStats :contracts="scopedContracts" />
+    <DashboardStats
+      :contracts="scopedContracts"
+      :all-contracts="contracts"
+      :time-filter="filter"
+      :selected-year="selectedYear"
+    />
 
     <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
       <div class="xl:col-span-3"><ContractTrendChart :contracts="contracts" :time-filter="filter" :year="selectedYear" /></div>

@@ -18,7 +18,7 @@ import UsersList from './UsersList.vue'
 type Role   = 'Admin' | 'Manager' | 'Sales'
 type Status = 'Active' | 'Inactive'
 
-interface DashUser { id: string; name: string; email: string; role: Role; status: Status }
+interface DashUser { id: string; name: string; email: string; role: Role; status: Status; createdAt?: string | null }
 interface PartnerItem { id: string; name: string; region: string; status: string; type: 'Partner' | 'Supplier'; createdAt: string | null }
 interface AuditLog { action: string; user: string; timestamp: string; type: 'create' | 'update' | 'approve' | 'delete' }
 
@@ -77,7 +77,14 @@ const scopedContracts = computed(() => {
     </div>
 
     <!-- Stats Summary cards (scoped to selected time window) -->
-    <DashboardStats :contracts="scopedContracts" :employees-count="users.length" />
+    <DashboardStats
+      :contracts="scopedContracts"
+      :all-contracts="contracts"
+      :users="users"
+      :employees-count="users.length"
+      :time-filter="filter"
+      :selected-year="selectedYear"
+    />
 
     <!-- Monthly Trend chart + Status donut chart -->
     <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
