@@ -1,0 +1,313 @@
+{
+  "displayNarration": "Every uploaded contract can be scanned by AI Risk Assessment. Using RAG over SBSI's 14-clause playbook — from FDA compliance to Data Privacy Act RA 10173 — it flags Low to Critical deviations with exact citations, plain-language reasons, remediation advice, and one-click PDF export.",
+  "captions": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 325,
+      "timestampMs": 163,
+      "confidence": 1
+    },
+    {
+      "text": " uploaded",
+      "startMs": 406,
+      "endMs": 871,
+      "timestampMs": 639,
+      "confidence": 1
+    },
+    {
+      "text": " contract",
+      "startMs": 929,
+      "endMs": 1428,
+      "timestampMs": 1179,
+      "confidence": 1
+    },
+    {
+      "text": " can",
+      "startMs": 1486,
+      "endMs": 1602,
+      "timestampMs": 1544,
+      "confidence": 1
+    },
+    {
+      "text": " be",
+      "startMs": 1649,
+      "endMs": 1730,
+      "timestampMs": 1690,
+      "confidence": 1
+    },
+    {
+      "text": " scanned",
+      "startMs": 1776,
+      "endMs": 2159,
+      "timestampMs": 1968,
+      "confidence": 1
+    },
+    {
+      "text": " by",
+      "startMs": 2206,
+      "endMs": 2334,
+      "timestampMs": 2270,
+      "confidence": 1
+    },
+    {
+      "text": " AI",
+      "startMs": 2403,
+      "endMs": 2682,
+      "timestampMs": 2543,
+      "confidence": 1
+    },
+    {
+      "text": " Risk",
+      "startMs": 2763,
+      "endMs": 2995,
+      "timestampMs": 2879,
+      "confidence": 1
+    },
+    {
+      "text": " Assessment.",
+      "startMs": 3042,
+      "endMs": 3762,
+      "timestampMs": 3402,
+      "confidence": 1
+    },
+    {
+      "text": " Using",
+      "startMs": 4203,
+      "endMs": 4551,
+      "timestampMs": 4377,
+      "confidence": 1
+    },
+    {
+      "text": " rag",
+      "startMs": 4644,
+      "endMs": 4923,
+      "timestampMs": 4784,
+      "confidence": 1
+    },
+    {
+      "text": " over",
+      "startMs": 4981,
+      "endMs": 5178,
+      "timestampMs": 5080,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I-s",
+      "startMs": 5259,
+      "endMs": 6490,
+      "timestampMs": 5875,
+      "confidence": 1
+    },
+    {
+      "text": " 14-clause",
+      "startMs": 6641,
+      "endMs": 7535,
+      "timestampMs": 7088,
+      "confidence": 1
+    },
+    {
+      "text": " playbook",
+      "startMs": 7570,
+      "endMs": 8022,
+      "timestampMs": 7796,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 8139,
+      "endMs": 8199,
+      "timestampMs": 8169,
+      "confidence": 1
+    },
+    {
+      "text": " from",
+      "startMs": 8371,
+      "endMs": 8557,
+      "timestampMs": 8464,
+      "confidence": 1
+    },
+    {
+      "text": " F-D-A",
+      "startMs": 8638,
+      "endMs": 9079,
+      "timestampMs": 8859,
+      "confidence": 1
+    },
+    {
+      "text": " compliance",
+      "startMs": 9160,
+      "endMs": 9857,
+      "timestampMs": 9509,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 9938,
+      "endMs": 10066,
+      "timestampMs": 10002,
+      "confidence": 1
+    },
+    {
+      "text": " Data",
+      "startMs": 10124,
+      "endMs": 10414,
+      "timestampMs": 10269,
+      "confidence": 1
+    },
+    {
+      "text": " Privacy",
+      "startMs": 10472,
+      "endMs": 10867,
+      "timestampMs": 10670,
+      "confidence": 1
+    },
+    {
+      "text": " Act",
+      "startMs": 10937,
+      "endMs": 11238,
+      "timestampMs": 11088,
+      "confidence": 1
+    },
+    {
+      "text": " R-A",
+      "startMs": 11308,
+      "endMs": 11842,
+      "timestampMs": 11575,
+      "confidence": 1
+    },
+    {
+      "text": " 10173",
+      "startMs": 11935,
+      "endMs": 13235,
+      "timestampMs": 12585,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 13444,
+      "endMs": 13504,
+      "timestampMs": 13474,
+      "confidence": 1
+    },
+    {
+      "text": " it",
+      "startMs": 13944,
+      "endMs": 14071,
+      "timestampMs": 14008,
+      "confidence": 1
+    },
+    {
+      "text": " flags",
+      "startMs": 14129,
+      "endMs": 14466,
+      "timestampMs": 14298,
+      "confidence": 1
+    },
+    {
+      "text": " Low",
+      "startMs": 14536,
+      "endMs": 14721,
+      "timestampMs": 14629,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 14779,
+      "endMs": 14849,
+      "timestampMs": 14814,
+      "confidence": 1
+    },
+    {
+      "text": " Critical",
+      "startMs": 14907,
+      "endMs": 15267,
+      "timestampMs": 15087,
+      "confidence": 1
+    },
+    {
+      "text": " deviations",
+      "startMs": 15325,
+      "endMs": 16033,
+      "timestampMs": 15679,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 16149,
+      "endMs": 16335,
+      "timestampMs": 16242,
+      "confidence": 1
+    },
+    {
+      "text": " exact",
+      "startMs": 16382,
+      "endMs": 16730,
+      "timestampMs": 16556,
+      "confidence": 1
+    },
+    {
+      "text": " citations,",
+      "startMs": 16776,
+      "endMs": 17659,
+      "timestampMs": 17218,
+      "confidence": 1
+    },
+    {
+      "text": " plain-language",
+      "startMs": 17833,
+      "endMs": 18530,
+      "timestampMs": 18182,
+      "confidence": 1
+    },
+    {
+      "text": " reasons,",
+      "startMs": 18576,
+      "endMs": 19098,
+      "timestampMs": 18837,
+      "confidence": 1
+    },
+    {
+      "text": " remediation",
+      "startMs": 19273,
+      "endMs": 19934,
+      "timestampMs": 19604,
+      "confidence": 1
+    },
+    {
+      "text": " advice,",
+      "startMs": 19981,
+      "endMs": 20550,
+      "timestampMs": 20266,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 20724,
+      "endMs": 20875,
+      "timestampMs": 20800,
+      "confidence": 1
+    },
+    {
+      "text": " one-click",
+      "startMs": 20956,
+      "endMs": 21420,
+      "timestampMs": 21188,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F",
+      "startMs": 21513,
+      "endMs": 22105,
+      "timestampMs": 21809,
+      "confidence": 1
+    },
+    {
+      "text": " export.",
+      "startMs": 22187,
+      "endMs": 23081,
+      "timestampMs": 22634,
+      "confidence": 1
+    }
+  ]
+}

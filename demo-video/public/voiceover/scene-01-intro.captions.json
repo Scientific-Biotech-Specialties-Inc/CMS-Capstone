@@ -1,0 +1,243 @@
+{
+  "displayNarration": "Scientific Biotech Specialties, Inc. powers diagnostic and industrial laboratories nationwide. Meet the SBSI Contract Management System — a unified, microservices-backed platform built to manage every vendor, contract, risk check, and approval from one workspace.",
+  "captions": [
+    {
+      "text": "Scientific",
+      "startMs": 0,
+      "endMs": 627,
+      "timestampMs": 314,
+      "confidence": 1
+    },
+    {
+      "text": " Biotech",
+      "startMs": 697,
+      "endMs": 1207,
+      "timestampMs": 952,
+      "confidence": 1
+    },
+    {
+      "text": " Specialties,",
+      "startMs": 1254,
+      "endMs": 2020,
+      "timestampMs": 1637,
+      "confidence": 1
+    },
+    {
+      "text": " Inc.",
+      "startMs": 2171,
+      "endMs": 2461,
+      "timestampMs": 2316,
+      "confidence": 1
+    },
+    {
+      "text": " powers",
+      "startMs": 2531,
+      "endMs": 2879,
+      "timestampMs": 2705,
+      "confidence": 1
+    },
+    {
+      "text": " diagnostic",
+      "startMs": 2937,
+      "endMs": 3669,
+      "timestampMs": 3303,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 3750,
+      "endMs": 3901,
+      "timestampMs": 3826,
+      "confidence": 1
+    },
+    {
+      "text": " industrial",
+      "startMs": 3959,
+      "endMs": 4470,
+      "timestampMs": 4215,
+      "confidence": 1
+    },
+    {
+      "text": " laboratories",
+      "startMs": 4528,
+      "endMs": 5062,
+      "timestampMs": 4795,
+      "confidence": 1
+    },
+    {
+      "text": " nationwide.",
+      "startMs": 5132,
+      "endMs": 5979,
+      "timestampMs": 5556,
+      "confidence": 1
+    },
+    {
+      "text": " Meet",
+      "startMs": 6583,
+      "endMs": 6815,
+      "timestampMs": 6699,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 6861,
+      "endMs": 6966,
+      "timestampMs": 6914,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 7047,
+      "endMs": 7860,
+      "timestampMs": 7454,
+      "confidence": 1
+    },
+    {
+      "text": " Contract",
+      "startMs": 7976,
+      "endMs": 8475,
+      "timestampMs": 8226,
+      "confidence": 1
+    },
+    {
+      "text": " Management",
+      "startMs": 8545,
+      "endMs": 9021,
+      "timestampMs": 8783,
+      "confidence": 1
+    },
+    {
+      "text": " System",
+      "startMs": 9067,
+      "endMs": 9462,
+      "timestampMs": 9265,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 9636,
+      "endMs": 9696,
+      "timestampMs": 9666,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 9857,
+      "endMs": 9927,
+      "timestampMs": 9892,
+      "confidence": 1
+    },
+    {
+      "text": " unified,",
+      "startMs": 10054,
+      "endMs": 10588,
+      "timestampMs": 10321,
+      "confidence": 1
+    },
+    {
+      "text": " microservices-backed",
+      "startMs": 10658,
+      "endMs": 11854,
+      "timestampMs": 11256,
+      "confidence": 1
+    },
+    {
+      "text": " platform",
+      "startMs": 11900,
+      "endMs": 12423,
+      "timestampMs": 12162,
+      "confidence": 1
+    },
+    {
+      "text": " built",
+      "startMs": 12748,
+      "endMs": 13015,
+      "timestampMs": 12882,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 13061,
+      "endMs": 13121,
+      "timestampMs": 13091,
+      "confidence": 1
+    },
+    {
+      "text": " manage",
+      "startMs": 13189,
+      "endMs": 13514,
+      "timestampMs": 13352,
+      "confidence": 1
+    },
+    {
+      "text": " every",
+      "startMs": 13572,
+      "endMs": 13839,
+      "timestampMs": 13706,
+      "confidence": 1
+    },
+    {
+      "text": " vendor,",
+      "startMs": 13897,
+      "endMs": 14280,
+      "timestampMs": 14089,
+      "confidence": 1
+    },
+    {
+      "text": " contract,",
+      "startMs": 14315,
+      "endMs": 14942,
+      "timestampMs": 14629,
+      "confidence": 1
+    },
+    {
+      "text": " risk",
+      "startMs": 15058,
+      "endMs": 15302,
+      "timestampMs": 15180,
+      "confidence": 1
+    },
+    {
+      "text": " check,",
+      "startMs": 15372,
+      "endMs": 15720,
+      "timestampMs": 15546,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 15743,
+      "endMs": 15859,
+      "timestampMs": 15801,
+      "confidence": 1
+    },
+    {
+      "text": " approval",
+      "startMs": 15894,
+      "endMs": 16312,
+      "timestampMs": 16103,
+      "confidence": 1
+    },
+    {
+      "text": " from",
+      "startMs": 16370,
+      "endMs": 16509,
+      "timestampMs": 16440,
+      "confidence": 1
+    },
+    {
+      "text": " one",
+      "startMs": 16591,
+      "endMs": 16753,
+      "timestampMs": 16672,
+      "confidence": 1
+    },
+    {
+      "text": " workspace.",
+      "startMs": 16788,
+      "endMs": 17786,
+      "timestampMs": 17287,
+      "confidence": 1
+    }
+  ]
+}

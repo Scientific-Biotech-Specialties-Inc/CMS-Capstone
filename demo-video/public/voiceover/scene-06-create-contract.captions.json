@@ -1,0 +1,327 @@
+{
+  "displayNarration": "Create contracts three ways: enter structured terms manually with malware-scanned document uploads, drop any PDF, DOCX, or scan into OCR Import to autofill fields instantly, or launch the AI Contract Generator to draft, format margins and headers, and attach a print-ready PDF right inside the editor.",
+  "captions": [
+    {
+      "text": "Create",
+      "startMs": 0,
+      "endMs": 418,
+      "timestampMs": 209,
+      "confidence": 1
+    },
+    {
+      "text": " contracts",
+      "startMs": 453,
+      "endMs": 987,
+      "timestampMs": 720,
+      "confidence": 1
+    },
+    {
+      "text": " three",
+      "startMs": 1033,
+      "endMs": 1277,
+      "timestampMs": 1155,
+      "confidence": 1
+    },
+    {
+      "text": " ways:",
+      "startMs": 1324,
+      "endMs": 1904,
+      "timestampMs": 1614,
+      "confidence": 1
+    },
+    {
+      "text": " enter",
+      "startMs": 2345,
+      "endMs": 2647,
+      "timestampMs": 2496,
+      "confidence": 1
+    },
+    {
+      "text": " structured",
+      "startMs": 2694,
+      "endMs": 3158,
+      "timestampMs": 2926,
+      "confidence": 1
+    },
+    {
+      "text": " terms",
+      "startMs": 3204,
+      "endMs": 3553,
+      "timestampMs": 3379,
+      "confidence": 1
+    },
+    {
+      "text": " manually",
+      "startMs": 3634,
+      "endMs": 4087,
+      "timestampMs": 3861,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 4156,
+      "endMs": 4319,
+      "timestampMs": 4238,
+      "confidence": 1
+    },
+    {
+      "text": " malware-scanned",
+      "startMs": 4365,
+      "endMs": 5190,
+      "timestampMs": 4778,
+      "confidence": 1
+    },
+    {
+      "text": " document",
+      "startMs": 5224,
+      "endMs": 5654,
+      "timestampMs": 5439,
+      "confidence": 1
+    },
+    {
+      "text": " uploads,",
+      "startMs": 5712,
+      "endMs": 6432,
+      "timestampMs": 6072,
+      "confidence": 1
+    },
+    {
+      "text": " drop",
+      "startMs": 6757,
+      "endMs": 7012,
+      "timestampMs": 6885,
+      "confidence": 1
+    },
+    {
+      "text": " any",
+      "startMs": 7070,
+      "endMs": 7233,
+      "timestampMs": 7152,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F,",
+      "startMs": 7303,
+      "endMs": 8127,
+      "timestampMs": 7715,
+      "confidence": 1
+    },
+    {
+      "text": " Doc-X,",
+      "startMs": 8278,
+      "endMs": 9137,
+      "timestampMs": 8708,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 9346,
+      "endMs": 9520,
+      "timestampMs": 9433,
+      "confidence": 1
+    },
+    {
+      "text": " scan",
+      "startMs": 9590,
+      "endMs": 9892,
+      "timestampMs": 9741,
+      "confidence": 1
+    },
+    {
+      "text": " into",
+      "startMs": 9950,
+      "endMs": 10124,
+      "timestampMs": 10037,
+      "confidence": 1
+    },
+    {
+      "text": " O-C-R",
+      "startMs": 10205,
+      "endMs": 10762,
+      "timestampMs": 10484,
+      "confidence": 1
+    },
+    {
+      "text": " Import",
+      "startMs": 10832,
+      "endMs": 11343,
+      "timestampMs": 11088,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 11517,
+      "endMs": 11633,
+      "timestampMs": 11575,
+      "confidence": 1
+    },
+    {
+      "text": " autofill",
+      "startMs": 11714,
+      "endMs": 12214,
+      "timestampMs": 11964,
+      "confidence": 1
+    },
+    {
+      "text": " fields",
+      "startMs": 12295,
+      "endMs": 12643,
+      "timestampMs": 12469,
+      "confidence": 1
+    },
+    {
+      "text": " instantly,",
+      "startMs": 12713,
+      "endMs": 13468,
+      "timestampMs": 13091,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 13677,
+      "endMs": 13839,
+      "timestampMs": 13758,
+      "confidence": 1
+    },
+    {
+      "text": " launch",
+      "startMs": 13909,
+      "endMs": 14199,
+      "timestampMs": 14054,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 14245,
+      "endMs": 14327,
+      "timestampMs": 14286,
+      "confidence": 1
+    },
+    {
+      "text": " AI",
+      "startMs": 14408,
+      "endMs": 14733,
+      "timestampMs": 14571,
+      "confidence": 1
+    },
+    {
+      "text": " Contract",
+      "startMs": 14814,
+      "endMs": 15279,
+      "timestampMs": 15047,
+      "confidence": 1
+    },
+    {
+      "text": " Generator",
+      "startMs": 15325,
+      "endMs": 15824,
+      "timestampMs": 15575,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 15871,
+      "endMs": 15940,
+      "timestampMs": 15906,
+      "confidence": 1
+    },
+    {
+      "text": " draft,",
+      "startMs": 15999,
+      "endMs": 16556,
+      "timestampMs": 16278,
+      "confidence": 1
+    },
+    {
+      "text": " format",
+      "startMs": 16881,
+      "endMs": 17276,
+      "timestampMs": 17079,
+      "confidence": 1
+    },
+    {
+      "text": " margins",
+      "startMs": 17334,
+      "endMs": 17787,
+      "timestampMs": 17561,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 17821,
+      "endMs": 17903,
+      "timestampMs": 17862,
+      "confidence": 1
+    },
+    {
+      "text": " headers,",
+      "startMs": 17972,
+      "endMs": 18472,
+      "timestampMs": 18222,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 18646,
+      "endMs": 18797,
+      "timestampMs": 18722,
+      "confidence": 1
+    },
+    {
+      "text": " attach",
+      "startMs": 18855,
+      "endMs": 19133,
+      "timestampMs": 18994,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 19180,
+      "endMs": 19240,
+      "timestampMs": 19210,
+      "confidence": 1
+    },
+    {
+      "text": " print-ready",
+      "startMs": 19273,
+      "endMs": 19772,
+      "timestampMs": 19523,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F",
+      "startMs": 19842,
+      "endMs": 20468,
+      "timestampMs": 20155,
+      "confidence": 1
+    },
+    {
+      "text": " right",
+      "startMs": 20677,
+      "endMs": 20910,
+      "timestampMs": 20794,
+      "confidence": 1
+    },
+    {
+      "text": " inside",
+      "startMs": 20956,
+      "endMs": 21362,
+      "timestampMs": 21159,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 21397,
+      "endMs": 21467,
+      "timestampMs": 21432,
+      "confidence": 1
+    },
+    {
+      "text": " editor.",
+      "startMs": 21537,
+      "endMs": 22291,
+      "timestampMs": 21914,
+      "confidence": 1
+    }
+  ]
+}

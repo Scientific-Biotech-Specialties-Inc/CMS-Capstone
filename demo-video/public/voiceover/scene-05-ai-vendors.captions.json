@@ -1,0 +1,243 @@
+{
+  "displayNarration": "Need new suppliers? AI Vendor Suggestions uses Gemini and pgvector to recommend Philippine diagnostic and QA partners tailored to SBSI — alongside verified merchants forwarded from SERMS. Select, review, autofill, and onboard in clicks.",
+  "captions": [
+    {
+      "text": "Need",
+      "startMs": 0,
+      "endMs": 279,
+      "timestampMs": 140,
+      "confidence": 1
+    },
+    {
+      "text": " new",
+      "startMs": 348,
+      "endMs": 476,
+      "timestampMs": 412,
+      "confidence": 1
+    },
+    {
+      "text": " suppliers?",
+      "startMs": 522,
+      "endMs": 1196,
+      "timestampMs": 859,
+      "confidence": 1
+    },
+    {
+      "text": " AI",
+      "startMs": 1637,
+      "endMs": 1962,
+      "timestampMs": 1800,
+      "confidence": 1
+    },
+    {
+      "text": " Vendor",
+      "startMs": 2032,
+      "endMs": 2310,
+      "timestampMs": 2171,
+      "confidence": 1
+    },
+    {
+      "text": " Suggestions",
+      "startMs": 2357,
+      "endMs": 3042,
+      "timestampMs": 2700,
+      "confidence": 1
+    },
+    {
+      "text": " uses",
+      "startMs": 3251,
+      "endMs": 3576,
+      "timestampMs": 3414,
+      "confidence": 1
+    },
+    {
+      "text": " Gemini",
+      "startMs": 3646,
+      "endMs": 4075,
+      "timestampMs": 3861,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 4156,
+      "endMs": 4261,
+      "timestampMs": 4209,
+      "confidence": 1
+    },
+    {
+      "text": " P-G-vector",
+      "startMs": 4331,
+      "endMs": 5236,
+      "timestampMs": 4784,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 5445,
+      "endMs": 5561,
+      "timestampMs": 5503,
+      "confidence": 1
+    },
+    {
+      "text": " recommend",
+      "startMs": 5631,
+      "endMs": 6014,
+      "timestampMs": 5823,
+      "confidence": 1
+    },
+    {
+      "text": " Philippine",
+      "startMs": 6084,
+      "endMs": 6560,
+      "timestampMs": 6322,
+      "confidence": 1
+    },
+    {
+      "text": " diagnostic",
+      "startMs": 6594,
+      "endMs": 7303,
+      "timestampMs": 6949,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 7372,
+      "endMs": 7488,
+      "timestampMs": 7430,
+      "confidence": 1
+    },
+    {
+      "text": " Q-A",
+      "startMs": 7570,
+      "endMs": 7918,
+      "timestampMs": 7744,
+      "confidence": 1
+    },
+    {
+      "text": " partners",
+      "startMs": 8034,
+      "endMs": 8545,
+      "timestampMs": 8290,
+      "confidence": 1
+    },
+    {
+      "text": " tailored",
+      "startMs": 8928,
+      "endMs": 9334,
+      "timestampMs": 9131,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 9358,
+      "endMs": 9451,
+      "timestampMs": 9405,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 9532,
+      "endMs": 10519,
+      "timestampMs": 10026,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 10728,
+      "endMs": 10788,
+      "timestampMs": 10758,
+      "confidence": 1
+    },
+    {
+      "text": " alongside",
+      "startMs": 11053,
+      "endMs": 11703,
+      "timestampMs": 11378,
+      "confidence": 1
+    },
+    {
+      "text": " verified",
+      "startMs": 11749,
+      "endMs": 12225,
+      "timestampMs": 11987,
+      "confidence": 1
+    },
+    {
+      "text": " merchants",
+      "startMs": 12283,
+      "endMs": 12713,
+      "timestampMs": 12498,
+      "confidence": 1
+    },
+    {
+      "text": " forwarded",
+      "startMs": 12771,
+      "endMs": 13166,
+      "timestampMs": 12969,
+      "confidence": 1
+    },
+    {
+      "text": " from",
+      "startMs": 13201,
+      "endMs": 13340,
+      "timestampMs": 13271,
+      "confidence": 1
+    },
+    {
+      "text": " SERMS.",
+      "startMs": 13421,
+      "endMs": 14002,
+      "timestampMs": 13712,
+      "confidence": 1
+    },
+    {
+      "text": " Select,",
+      "startMs": 14443,
+      "endMs": 15012,
+      "timestampMs": 14728,
+      "confidence": 1
+    },
+    {
+      "text": " review,",
+      "startMs": 15128,
+      "endMs": 15662,
+      "timestampMs": 15395,
+      "confidence": 1
+    },
+    {
+      "text": " autofill,",
+      "startMs": 15697,
+      "endMs": 16451,
+      "timestampMs": 16074,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 16475,
+      "endMs": 16602,
+      "timestampMs": 16539,
+      "confidence": 1
+    },
+    {
+      "text": " onboard",
+      "startMs": 16672,
+      "endMs": 17078,
+      "timestampMs": 16875,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 17125,
+      "endMs": 17194,
+      "timestampMs": 17160,
+      "confidence": 1
+    },
+    {
+      "text": " clicks.",
+      "startMs": 17276,
+      "endMs": 18019,
+      "timestampMs": 17648,
+      "confidence": 1
+    }
+  ]
+}

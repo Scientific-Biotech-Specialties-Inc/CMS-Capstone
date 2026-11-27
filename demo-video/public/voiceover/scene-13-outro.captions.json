@@ -1,0 +1,96 @@
+{
+  "displayNarration": "Every vendor. Every clause. Every approval and signature. The SBSI Contract Management System.",
+  "captions": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 313,
+      "timestampMs": 157,
+      "confidence": 1
+    },
+    {
+      "text": " vendor.",
+      "startMs": 372,
+      "endMs": 871,
+      "timestampMs": 622,
+      "confidence": 1
+    },
+    {
+      "text": " Every",
+      "startMs": 987,
+      "endMs": 1265,
+      "timestampMs": 1126,
+      "confidence": 1
+    },
+    {
+      "text": " clause.",
+      "startMs": 1324,
+      "endMs": 1892,
+      "timestampMs": 1608,
+      "confidence": 1
+    },
+    {
+      "text": " Every",
+      "startMs": 2067,
+      "endMs": 2357,
+      "timestampMs": 2212,
+      "confidence": 1
+    },
+    {
+      "text": " approval",
+      "startMs": 2403,
+      "endMs": 2833,
+      "timestampMs": 2618,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 2902,
+      "endMs": 3007,
+      "timestampMs": 2955,
+      "confidence": 1
+    },
+    {
+      "text": " signature.",
+      "startMs": 3077,
+      "endMs": 3750,
+      "timestampMs": 3414,
+      "confidence": 1
+    },
+    {
+      "text": " The",
+      "startMs": 4133,
+      "endMs": 4272,
+      "timestampMs": 4203,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 4342,
+      "endMs": 5259,
+      "timestampMs": 4801,
+      "confidence": 1
+    },
+    {
+      "text": " Contract",
+      "startMs": 5387,
+      "endMs": 5886,
+      "timestampMs": 5637,
+      "confidence": 1
+    },
+    {
+      "text": " Management",
+      "startMs": 5944,
+      "endMs": 6397,
+      "timestampMs": 6171,
+      "confidence": 1
+    },
+    {
+      "text": " System.",
+      "startMs": 6444,
+      "endMs": 7198,
+      "timestampMs": 6821,
+      "confidence": 1
+    }
+  ]
+}

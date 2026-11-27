@@ -45,3 +45,12 @@ CRMS-capstone.code-workspace
 .kiro/specs/analytics-ai-services/design.md
 services/analytics-service/database/database.sqlite
 services/ai-service/database/database.sqlite
+demo-video/.prettierrc
+demo-video/eslint.config.mjs
+demo-video/package-lock.json
+demo-video/package.json
+demo-video/remotion.config.ts
+demo-video/tsconfig.json
+demo-video/example-vid/Example of Motion Graphics.mp4
+demo-video/public/captures/manifest.json
+demo-video/public/clips/manifest.json

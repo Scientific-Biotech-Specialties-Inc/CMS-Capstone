@@ -1,0 +1,201 @@
+{
+  "displayNarration": "Every role opens to live analytics: active contracts, regional distribution across Luzon, Visayas, and Mindanao, renewal pipelines, workflow bottlenecks, and real-time SERMS burn rate and net margin tracking.",
+  "captions": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 313,
+      "timestampMs": 157,
+      "confidence": 1
+    },
+    {
+      "text": " role",
+      "startMs": 372,
+      "endMs": 639,
+      "timestampMs": 506,
+      "confidence": 1
+    },
+    {
+      "text": " opens",
+      "startMs": 685,
+      "endMs": 1057,
+      "timestampMs": 871,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 1115,
+      "endMs": 1175,
+      "timestampMs": 1145,
+      "confidence": 1
+    },
+    {
+      "text": " live",
+      "startMs": 1254,
+      "endMs": 1440,
+      "timestampMs": 1347,
+      "confidence": 1
+    },
+    {
+      "text": " analytics:",
+      "startMs": 1486,
+      "endMs": 2252,
+      "timestampMs": 1869,
+      "confidence": 1
+    },
+    {
+      "text": " active",
+      "startMs": 2426,
+      "endMs": 2821,
+      "timestampMs": 2624,
+      "confidence": 1
+    },
+    {
+      "text": " contracts,",
+      "startMs": 2868,
+      "endMs": 3599,
+      "timestampMs": 3234,
+      "confidence": 1
+    },
+    {
+      "text": " regional",
+      "startMs": 3808,
+      "endMs": 4214,
+      "timestampMs": 4011,
+      "confidence": 1
+    },
+    {
+      "text": " distribution",
+      "startMs": 4261,
+      "endMs": 4899,
+      "timestampMs": 4580,
+      "confidence": 1
+    },
+    {
+      "text": " across",
+      "startMs": 4946,
+      "endMs": 5248,
+      "timestampMs": 5097,
+      "confidence": 1
+    },
+    {
+      "text": " Luzon,",
+      "startMs": 5317,
+      "endMs": 5933,
+      "timestampMs": 5625,
+      "confidence": 1
+    },
+    {
+      "text": " Visayas,",
+      "startMs": 6142,
+      "endMs": 6745,
+      "timestampMs": 6444,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 6769,
+      "endMs": 6850,
+      "timestampMs": 6810,
+      "confidence": 1
+    },
+    {
+      "text": " Mindanao,",
+      "startMs": 6920,
+      "endMs": 7628,
+      "timestampMs": 7274,
+      "confidence": 1
+    },
+    {
+      "text": " renewal",
+      "startMs": 7802,
+      "endMs": 8185,
+      "timestampMs": 7994,
+      "confidence": 1
+    },
+    {
+      "text": " pipelines,",
+      "startMs": 8255,
+      "endMs": 9009,
+      "timestampMs": 8632,
+      "confidence": 1
+    },
+    {
+      "text": " workflow",
+      "startMs": 9218,
+      "endMs": 9706,
+      "timestampMs": 9462,
+      "confidence": 1
+    },
+    {
+      "text": " bottlenecks,",
+      "startMs": 9764,
+      "endMs": 10472,
+      "timestampMs": 10118,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 10623,
+      "endMs": 10774,
+      "timestampMs": 10699,
+      "confidence": 1
+    },
+    {
+      "text": " real-time",
+      "startMs": 10855,
+      "endMs": 11389,
+      "timestampMs": 11122,
+      "confidence": 1
+    },
+    {
+      "text": " SERMS",
+      "startMs": 11447,
+      "endMs": 11819,
+      "timestampMs": 11633,
+      "confidence": 1
+    },
+    {
+      "text": " burn",
+      "startMs": 11877,
+      "endMs": 12132,
+      "timestampMs": 12005,
+      "confidence": 1
+    },
+    {
+      "text": " rate",
+      "startMs": 12190,
+      "endMs": 12411,
+      "timestampMs": 12301,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 12446,
+      "endMs": 12539,
+      "timestampMs": 12493,
+      "confidence": 1
+    },
+    {
+      "text": " net",
+      "startMs": 12620,
+      "endMs": 12783,
+      "timestampMs": 12702,
+      "confidence": 1
+    },
+    {
+      "text": " margin",
+      "startMs": 12852,
+      "endMs": 13201,
+      "timestampMs": 13027,
+      "confidence": 1
+    },
+    {
+      "text": " tracking.",
+      "startMs": 13259,
+      "endMs": 14071,
+      "timestampMs": 13665,
+      "confidence": 1
+    }
+  ]
+}

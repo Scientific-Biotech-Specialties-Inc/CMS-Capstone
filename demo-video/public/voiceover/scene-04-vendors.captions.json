@@ -1,0 +1,194 @@
+{
+  "displayNarration": "Onboarding suppliers and business partners is fast and structured. Manage branches, class tiers, encrypted contact records, linked contracts, and synced reimbursement history in a single partner profile.",
+  "captions": [
+    {
+      "text": "Onboarding",
+      "startMs": 0,
+      "endMs": 546,
+      "timestampMs": 273,
+      "confidence": 1
+    },
+    {
+      "text": " suppliers",
+      "startMs": 604,
+      "endMs": 1080,
+      "timestampMs": 842,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 1115,
+      "endMs": 1184,
+      "timestampMs": 1150,
+      "confidence": 1
+    },
+    {
+      "text": " business",
+      "startMs": 1242,
+      "endMs": 1567,
+      "timestampMs": 1405,
+      "confidence": 1
+    },
+    {
+      "text": " partners",
+      "startMs": 1614,
+      "endMs": 1997,
+      "timestampMs": 1806,
+      "confidence": 1
+    },
+    {
+      "text": " is",
+      "startMs": 2055,
+      "endMs": 2183,
+      "timestampMs": 2119,
+      "confidence": 1
+    },
+    {
+      "text": " fast",
+      "startMs": 2252,
+      "endMs": 2566,
+      "timestampMs": 2409,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 2612,
+      "endMs": 2694,
+      "timestampMs": 2653,
+      "confidence": 1
+    },
+    {
+      "text": " structured.",
+      "startMs": 2752,
+      "endMs": 3437,
+      "timestampMs": 3095,
+      "confidence": 1
+    },
+    {
+      "text": " Manage",
+      "startMs": 3878,
+      "endMs": 4226,
+      "timestampMs": 4052,
+      "confidence": 1
+    },
+    {
+      "text": " branches,",
+      "startMs": 4261,
+      "endMs": 4865,
+      "timestampMs": 4563,
+      "confidence": 1
+    },
+    {
+      "text": " class",
+      "startMs": 4957,
+      "endMs": 5294,
+      "timestampMs": 5126,
+      "confidence": 1
+    },
+    {
+      "text": " tiers,",
+      "startMs": 5329,
+      "endMs": 5817,
+      "timestampMs": 5573,
+      "confidence": 1
+    },
+    {
+      "text": " encrypted",
+      "startMs": 5968,
+      "endMs": 6560,
+      "timestampMs": 6264,
+      "confidence": 1
+    },
+    {
+      "text": " contact",
+      "startMs": 6618,
+      "endMs": 7059,
+      "timestampMs": 6839,
+      "confidence": 1
+    },
+    {
+      "text": " records,",
+      "startMs": 7117,
+      "endMs": 7674,
+      "timestampMs": 7396,
+      "confidence": 1
+    },
+    {
+      "text": " linked",
+      "startMs": 7883,
+      "endMs": 8162,
+      "timestampMs": 8023,
+      "confidence": 1
+    },
+    {
+      "text": " contracts,",
+      "startMs": 8220,
+      "endMs": 8951,
+      "timestampMs": 8586,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 9067,
+      "endMs": 9218,
+      "timestampMs": 9143,
+      "confidence": 1
+    },
+    {
+      "text": " synced",
+      "startMs": 9288,
+      "endMs": 9578,
+      "timestampMs": 9433,
+      "confidence": 1
+    },
+    {
+      "text": " reimbursement",
+      "startMs": 9648,
+      "endMs": 10310,
+      "timestampMs": 9979,
+      "confidence": 1
+    },
+    {
+      "text": " history",
+      "startMs": 10368,
+      "endMs": 10751,
+      "timestampMs": 10560,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 10820,
+      "endMs": 10913,
+      "timestampMs": 10867,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 10948,
+      "endMs": 11008,
+      "timestampMs": 10978,
+      "confidence": 1
+    },
+    {
+      "text": " single",
+      "startMs": 11029,
+      "endMs": 11355,
+      "timestampMs": 11192,
+      "confidence": 1
+    },
+    {
+      "text": " partner",
+      "startMs": 11401,
+      "endMs": 11714,
+      "timestampMs": 11558,
+      "confidence": 1
+    },
+    {
+      "text": " profile.",
+      "startMs": 11773,
+      "endMs": 12678,
+      "timestampMs": 12226,
+      "confidence": 1
+    }
+  ]
+}

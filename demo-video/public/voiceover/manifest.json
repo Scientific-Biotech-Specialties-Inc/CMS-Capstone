@@ -1,0 +1,54 @@
+{
+  "scene-01-intro": {
+    "mp3": "voiceover/scene-01-intro.mp3",
+    "captions": "voiceover/scene-01-intro.captions.json"
+  },
+  "scene-02-auth-rbac": {
+    "mp3": "voiceover/scene-02-auth-rbac.mp3",
+    "captions": "voiceover/scene-02-auth-rbac.captions.json"
+  },
+  "scene-03-analytics": {
+    "mp3": "voiceover/scene-03-analytics.mp3",
+    "captions": "voiceover/scene-03-analytics.captions.json"
+  },
+  "scene-04-vendors": {
+    "mp3": "voiceover/scene-04-vendors.mp3",
+    "captions": "voiceover/scene-04-vendors.captions.json"
+  },
+  "scene-05-ai-vendors": {
+    "mp3": "voiceover/scene-05-ai-vendors.mp3",
+    "captions": "voiceover/scene-05-ai-vendors.captions.json"
+  },
+  "scene-06-create-contract": {
+    "mp3": "voiceover/scene-06-create-contract.mp3",
+    "captions": "voiceover/scene-06-create-contract.captions.json"
+  },
+  "scene-07-ai-risk": {
+    "mp3": "voiceover/scene-07-ai-risk.mp3",
+    "captions": "voiceover/scene-07-ai-risk.captions.json"
+  },
+  "scene-08-workflows": {
+    "mp3": "voiceover/scene-08-workflows.mp3",
+    "captions": "voiceover/scene-08-workflows.captions.json"
+  },
+  "scene-09-approval": {
+    "mp3": "voiceover/scene-09-approval.mp3",
+    "captions": "voiceover/scene-09-approval.captions.json"
+  },
+  "scene-10-execution-signing": {
+    "mp3": "voiceover/scene-10-execution-signing.mp3",
+    "captions": "voiceover/scene-10-execution-signing.captions.json"
+  },
+  "scene-11-ops": {
+    "mp3": "voiceover/scene-11-ops.mp3",
+    "captions": "voiceover/scene-11-ops.captions.json"
+  },
+  "scene-12-ecosystem": {
+    "mp3": "voiceover/scene-12-ecosystem.mp3",
+    "captions": "voiceover/scene-12-ecosystem.captions.json"
+  },
+  "scene-13-outro": {
+    "mp3": "voiceover/scene-13-outro.mp3",
+    "captions": "voiceover/scene-13-outro.captions.json"
+  }
+}

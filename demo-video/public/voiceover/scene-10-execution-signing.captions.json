@@ -1,0 +1,614 @@
+{
+  "displayNarration": "Once internal approval finishes, the Execution Workflow takes over. The owner submits SBSI Review completion, then Client Acceptance; an eligible reviewer confirms each step — or returns it for revision, which pauses the flow and restarts internal approval if the draft changes. At For Signing, the owner either uploads a scanned signed PDF or launches In-App E-Signing to place a signature directly onto the approved draft. A Manager or CEO confirms to mark it Signed, with optional Notarized PDF upload, full Execution History, and post-signing Contract Amendments.",
+  "captions": [
+    {
+      "text": "Once",
+      "startMs": 0,
+      "endMs": 267,
+      "timestampMs": 134,
+      "confidence": 1
+    },
+    {
+      "text": " internal",
+      "startMs": 313,
+      "endMs": 708,
+      "timestampMs": 511,
+      "confidence": 1
+    },
+    {
+      "text": " approval",
+      "startMs": 743,
+      "endMs": 1161,
+      "timestampMs": 952,
+      "confidence": 1
+    },
+    {
+      "text": " finishes,",
+      "startMs": 1219,
+      "endMs": 1753,
+      "timestampMs": 1486,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 1869,
+      "endMs": 1985,
+      "timestampMs": 1927,
+      "confidence": 1
+    },
+    {
+      "text": " Execution",
+      "startMs": 2055,
+      "endMs": 2612,
+      "timestampMs": 2334,
+      "confidence": 1
+    },
+    {
+      "text": " Workflow",
+      "startMs": 2682,
+      "endMs": 3158,
+      "timestampMs": 2920,
+      "confidence": 1
+    },
+    {
+      "text": " takes",
+      "startMs": 3216,
+      "endMs": 3460,
+      "timestampMs": 3338,
+      "confidence": 1
+    },
+    {
+      "text": " over.",
+      "startMs": 3518,
+      "endMs": 3994,
+      "timestampMs": 3756,
+      "confidence": 1
+    },
+    {
+      "text": " The",
+      "startMs": 4435,
+      "endMs": 4563,
+      "timestampMs": 4499,
+      "confidence": 1
+    },
+    {
+      "text": " owner",
+      "startMs": 4644,
+      "endMs": 4911,
+      "timestampMs": 4778,
+      "confidence": 1
+    },
+    {
+      "text": " submits",
+      "startMs": 4957,
+      "endMs": 5364,
+      "timestampMs": 5161,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 5433,
+      "endMs": 6304,
+      "timestampMs": 5869,
+      "confidence": 1
+    },
+    {
+      "text": " Review",
+      "startMs": 6420,
+      "endMs": 6711,
+      "timestampMs": 6566,
+      "confidence": 1
+    },
+    {
+      "text": " completion,",
+      "startMs": 6769,
+      "endMs": 7430,
+      "timestampMs": 7100,
+      "confidence": 1
+    },
+    {
+      "text": " then",
+      "startMs": 7709,
+      "endMs": 7895,
+      "timestampMs": 7802,
+      "confidence": 1
+    },
+    {
+      "text": " Client",
+      "startMs": 7976,
+      "endMs": 8313,
+      "timestampMs": 8145,
+      "confidence": 1
+    },
+    {
+      "text": " Acceptance;",
+      "startMs": 8348,
+      "endMs": 9102,
+      "timestampMs": 8725,
+      "confidence": 1
+    },
+    {
+      "text": " an",
+      "startMs": 9311,
+      "endMs": 9439,
+      "timestampMs": 9375,
+      "confidence": 1
+    },
+    {
+      "text": " eligible",
+      "startMs": 9497,
+      "endMs": 9938,
+      "timestampMs": 9718,
+      "confidence": 1
+    },
+    {
+      "text": " reviewer",
+      "startMs": 9985,
+      "endMs": 10368,
+      "timestampMs": 10177,
+      "confidence": 1
+    },
+    {
+      "text": " confirms",
+      "startMs": 10426,
+      "endMs": 10937,
+      "timestampMs": 10682,
+      "confidence": 1
+    },
+    {
+      "text": " each",
+      "startMs": 11006,
+      "endMs": 11204,
+      "timestampMs": 11105,
+      "confidence": 1
+    },
+    {
+      "text": " step",
+      "startMs": 11250,
+      "endMs": 11587,
+      "timestampMs": 11419,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 11761,
+      "endMs": 11821,
+      "timestampMs": 11791,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 12086,
+      "endMs": 12260,
+      "timestampMs": 12173,
+      "confidence": 1
+    },
+    {
+      "text": " returns",
+      "startMs": 12330,
+      "endMs": 12690,
+      "timestampMs": 12510,
+      "confidence": 1
+    },
+    {
+      "text": " it",
+      "startMs": 12736,
+      "endMs": 12806,
+      "timestampMs": 12771,
+      "confidence": 1
+    },
+    {
+      "text": " for",
+      "startMs": 12852,
+      "endMs": 12957,
+      "timestampMs": 12905,
+      "confidence": 1
+    },
+    {
+      "text": " revision,",
+      "startMs": 13003,
+      "endMs": 13537,
+      "timestampMs": 13270,
+      "confidence": 1
+    },
+    {
+      "text": " which",
+      "startMs": 13688,
+      "endMs": 13886,
+      "timestampMs": 13787,
+      "confidence": 1
+    },
+    {
+      "text": " pauses",
+      "startMs": 13932,
+      "endMs": 14315,
+      "timestampMs": 14124,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 14373,
+      "endMs": 14443,
+      "timestampMs": 14408,
+      "confidence": 1
+    },
+    {
+      "text": " flow",
+      "startMs": 14501,
+      "endMs": 14780,
+      "timestampMs": 14641,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 14861,
+      "endMs": 14977,
+      "timestampMs": 14919,
+      "confidence": 1
+    },
+    {
+      "text": " restarts",
+      "startMs": 15047,
+      "endMs": 15511,
+      "timestampMs": 15279,
+      "confidence": 1
+    },
+    {
+      "text": " internal",
+      "startMs": 15569,
+      "endMs": 15976,
+      "timestampMs": 15773,
+      "confidence": 1
+    },
+    {
+      "text": " approval",
+      "startMs": 16010,
+      "endMs": 16428,
+      "timestampMs": 16219,
+      "confidence": 1
+    },
+    {
+      "text": " if",
+      "startMs": 16510,
+      "endMs": 16626,
+      "timestampMs": 16568,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 16672,
+      "endMs": 16742,
+      "timestampMs": 16707,
+      "confidence": 1
+    },
+    {
+      "text": " draft",
+      "startMs": 16777,
+      "endMs": 17044,
+      "timestampMs": 16911,
+      "confidence": 1
+    },
+    {
+      "text": " changes.",
+      "startMs": 17078,
+      "endMs": 17729,
+      "timestampMs": 17404,
+      "confidence": 1
+    },
+    {
+      "text": " At",
+      "startMs": 18332,
+      "endMs": 18495,
+      "timestampMs": 18414,
+      "confidence": 1
+    },
+    {
+      "text": " For",
+      "startMs": 18541,
+      "endMs": 18646,
+      "timestampMs": 18594,
+      "confidence": 1
+    },
+    {
+      "text": " Signing,",
+      "startMs": 18692,
+      "endMs": 19203,
+      "timestampMs": 18948,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 19273,
+      "endMs": 19377,
+      "timestampMs": 19325,
+      "confidence": 1
+    },
+    {
+      "text": " owner",
+      "startMs": 19459,
+      "endMs": 19667,
+      "timestampMs": 19563,
+      "confidence": 1
+    },
+    {
+      "text": " either",
+      "startMs": 19726,
+      "endMs": 19946,
+      "timestampMs": 19836,
+      "confidence": 1
+    },
+    {
+      "text": " uploads",
+      "startMs": 20004,
+      "endMs": 20434,
+      "timestampMs": 20219,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 20469,
+      "endMs": 20529,
+      "timestampMs": 20499,
+      "confidence": 1
+    },
+    {
+      "text": " scanned",
+      "startMs": 20550,
+      "endMs": 20910,
+      "timestampMs": 20730,
+      "confidence": 1
+    },
+    {
+      "text": " signed",
+      "startMs": 20968,
+      "endMs": 21281,
+      "timestampMs": 21125,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F",
+      "startMs": 21351,
+      "endMs": 22024,
+      "timestampMs": 21688,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 22268,
+      "endMs": 22431,
+      "timestampMs": 22350,
+      "confidence": 1
+    },
+    {
+      "text": " launches",
+      "startMs": 22500,
+      "endMs": 22907,
+      "timestampMs": 22704,
+      "confidence": 1
+    },
+    {
+      "text": " In-App",
+      "startMs": 22988,
+      "endMs": 23325,
+      "timestampMs": 23157,
+      "confidence": 1
+    },
+    {
+      "text": " E-Signing",
+      "startMs": 23406,
+      "endMs": 23975,
+      "timestampMs": 23691,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 24184,
+      "endMs": 24288,
+      "timestampMs": 24236,
+      "confidence": 1
+    },
+    {
+      "text": " place",
+      "startMs": 24346,
+      "endMs": 24579,
+      "timestampMs": 24463,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 24613,
+      "endMs": 24673,
+      "timestampMs": 24643,
+      "confidence": 1
+    },
+    {
+      "text": " signature",
+      "startMs": 24683,
+      "endMs": 25101,
+      "timestampMs": 24892,
+      "confidence": 1
+    },
+    {
+      "text": " directly",
+      "startMs": 25136,
+      "endMs": 25554,
+      "timestampMs": 25345,
+      "confidence": 1
+    },
+    {
+      "text": " onto",
+      "startMs": 25623,
+      "endMs": 25867,
+      "timestampMs": 25745,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 25925,
+      "endMs": 25995,
+      "timestampMs": 25960,
+      "confidence": 1
+    },
+    {
+      "text": " approved",
+      "startMs": 26041,
+      "endMs": 26413,
+      "timestampMs": 26227,
+      "confidence": 1
+    },
+    {
+      "text": " draft.",
+      "startMs": 26436,
+      "endMs": 26993,
+      "timestampMs": 26715,
+      "confidence": 1
+    },
+    {
+      "text": " A",
+      "startMs": 27690,
+      "endMs": 27771,
+      "timestampMs": 27731,
+      "confidence": 1
+    },
+    {
+      "text": " Manager",
+      "startMs": 27853,
+      "endMs": 28212,
+      "timestampMs": 28033,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 28282,
+      "endMs": 28363,
+      "timestampMs": 28323,
+      "confidence": 1
+    },
+    {
+      "text": " C-E-O",
+      "startMs": 28421,
+      "endMs": 29106,
+      "timestampMs": 28764,
+      "confidence": 1
+    },
+    {
+      "text": " confirms",
+      "startMs": 29199,
+      "endMs": 29698,
+      "timestampMs": 29449,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 29733,
+      "endMs": 29793,
+      "timestampMs": 29763,
+      "confidence": 1
+    },
+    {
+      "text": " mark",
+      "startMs": 29849,
+      "endMs": 30047,
+      "timestampMs": 29948,
+      "confidence": 1
+    },
+    {
+      "text": " it",
+      "startMs": 30105,
+      "endMs": 30186,
+      "timestampMs": 30146,
+      "confidence": 1
+    },
+    {
+      "text": " Signed,",
+      "startMs": 30244,
+      "endMs": 30813,
+      "timestampMs": 30529,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 30987,
+      "endMs": 31161,
+      "timestampMs": 31074,
+      "confidence": 1
+    },
+    {
+      "text": " optional",
+      "startMs": 31208,
+      "endMs": 31591,
+      "timestampMs": 31400,
+      "confidence": 1
+    },
+    {
+      "text": " Notarized",
+      "startMs": 31660,
+      "endMs": 32229,
+      "timestampMs": 31945,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F",
+      "startMs": 32287,
+      "endMs": 32856,
+      "timestampMs": 32572,
+      "confidence": 1
+    },
+    {
+      "text": " upload,",
+      "startMs": 32937,
+      "endMs": 33541,
+      "timestampMs": 33239,
+      "confidence": 1
+    },
+    {
+      "text": " full",
+      "startMs": 33750,
+      "endMs": 33994,
+      "timestampMs": 33872,
+      "confidence": 1
+    },
+    {
+      "text": " Execution",
+      "startMs": 34075,
+      "endMs": 34621,
+      "timestampMs": 34348,
+      "confidence": 1
+    },
+    {
+      "text": " History,",
+      "startMs": 34691,
+      "endMs": 35248,
+      "timestampMs": 34970,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 35364,
+      "endMs": 35526,
+      "timestampMs": 35445,
+      "confidence": 1
+    },
+    {
+      "text": " post-signing",
+      "startMs": 35608,
+      "endMs": 36351,
+      "timestampMs": 35980,
+      "confidence": 1
+    },
+    {
+      "text": " Contract",
+      "startMs": 36420,
+      "endMs": 36850,
+      "timestampMs": 36635,
+      "confidence": 1
+    },
+    {
+      "text": " Amendments.",
+      "startMs": 36896,
+      "endMs": 37802,
+      "timestampMs": 37349,
+      "confidence": 1
+    }
+  ]
+}

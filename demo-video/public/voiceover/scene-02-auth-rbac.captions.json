@@ -1,0 +1,208 @@
+{
+  "displayNarration": "Access starts through SBSI's shared authentication gateway. Role-based isolation automatically routes Admins, Managers, and Sales staff to their dedicated portals — with granular permission controls across users and roles.",
+  "captions": [
+    {
+      "text": "Access",
+      "startMs": 0,
+      "endMs": 476,
+      "timestampMs": 238,
+      "confidence": 1
+    },
+    {
+      "text": " starts",
+      "startMs": 522,
+      "endMs": 894,
+      "timestampMs": 708,
+      "confidence": 1
+    },
+    {
+      "text": " through",
+      "startMs": 940,
+      "endMs": 1207,
+      "timestampMs": 1074,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I-s",
+      "startMs": 1265,
+      "endMs": 2415,
+      "timestampMs": 1840,
+      "confidence": 1
+    },
+    {
+      "text": " shared",
+      "startMs": 2659,
+      "endMs": 3030,
+      "timestampMs": 2845,
+      "confidence": 1
+    },
+    {
+      "text": " authentication",
+      "startMs": 3065,
+      "endMs": 3773,
+      "timestampMs": 3419,
+      "confidence": 1
+    },
+    {
+      "text": " gateway.",
+      "startMs": 3843,
+      "endMs": 4540,
+      "timestampMs": 4192,
+      "confidence": 1
+    },
+    {
+      "text": " Role-based",
+      "startMs": 5236,
+      "endMs": 5817,
+      "timestampMs": 5527,
+      "confidence": 1
+    },
+    {
+      "text": " isolation",
+      "startMs": 5875,
+      "endMs": 6444,
+      "timestampMs": 6160,
+      "confidence": 1
+    },
+    {
+      "text": " automatically",
+      "startMs": 6502,
+      "endMs": 7152,
+      "timestampMs": 6827,
+      "confidence": 1
+    },
+    {
+      "text": " routes",
+      "startMs": 7221,
+      "endMs": 7500,
+      "timestampMs": 7361,
+      "confidence": 1
+    },
+    {
+      "text": " Admins,",
+      "startMs": 7581,
+      "endMs": 8173,
+      "timestampMs": 7877,
+      "confidence": 1
+    },
+    {
+      "text": " Managers,",
+      "startMs": 8290,
+      "endMs": 8800,
+      "timestampMs": 8545,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 8824,
+      "endMs": 8916,
+      "timestampMs": 8870,
+      "confidence": 1
+    },
+    {
+      "text": " Sales",
+      "startMs": 8986,
+      "endMs": 9311,
+      "timestampMs": 9149,
+      "confidence": 1
+    },
+    {
+      "text": " staff",
+      "startMs": 9346,
+      "endMs": 9729,
+      "timestampMs": 9538,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 9938,
+      "endMs": 10043,
+      "timestampMs": 9991,
+      "confidence": 1
+    },
+    {
+      "text": " their",
+      "startMs": 10101,
+      "endMs": 10240,
+      "timestampMs": 10171,
+      "confidence": 1
+    },
+    {
+      "text": " dedicated",
+      "startMs": 10286,
+      "endMs": 10809,
+      "timestampMs": 10548,
+      "confidence": 1
+    },
+    {
+      "text": " portals",
+      "startMs": 10867,
+      "endMs": 11378,
+      "timestampMs": 11123,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 11494,
+      "endMs": 11554,
+      "timestampMs": 11524,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 11703,
+      "endMs": 11877,
+      "timestampMs": 11790,
+      "confidence": 1
+    },
+    {
+      "text": " granular",
+      "startMs": 11923,
+      "endMs": 12341,
+      "timestampMs": 12132,
+      "confidence": 1
+    },
+    {
+      "text": " permission",
+      "startMs": 12376,
+      "endMs": 12748,
+      "timestampMs": 12562,
+      "confidence": 1
+    },
+    {
+      "text": " controls",
+      "startMs": 12806,
+      "endMs": 13270,
+      "timestampMs": 13038,
+      "confidence": 1
+    },
+    {
+      "text": " across",
+      "startMs": 13317,
+      "endMs": 13595,
+      "timestampMs": 13456,
+      "confidence": 1
+    },
+    {
+      "text": " users",
+      "startMs": 13665,
+      "endMs": 13978,
+      "timestampMs": 13822,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 14013,
+      "endMs": 14106,
+      "timestampMs": 14060,
+      "confidence": 1
+    },
+    {
+      "text": " roles.",
+      "startMs": 14187,
+      "endMs": 14954,
+      "timestampMs": 14571,
+      "confidence": 1
+    }
+  ]
+}

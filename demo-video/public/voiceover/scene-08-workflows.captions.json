@@ -1,0 +1,390 @@
+{
+  "displayNarration": "Governance stays flexible per contract type. First, Admins configure Internal Approval steps — sequential or parallel — assigning the exact roles that must sign off before execution. Next, in Execution Reviewers, they assign who confirms each post-approval stage: SBSI Review, Client Review, For Signing — restricted to Manager or CEO — and optional Notarized PDF.",
+  "captions": [
+    {
+      "text": "Governance",
+      "startMs": 0,
+      "endMs": 488,
+      "timestampMs": 244,
+      "confidence": 1
+    },
+    {
+      "text": " stays",
+      "startMs": 511,
+      "endMs": 801,
+      "timestampMs": 656,
+      "confidence": 1
+    },
+    {
+      "text": " flexible",
+      "startMs": 848,
+      "endMs": 1324,
+      "timestampMs": 1086,
+      "confidence": 1
+    },
+    {
+      "text": " per",
+      "startMs": 1370,
+      "endMs": 1498,
+      "timestampMs": 1434,
+      "confidence": 1
+    },
+    {
+      "text": " contract",
+      "startMs": 1544,
+      "endMs": 1997,
+      "timestampMs": 1771,
+      "confidence": 1
+    },
+    {
+      "text": " type.",
+      "startMs": 2032,
+      "endMs": 2554,
+      "timestampMs": 2293,
+      "confidence": 1
+    },
+    {
+      "text": " First,",
+      "startMs": 3158,
+      "endMs": 3564,
+      "timestampMs": 3361,
+      "confidence": 1
+    },
+    {
+      "text": " Admins",
+      "startMs": 3622,
+      "endMs": 4063,
+      "timestampMs": 3843,
+      "confidence": 1
+    },
+    {
+      "text": " configure",
+      "startMs": 4110,
+      "endMs": 4551,
+      "timestampMs": 4331,
+      "confidence": 1
+    },
+    {
+      "text": " Internal",
+      "startMs": 4598,
+      "endMs": 5027,
+      "timestampMs": 4813,
+      "confidence": 1
+    },
+    {
+      "text": " Approval",
+      "startMs": 5062,
+      "endMs": 5457,
+      "timestampMs": 5260,
+      "confidence": 1
+    },
+    {
+      "text": " steps",
+      "startMs": 5515,
+      "endMs": 5898,
+      "timestampMs": 5707,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 6014,
+      "endMs": 6074,
+      "timestampMs": 6044,
+      "confidence": 1
+    },
+    {
+      "text": " sequential",
+      "startMs": 6200,
+      "endMs": 6769,
+      "timestampMs": 6485,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 6850,
+      "endMs": 6989,
+      "timestampMs": 6920,
+      "confidence": 1
+    },
+    {
+      "text": " parallel",
+      "startMs": 7059,
+      "endMs": 7546,
+      "timestampMs": 7303,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 7721,
+      "endMs": 7781,
+      "timestampMs": 7751,
+      "confidence": 1
+    },
+    {
+      "text": " assigning",
+      "startMs": 7883,
+      "endMs": 8371,
+      "timestampMs": 8127,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 8417,
+      "endMs": 8487,
+      "timestampMs": 8452,
+      "confidence": 1
+    },
+    {
+      "text": " exact",
+      "startMs": 8545,
+      "endMs": 8893,
+      "timestampMs": 8719,
+      "confidence": 1
+    },
+    {
+      "text": " roles",
+      "startMs": 8951,
+      "endMs": 9253,
+      "timestampMs": 9102,
+      "confidence": 1
+    },
+    {
+      "text": " that",
+      "startMs": 9288,
+      "endMs": 9404,
+      "timestampMs": 9346,
+      "confidence": 1
+    },
+    {
+      "text": " must",
+      "startMs": 9439,
+      "endMs": 9601,
+      "timestampMs": 9520,
+      "confidence": 1
+    },
+    {
+      "text": " sign",
+      "startMs": 9648,
+      "endMs": 9880,
+      "timestampMs": 9764,
+      "confidence": 1
+    },
+    {
+      "text": " off",
+      "startMs": 9927,
+      "endMs": 10043,
+      "timestampMs": 9985,
+      "confidence": 1
+    },
+    {
+      "text": " before",
+      "startMs": 10101,
+      "endMs": 10426,
+      "timestampMs": 10264,
+      "confidence": 1
+    },
+    {
+      "text": " execution.",
+      "startMs": 10472,
+      "endMs": 11343,
+      "timestampMs": 10908,
+      "confidence": 1
+    },
+    {
+      "text": " Next,",
+      "startMs": 11947,
+      "endMs": 12423,
+      "timestampMs": 12185,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 12469,
+      "endMs": 12597,
+      "timestampMs": 12533,
+      "confidence": 1
+    },
+    {
+      "text": " Execution",
+      "startMs": 12655,
+      "endMs": 13166,
+      "timestampMs": 12911,
+      "confidence": 1
+    },
+    {
+      "text": " Reviewers,",
+      "startMs": 13235,
+      "endMs": 13827,
+      "timestampMs": 13531,
+      "confidence": 1
+    },
+    {
+      "text": " they",
+      "startMs": 14002,
+      "endMs": 14164,
+      "timestampMs": 14083,
+      "confidence": 1
+    },
+    {
+      "text": " assign",
+      "startMs": 14199,
+      "endMs": 14524,
+      "timestampMs": 14362,
+      "confidence": 1
+    },
+    {
+      "text": " who",
+      "startMs": 14558,
+      "endMs": 14686,
+      "timestampMs": 14622,
+      "confidence": 1
+    },
+    {
+      "text": " confirms",
+      "startMs": 14744,
+      "endMs": 15232,
+      "timestampMs": 14988,
+      "confidence": 1
+    },
+    {
+      "text": " each",
+      "startMs": 15313,
+      "endMs": 15522,
+      "timestampMs": 15418,
+      "confidence": 1
+    },
+    {
+      "text": " post-approval",
+      "startMs": 15580,
+      "endMs": 16277,
+      "timestampMs": 15929,
+      "confidence": 1
+    },
+    {
+      "text": " stage:",
+      "startMs": 16346,
+      "endMs": 16927,
+      "timestampMs": 16637,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 17438,
+      "endMs": 18332,
+      "timestampMs": 17885,
+      "confidence": 1
+    },
+    {
+      "text": " Review,",
+      "startMs": 18448,
+      "endMs": 18947,
+      "timestampMs": 18698,
+      "confidence": 1
+    },
+    {
+      "text": " Client",
+      "startMs": 19098,
+      "endMs": 19470,
+      "timestampMs": 19284,
+      "confidence": 1
+    },
+    {
+      "text": " Review,",
+      "startMs": 19528,
+      "endMs": 19969,
+      "timestampMs": 19749,
+      "confidence": 1
+    },
+    {
+      "text": " For",
+      "startMs": 20050,
+      "endMs": 20201,
+      "timestampMs": 20126,
+      "confidence": 1
+    },
+    {
+      "text": " Signing",
+      "startMs": 20247,
+      "endMs": 20665,
+      "timestampMs": 20456,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 20781,
+      "endMs": 20841,
+      "timestampMs": 20811,
+      "confidence": 1
+    },
+    {
+      "text": " restricted",
+      "startMs": 21002,
+      "endMs": 21490,
+      "timestampMs": 21246,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 21524,
+      "endMs": 21584,
+      "timestampMs": 21554,
+      "confidence": 1
+    },
+    {
+      "text": " Manager",
+      "startMs": 21652,
+      "endMs": 22035,
+      "timestampMs": 21844,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 22105,
+      "endMs": 22233,
+      "timestampMs": 22169,
+      "confidence": 1
+    },
+    {
+      "text": " C-E-O",
+      "startMs": 22291,
+      "endMs": 22976,
+      "timestampMs": 22634,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 23150,
+      "endMs": 23210,
+      "timestampMs": 23180,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 23533,
+      "endMs": 23672,
+      "timestampMs": 23603,
+      "confidence": 1
+    },
+    {
+      "text": " optional",
+      "startMs": 23742,
+      "endMs": 24102,
+      "timestampMs": 23922,
+      "confidence": 1
+    },
+    {
+      "text": " Notarized",
+      "startMs": 24183,
+      "endMs": 24764,
+      "timestampMs": 24474,
+      "confidence": 1
+    },
+    {
+      "text": " P-D-F.",
+      "startMs": 24822,
+      "endMs": 25867,
+      "timestampMs": 25345,
+      "confidence": 1
+    }
+  ]
+}

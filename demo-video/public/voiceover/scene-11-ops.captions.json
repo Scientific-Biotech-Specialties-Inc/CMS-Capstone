@@ -1,0 +1,236 @@
+{
+  "displayNarration": "Find any record instantaneously with Meilisearch global search. Stay ahead of expirations with real-time notifications and email logs, maintain full accountability in the cross-service audit log, and tune contract rules in System Config.",
+  "captions": [
+    {
+      "text": "Find",
+      "startMs": 0,
+      "endMs": 302,
+      "timestampMs": 151,
+      "confidence": 1
+    },
+    {
+      "text": " any",
+      "startMs": 360,
+      "endMs": 499,
+      "timestampMs": 430,
+      "confidence": 1
+    },
+    {
+      "text": " record",
+      "startMs": 569,
+      "endMs": 894,
+      "timestampMs": 732,
+      "confidence": 1
+    },
+    {
+      "text": " instantaneously",
+      "startMs": 952,
+      "endMs": 1834,
+      "timestampMs": 1393,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 1881,
+      "endMs": 2020,
+      "timestampMs": 1951,
+      "confidence": 1
+    },
+    {
+      "text": " Meilisearch",
+      "startMs": 2078,
+      "endMs": 2682,
+      "timestampMs": 2380,
+      "confidence": 1
+    },
+    {
+      "text": " global",
+      "startMs": 2740,
+      "endMs": 3088,
+      "timestampMs": 2914,
+      "confidence": 1
+    },
+    {
+      "text": " search.",
+      "startMs": 3158,
+      "endMs": 3680,
+      "timestampMs": 3419,
+      "confidence": 1
+    },
+    {
+      "text": " Stay",
+      "startMs": 4122,
+      "endMs": 4365,
+      "timestampMs": 4244,
+      "confidence": 1
+    },
+    {
+      "text": " ahead",
+      "startMs": 4412,
+      "endMs": 4598,
+      "timestampMs": 4505,
+      "confidence": 1
+    },
+    {
+      "text": " of",
+      "startMs": 4644,
+      "endMs": 4704,
+      "timestampMs": 4674,
+      "confidence": 1
+    },
+    {
+      "text": " expirations",
+      "startMs": 4748,
+      "endMs": 5445,
+      "timestampMs": 5097,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 5492,
+      "endMs": 5619,
+      "timestampMs": 5556,
+      "confidence": 1
+    },
+    {
+      "text": " real-time",
+      "startMs": 5689,
+      "endMs": 6153,
+      "timestampMs": 5921,
+      "confidence": 1
+    },
+    {
+      "text": " notifications",
+      "startMs": 6200,
+      "endMs": 6954,
+      "timestampMs": 6577,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 7001,
+      "endMs": 7082,
+      "timestampMs": 7042,
+      "confidence": 1
+    },
+    {
+      "text": " email",
+      "startMs": 7152,
+      "endMs": 7488,
+      "timestampMs": 7320,
+      "confidence": 1
+    },
+    {
+      "text": " logs,",
+      "startMs": 7546,
+      "endMs": 8022,
+      "timestampMs": 7784,
+      "confidence": 1
+    },
+    {
+      "text": " maintain",
+      "startMs": 8348,
+      "endMs": 8777,
+      "timestampMs": 8563,
+      "confidence": 1
+    },
+    {
+      "text": " full",
+      "startMs": 8847,
+      "endMs": 9021,
+      "timestampMs": 8934,
+      "confidence": 1
+    },
+    {
+      "text": " accountability",
+      "startMs": 9056,
+      "endMs": 9752,
+      "timestampMs": 9404,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 9822,
+      "endMs": 9892,
+      "timestampMs": 9857,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 9927,
+      "endMs": 9996,
+      "timestampMs": 9962,
+      "confidence": 1
+    },
+    {
+      "text": " cross-service",
+      "startMs": 10031,
+      "endMs": 10623,
+      "timestampMs": 10327,
+      "confidence": 1
+    },
+    {
+      "text": " audit",
+      "startMs": 10658,
+      "endMs": 10948,
+      "timestampMs": 10803,
+      "confidence": 1
+    },
+    {
+      "text": " log,",
+      "startMs": 10995,
+      "endMs": 11389,
+      "timestampMs": 11192,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 11598,
+      "endMs": 11749,
+      "timestampMs": 11674,
+      "confidence": 1
+    },
+    {
+      "text": " tune",
+      "startMs": 11807,
+      "endMs": 12074,
+      "timestampMs": 11941,
+      "confidence": 1
+    },
+    {
+      "text": " contract",
+      "startMs": 12109,
+      "endMs": 12550,
+      "timestampMs": 12330,
+      "confidence": 1
+    },
+    {
+      "text": " rules",
+      "startMs": 12597,
+      "endMs": 12887,
+      "timestampMs": 12742,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 12957,
+      "endMs": 13061,
+      "timestampMs": 13009,
+      "confidence": 1
+    },
+    {
+      "text": " System",
+      "startMs": 13131,
+      "endMs": 13444,
+      "timestampMs": 13288,
+      "confidence": 1
+    },
+    {
+      "text": " Config.",
+      "startMs": 13514,
+      "endMs": 14350,
+      "timestampMs": 13932,
+      "confidence": 1
+    }
+  ]
+}

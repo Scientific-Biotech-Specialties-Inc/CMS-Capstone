@@ -1,0 +1,236 @@
+{
+  "displayNarration": "CMS connects the entire SBSI suite: syncing burn rates and vendors with SERMS, sharing products, institutions, and closing outcomes with PRS, and feeding live contracted equipment and customer data straight to Technical Service.",
+  "captions": [
+    {
+      "text": "C-M-S",
+      "startMs": 0,
+      "endMs": 743,
+      "timestampMs": 372,
+      "confidence": 1
+    },
+    {
+      "text": " connects",
+      "startMs": 952,
+      "endMs": 1289,
+      "timestampMs": 1121,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 1324,
+      "endMs": 1405,
+      "timestampMs": 1365,
+      "confidence": 1
+    },
+    {
+      "text": " entire",
+      "startMs": 1451,
+      "endMs": 1881,
+      "timestampMs": 1666,
+      "confidence": 1
+    },
+    {
+      "text": " S-B-S-I",
+      "startMs": 1962,
+      "endMs": 2717,
+      "timestampMs": 2340,
+      "confidence": 1
+    },
+    {
+      "text": " suite:",
+      "startMs": 2833,
+      "endMs": 3332,
+      "timestampMs": 3083,
+      "confidence": 1
+    },
+    {
+      "text": " syncing",
+      "startMs": 3715,
+      "endMs": 4098,
+      "timestampMs": 3907,
+      "confidence": 1
+    },
+    {
+      "text": " burn",
+      "startMs": 4168,
+      "endMs": 4412,
+      "timestampMs": 4290,
+      "confidence": 1
+    },
+    {
+      "text": " rates",
+      "startMs": 4470,
+      "endMs": 4725,
+      "timestampMs": 4598,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 4760,
+      "endMs": 4865,
+      "timestampMs": 4813,
+      "confidence": 1
+    },
+    {
+      "text": " vendors",
+      "startMs": 4934,
+      "endMs": 5259,
+      "timestampMs": 5097,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 5294,
+      "endMs": 5433,
+      "timestampMs": 5364,
+      "confidence": 1
+    },
+    {
+      "text": " SERMS,",
+      "startMs": 5480,
+      "endMs": 6014,
+      "timestampMs": 5747,
+      "confidence": 1
+    },
+    {
+      "text": " sharing",
+      "startMs": 6188,
+      "endMs": 6583,
+      "timestampMs": 6386,
+      "confidence": 1
+    },
+    {
+      "text": " products,",
+      "startMs": 6641,
+      "endMs": 7152,
+      "timestampMs": 6897,
+      "confidence": 1
+    },
+    {
+      "text": " institutions,",
+      "startMs": 7210,
+      "endMs": 8162,
+      "timestampMs": 7686,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 8313,
+      "endMs": 8464,
+      "timestampMs": 8389,
+      "confidence": 1
+    },
+    {
+      "text": " closing",
+      "startMs": 8533,
+      "endMs": 8882,
+      "timestampMs": 8708,
+      "confidence": 1
+    },
+    {
+      "text": " outcomes",
+      "startMs": 8963,
+      "endMs": 9427,
+      "timestampMs": 9195,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 9462,
+      "endMs": 9601,
+      "timestampMs": 9532,
+      "confidence": 1
+    },
+    {
+      "text": " P-R-S,",
+      "startMs": 9648,
+      "endMs": 10472,
+      "timestampMs": 10060,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 10681,
+      "endMs": 10832,
+      "timestampMs": 10757,
+      "confidence": 1
+    },
+    {
+      "text": " feeding",
+      "startMs": 10902,
+      "endMs": 11227,
+      "timestampMs": 11065,
+      "confidence": 1
+    },
+    {
+      "text": " live",
+      "startMs": 11308,
+      "endMs": 11575,
+      "timestampMs": 11442,
+      "confidence": 1
+    },
+    {
+      "text": " contracted",
+      "startMs": 11610,
+      "endMs": 12132,
+      "timestampMs": 11871,
+      "confidence": 1
+    },
+    {
+      "text": " equipment",
+      "startMs": 12179,
+      "endMs": 12608,
+      "timestampMs": 12394,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 12678,
+      "endMs": 12806,
+      "timestampMs": 12742,
+      "confidence": 1
+    },
+    {
+      "text": " customer",
+      "startMs": 12875,
+      "endMs": 13270,
+      "timestampMs": 13073,
+      "confidence": 1
+    },
+    {
+      "text": " data",
+      "startMs": 13328,
+      "endMs": 13711,
+      "timestampMs": 13520,
+      "confidence": 1
+    },
+    {
+      "text": " straight",
+      "startMs": 13955,
+      "endMs": 14303,
+      "timestampMs": 14129,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 14338,
+      "endMs": 14398,
+      "timestampMs": 14368,
+      "confidence": 1
+    },
+    {
+      "text": " Technical",
+      "startMs": 14466,
+      "endMs": 14861,
+      "timestampMs": 14664,
+      "confidence": 1
+    },
+    {
+      "text": " Service.",
+      "startMs": 14930,
+      "endMs": 15743,
+      "timestampMs": 15337,
+      "confidence": 1
+    }
+  ]
+}

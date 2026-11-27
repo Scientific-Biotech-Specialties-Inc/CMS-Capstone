@@ -1,0 +1,383 @@
+{
+  "displayNarration": "Every submission flows into Contract Requests — including recurring expenses escalated from SERMS. Assigned reviewers check the draft and AI risk flags, then record their decision in Your Internal Approval Tasks: approve to advance the chain, or reject with a mandatory reason. High-risk contracts stay gated until final internal approval clears — unlocking execution.",
+  "captions": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 348,
+      "timestampMs": 174,
+      "confidence": 1
+    },
+    {
+      "text": " submission",
+      "startMs": 395,
+      "endMs": 882,
+      "timestampMs": 639,
+      "confidence": 1
+    },
+    {
+      "text": " flows",
+      "startMs": 952,
+      "endMs": 1289,
+      "timestampMs": 1121,
+      "confidence": 1
+    },
+    {
+      "text": " into",
+      "startMs": 1347,
+      "endMs": 1509,
+      "timestampMs": 1428,
+      "confidence": 1
+    },
+    {
+      "text": " Contract",
+      "startMs": 1579,
+      "endMs": 2009,
+      "timestampMs": 1794,
+      "confidence": 1
+    },
+    {
+      "text": " Requests",
+      "startMs": 2078,
+      "endMs": 2647,
+      "timestampMs": 2363,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 2763,
+      "endMs": 2823,
+      "timestampMs": 2793,
+      "confidence": 1
+    },
+    {
+      "text": " including",
+      "startMs": 3088,
+      "endMs": 3553,
+      "timestampMs": 3321,
+      "confidence": 1
+    },
+    {
+      "text": " recurring",
+      "startMs": 3622,
+      "endMs": 4040,
+      "timestampMs": 3831,
+      "confidence": 1
+    },
+    {
+      "text": " expenses",
+      "startMs": 4098,
+      "endMs": 4667,
+      "timestampMs": 4383,
+      "confidence": 1
+    },
+    {
+      "text": " escalated",
+      "startMs": 4760,
+      "endMs": 5341,
+      "timestampMs": 5051,
+      "confidence": 1
+    },
+    {
+      "text": " from",
+      "startMs": 5387,
+      "endMs": 5515,
+      "timestampMs": 5451,
+      "confidence": 1
+    },
+    {
+      "text": " SERMS.",
+      "startMs": 5596,
+      "endMs": 6235,
+      "timestampMs": 5916,
+      "confidence": 1
+    },
+    {
+      "text": " Assigned",
+      "startMs": 6676,
+      "endMs": 7117,
+      "timestampMs": 6897,
+      "confidence": 1
+    },
+    {
+      "text": " reviewers",
+      "startMs": 7163,
+      "endMs": 7570,
+      "timestampMs": 7367,
+      "confidence": 1
+    },
+    {
+      "text": " check",
+      "startMs": 7628,
+      "endMs": 7860,
+      "timestampMs": 7744,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 7930,
+      "endMs": 7999,
+      "timestampMs": 7965,
+      "confidence": 1
+    },
+    {
+      "text": " draft",
+      "startMs": 8034,
+      "endMs": 8359,
+      "timestampMs": 8197,
+      "confidence": 1
+    },
+    {
+      "text": " and",
+      "startMs": 8406,
+      "endMs": 8487,
+      "timestampMs": 8447,
+      "confidence": 1
+    },
+    {
+      "text": " AI",
+      "startMs": 8557,
+      "endMs": 8835,
+      "timestampMs": 8696,
+      "confidence": 1
+    },
+    {
+      "text": " risk",
+      "startMs": 8916,
+      "endMs": 9149,
+      "timestampMs": 9033,
+      "confidence": 1
+    },
+    {
+      "text": " flags,",
+      "startMs": 9207,
+      "endMs": 9764,
+      "timestampMs": 9486,
+      "confidence": 1
+    },
+    {
+      "text": " then",
+      "startMs": 10089,
+      "endMs": 10298,
+      "timestampMs": 10194,
+      "confidence": 1
+    },
+    {
+      "text": " record",
+      "startMs": 10368,
+      "endMs": 10716,
+      "timestampMs": 10542,
+      "confidence": 1
+    },
+    {
+      "text": " their",
+      "startMs": 10751,
+      "endMs": 10890,
+      "timestampMs": 10821,
+      "confidence": 1
+    },
+    {
+      "text": " decision",
+      "startMs": 10937,
+      "endMs": 11331,
+      "timestampMs": 11134,
+      "confidence": 1
+    },
+    {
+      "text": " in",
+      "startMs": 11401,
+      "endMs": 11461,
+      "timestampMs": 11431,
+      "confidence": 1
+    },
+    {
+      "text": " Your",
+      "startMs": 11517,
+      "endMs": 11645,
+      "timestampMs": 11581,
+      "confidence": 1
+    },
+    {
+      "text": " Internal",
+      "startMs": 11691,
+      "endMs": 12086,
+      "timestampMs": 11889,
+      "confidence": 1
+    },
+    {
+      "text": " Approval",
+      "startMs": 12121,
+      "endMs": 12516,
+      "timestampMs": 12319,
+      "confidence": 1
+    },
+    {
+      "text": " Tasks:",
+      "startMs": 12574,
+      "endMs": 13212,
+      "timestampMs": 12893,
+      "confidence": 1
+    },
+    {
+      "text": " approve",
+      "startMs": 13723,
+      "endMs": 14129,
+      "timestampMs": 13926,
+      "confidence": 1
+    },
+    {
+      "text": " to",
+      "startMs": 14164,
+      "endMs": 14224,
+      "timestampMs": 14194,
+      "confidence": 1
+    },
+    {
+      "text": " advance",
+      "startMs": 14291,
+      "endMs": 14675,
+      "timestampMs": 14483,
+      "confidence": 1
+    },
+    {
+      "text": " the",
+      "startMs": 14709,
+      "endMs": 14791,
+      "timestampMs": 14750,
+      "confidence": 1
+    },
+    {
+      "text": " chain,",
+      "startMs": 14849,
+      "endMs": 15325,
+      "timestampMs": 15087,
+      "confidence": 1
+    },
+    {
+      "text": " or",
+      "startMs": 15441,
+      "endMs": 15592,
+      "timestampMs": 15517,
+      "confidence": 1
+    },
+    {
+      "text": " reject",
+      "startMs": 15650,
+      "endMs": 16021,
+      "timestampMs": 15836,
+      "confidence": 1
+    },
+    {
+      "text": " with",
+      "startMs": 16056,
+      "endMs": 16172,
+      "timestampMs": 16114,
+      "confidence": 1
+    },
+    {
+      "text": " a",
+      "startMs": 16207,
+      "endMs": 16267,
+      "timestampMs": 16237,
+      "confidence": 1
+    },
+    {
+      "text": " mandatory",
+      "startMs": 16277,
+      "endMs": 16730,
+      "timestampMs": 16504,
+      "confidence": 1
+    },
+    {
+      "text": " reason.",
+      "startMs": 16788,
+      "endMs": 17310,
+      "timestampMs": 17049,
+      "confidence": 1
+    },
+    {
+      "text": " High-risk",
+      "startMs": 17821,
+      "endMs": 18367,
+      "timestampMs": 18094,
+      "confidence": 1
+    },
+    {
+      "text": " contracts",
+      "startMs": 18448,
+      "endMs": 19017,
+      "timestampMs": 18733,
+      "confidence": 1
+    },
+    {
+      "text": " stay",
+      "startMs": 19133,
+      "endMs": 19377,
+      "timestampMs": 19255,
+      "confidence": 1
+    },
+    {
+      "text": " gated",
+      "startMs": 19435,
+      "endMs": 19783,
+      "timestampMs": 19609,
+      "confidence": 1
+    },
+    {
+      "text": " until",
+      "startMs": 19829,
+      "endMs": 20073,
+      "timestampMs": 19951,
+      "confidence": 1
+    },
+    {
+      "text": " final",
+      "startMs": 20143,
+      "endMs": 20456,
+      "timestampMs": 20300,
+      "confidence": 1
+    },
+    {
+      "text": " internal",
+      "startMs": 20526,
+      "endMs": 20932,
+      "timestampMs": 20729,
+      "confidence": 1
+    },
+    {
+      "text": " approval",
+      "startMs": 20967,
+      "endMs": 21350,
+      "timestampMs": 21159,
+      "confidence": 1
+    },
+    {
+      "text": " clears",
+      "startMs": 21420,
+      "endMs": 21826,
+      "timestampMs": 21623,
+      "confidence": 1
+    },
+    {
+      "text": " —",
+      "startMs": 21977,
+      "endMs": 22037,
+      "timestampMs": 22007,
+      "confidence": 1
+    },
+    {
+      "text": " unlocking",
+      "startMs": 22360,
+      "endMs": 22871,
+      "timestampMs": 22616,
+      "confidence": 1
+    },
+    {
+      "text": " execution.",
+      "startMs": 22929,
+      "endMs": 23963,
+      "timestampMs": 23446,
+      "confidence": 1
+    }
+  ]
+}
